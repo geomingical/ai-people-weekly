@@ -186,9 +186,12 @@ replaced task by task from here."
 - Consumes: Task 1 的骨架
 - Produces:
   - `runWeek(options: RunOptions): Promise<RunReport>`
-  - `interface RunDeps { fetchFeed; fetchArticlePage; classify; summarize; openAlex; now }`
-  - `interface RunPaths { sourcesPath; storiesPath; watermarksPath }`
+  - `interface RunDeps { fetchFeed; fetchArticle; classify; summarize; now }`
+  - `interface RunPaths { sourcesPath; storiesPath }`
   - 測試工具 `makeRun(overrides)`，回傳暫存目錄與斷言用的讀檔函式
+- **這個任務只抽取骨架「現在就有」的依賴。** `openAlex` 由 Task 7 加進 `RunDeps`，
+  `watermarksPath` 由 Task 13 加進 `RunPaths`，各自帶著自己的測試。
+  Task 2 不得引用它們 —— 否則這個任務在自己的位置上不可能通過。
 
 **為什麼這個任務排在這裡**：接下來每一個動到 `run.ts` 的任務（Task 3 的 fail-closed、
 Task 6 的拒絕數聚合、Task 8 的補摘要階段、Task 13 的 watermark）都需要在**真正的
@@ -196,12 +199,20 @@ Task 6 的拒絕數聚合、Task 8 的補摘要階段、Task 13 的 watermark）
 測的是各自的純函式，所以測試全綠、bug 還在。接縫必須在第一個改 `run.ts` 的任務**之前**
 就存在。
 
-**這個接縫最容易失敗的方式**（Codex 2026-08-25 指出，寫進驗收條件）：
-假物件重建了一套簡化流程，最後只證明 harness 自己是對的。
+**這個接縫最容易失敗的兩種方式**（Codex 2026-08-25 指出，寫進驗收條件）：
 
-**因此規則是：只准替換外部 I/O。** 可以替換的只有網路抓取、模型呼叫、檔案路徑與時鐘。
-篩選、補摘要淘汰、收錄、統計聚合、watermark 寫入**一律跑真的那一條**。
-斷言的對象是**磁碟上的產物與報告**，不是內部旗標。
+1. **假物件重建了一套簡化流程**，最後只證明 harness 自己是對的。
+2. **接縫抽得太高**，把輸入選擇、輸出驗證與可觀測性一起藏進依賴 —— 那不是替換 I/O，
+   那是搬走了正式流程的一部分。
+
+**因此規則是：接縫要壓到既有函式的真實契約上。**
+
+| 依賴 | 必須對齊的真實簽名 | 為什麼不能更高層 |
+|---|---|---|
+| `fetchFeed` | `safeFetch(url, allowedDomains, io)` | **`allowedDomains` 是 SSRF 邊界。** 介面上少掉它，正式 wrapper 只剩兩條路：拿掉白名單檢查，或在依賴內另建一套沒辦法按來源配置的規則。兩條都會重新打開任意 URL 與重新導向的路徑。 |
+| `fetchArticle` | `fetchArticleText(url, allowedDomains, io)` | 同上 |
+| `summarize` | `summarizeAll(inputs: SummaryInput[], providers)` → `SummarizeResult` | 既有 `main()` 自己組 `SummaryInput`、在 `fullText / articleText / summaryOriginal` 之間選來源文字（`run.ts:397`）、並把 `attempts`、`failures`、`errors` 寫進報告。這些**全部留在 `runWeek()` 裡**。接縫只替換模型呼叫本身，否則 Task 10 的輸入上限與備援就無法被驗證。 |
+| `classify` | `classifyAll(inputs, providers, timing)` | 同理 |
 
 - [ ] **Step 1: 先寫失敗的測試**
 
@@ -235,17 +246,6 @@ describe('the harness exercises the real pipeline, not a copy of it', () => {
     expect(stories[0].url).toBe('https://example.org/a');
   });
 
-  it('writes both state files on a clean run', async () => {
-    const run = await makeRun({
-      feeds: { s1: [{ title: 'A study', link: 'https://example.org/a',
-                      dcDate: '2026-08-20', summary: 'x'.repeat(600) }] },
-      verdicts: { relevant: true, topics: ['trust'] },
-    });
-    await run.execute();
-    expect(await run.readStories()).toHaveLength(1);
-    expect(Object.keys(await run.readWatermarks())).toContain('s1');
-  });
-
   it('writes nothing at all on a dry run', async () => {
     const run = await makeRun({
       dryRun: true,
@@ -256,12 +256,11 @@ describe('the harness exercises the real pipeline, not a copy of it', () => {
     const report = await run.execute();
     expect(report.storiesAdded).toBeGreaterThan(0);   // it decided to publish
     expect(await run.readStories()).toHaveLength(0);  // and wrote nothing
-    expect(await run.readWatermarks()).toEqual({});
   });
 
   // Proves the fake model is a fake MODEL, not a fake gate: the real
   // acceptance code still has to apply the verdict and the per-source cap.
-  it('applies the real per-source cap to the fake model's verdicts', async () => {
+  it('applies the real per-source cap to the fake model verdicts', async () => {
     const run = await makeRun({
       sources: { s1: { maxPerRun: 2 } },
       feeds: { s1: [1, 2, 3, 4].map((n) => ({
@@ -272,6 +271,63 @@ describe('the harness exercises the real pipeline, not a copy of it', () => {
     const report = await run.execute();
     expect(await run.readStories()).toHaveLength(2);
     expect(report.sources[0].rejectCounts['over-cap']).toBe(2);
+  });
+});
+
+describe('the seam does not weaken the SSRF boundary', () => {
+  // The allowlist is a parameter of the seam, so a test can prove the real
+  // check still runs. If this ever passes, the boundary has been moved into
+  // the dependency where nothing can configure it per source.
+  it('passes each source own allowlist to the fetcher', async () => {
+    const seen: { url: string; allowed: readonly string[] }[] = [];
+    const run = await makeRun({
+      sources: { s1: { officialDomains: ['example.org'] } },
+      feeds: { s1: [] },
+      onFetch: (url, allowed) => seen.push({ url, allowed }),
+    });
+    await run.execute();
+    expect(seen[0].allowed).toEqual(['example.org']);
+  });
+
+  it('rejects an item whose link left the source domain', async () => {
+    const run = await makeRun({
+      sources: { s1: { officialDomains: ['example.org'] } },
+      feeds: { s1: [{ title: 'Off domain', link: 'https://evil.example.net/a',
+                      dcDate: '2026-08-20', summary: 'x'.repeat(600) }] },
+      verdicts: { relevant: true, topics: ['trust'] },
+    });
+    const report = await run.execute();
+    expect(await run.readStories()).toHaveLength(0);
+    expect(report.sources[0].rejectCounts['off-domain']).toBe(1);
+  });
+});
+
+describe('summarization stays orchestrated by runWeek', () => {
+  // The seam replaces the model call, not the pipeline around it. This test
+  // fails if SummaryInput assembly is ever moved into the dependency.
+  it('prefers the feed body over the excerpt when building the model input', async () => {
+    const captured: { summary: string }[] = [];
+    const run = await makeRun({
+      feeds: { s1: [{ title: 'A study', link: 'https://example.org/a',
+                      dcDate: '2026-08-20', summary: 'short excerpt',
+                      contentEncoded: 'THE FULL BODY '.repeat(60) }] },
+      verdicts: { relevant: true, topics: ['trust'] },
+      onSummarize: (inputs) => captured.push(...inputs),
+    });
+    await run.execute();
+    expect(captured[0].summary).toContain('THE FULL BODY');
+  });
+
+  it('carries the summarizer failure count into the report', async () => {
+    const run = await makeRun({
+      feeds: { s1: [{ title: 'A study', link: 'https://example.org/a',
+                      dcDate: '2026-08-20', summary: 'x'.repeat(600) }] },
+      verdicts: { relevant: true, topics: ['trust'] },
+      summarizeFails: true,
+    });
+    const report = await run.execute();
+    expect(report.summaries.failed).toBe(1);
+    expect(report.summaries.succeeded).toBe(0);
   });
 });
 ```
@@ -292,23 +348,27 @@ Expected: FAIL — 找不到 `./harness`。
  * Everything this run reaches outside its own process.
  *
  * Only these may be replaced in a test. Screening, enrichment, acceptance, the
- * report aggregation and the watermark write all run for real — otherwise a
- * green test would only prove the test's own copy of the pipeline works.
+ * report aggregation and every write all run for real — otherwise a green test
+ * would only prove the test own copy of the pipeline works.
+ *
+ * Note what is NOT here: SummaryInput assembly, source-text selection, result
+ * validation, and the attempt/failure accounting. Those stay in runWeek. A seam
+ * that swallowed them would hide exactly the behaviour Task 10 has to verify.
  */
 export interface RunDeps {
-  fetchFeed: (url: string) => Promise<FetchResult>;
-  fetchArticlePage: (url: string) => Promise<string | null>;
+  /** Wraps safeFetch. `allowedDomains` stays in the signature because it IS
+   *  the SSRF boundary — see the table above. */
+  fetchFeed: (url: string, allowedDomains: readonly string[]) => Promise<FetchResult>;
+  fetchArticle: (url: string, allowedDomains: readonly string[]) => Promise<ArticleResult>;
   classify: typeof classifyAll;
-  summarize: (stories: readonly IngestedItem[]) => Promise<Map<string, MachineSummary>>;
-  openAlex: (query: { doi?: string | null; title?: string }) => Promise<OpenAlexResult>;
-  /** Injected so a fixture's dates do not rot as the calendar moves. */
+  summarize: typeof summarizeAll;
+  /** Injected so a fixture dates do not rot as the calendar moves. */
   now: () => Date;
 }
 
 export interface RunPaths {
   sourcesPath: string;
   storiesPath: string;
-  watermarksPath: string;
 }
 
 export interface RunOptions {
@@ -320,11 +380,48 @@ export interface RunOptions {
 
 export async function runWeek(options: RunOptions): Promise<RunReport> {
   // …the body of the current main(), with every direct fetch/model/path use
-  // replaced by options.deps and options.paths.
+  // replaced by options.deps and options.paths. Nothing else changes.
+}
+
+async function main(): Promise<void> {
+  const dryRun = process.argv.includes('--dry-run');
+  const report = await runWeek({
+    dryRun,
+    windowDays: parseWindowDays(process.argv),
+    paths: { sourcesPath: SOURCES_PATH, storiesPath: STORIES_PATH },
+    deps: {
+      fetchFeed: (url, allowedDomains) => safeFetch(url, allowedDomains, realIo),
+      fetchArticle: (url, allowedDomains) => fetchArticleText(url, allowedDomains, realIo),
+      classify: classifyAll,
+      summarize: summarizeAll,
+      now: () => new Date(),
+    },
+  });
+  process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+  process.exitCode = report.outcome === 'failed' ? 1 : 0;
 }
 ```
 
-- [ ] **Step 4: 寫 `pipeline/tests/harness.ts`**
+- [ ] **Step 4: 確認抽取沒有改變正式行為**
+
+抽取最容易出的錯是「測試路徑對了，正式路徑壞了」。三件事要親眼確認：
+
+```bash
+# 1. 乾跑仍然輸出一份報告，且不修改資料檔
+git stash list >/dev/null; cp src/data/stories.json /tmp/before.json
+npx tsx pipeline/src/run.ts --dry-run --since 7 > /tmp/report.json
+diff /tmp/before.json src/data/stories.json && echo "stories.json 未被修改 ✓"
+
+# 2. 報告是 stdout 上唯一的 JSON 文件
+node -e "JSON.parse(require('fs').readFileSync('/tmp/report.json','utf8')); console.log('報告可解析 ✓')"
+
+# 3. exit code 的語意沒變（完成或降級為 0）
+echo "exit code: $?"
+```
+
+Expected: 三項都符合。**`main()` 現在唯一的工作是組出真實依賴並印出結果。**
+
+- [ ] **Step 5: 寫 `pipeline/tests/harness.ts`**
 
 ```ts
 // A real run, with only its outside edges replaced.
@@ -338,6 +435,7 @@ import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { runWeek, type RunOptions } from '../src/run';
+import type { SummaryInput } from '../src/summarize/summarizer';
 import type { Story } from '../../src/domain/story';
 
 export interface FakeItem {
@@ -345,6 +443,8 @@ export interface FakeItem {
   link: string;
   dcDate?: string;
   summary?: string;
+  /** Set to give the item a feed body, so source-text selection can be tested. */
+  contentEncoded?: string;
   doi?: string;
 }
 
@@ -353,8 +453,8 @@ export interface HarnessOptions {
   windowDays?: number;
   now?: string;
   /**
-   * Reuse a previous run's temp directory, so the second run really does start
-   * from the first run's state files. Anything else would be simulating
+   * Reuse a previous run temp directory, so the second run really does start
+   * from the first run state files. Anything else would be simulating
    * continuity rather than testing it.
    */
   dir?: string;
@@ -366,9 +466,12 @@ export interface HarnessOptions {
   /** Ids the fake model refuses to answer for — an outage, not a verdict.
    *  `['*']` means it answers for nothing, which is what a full outage is. */
   undecided?: string[];
-  openAlex?: Partial<{ found: boolean; abstract: string | null; access: string; openUrl: string | null }>;
-  /** Sources whose fetch or parse fails, to test that failures preserve state. */
+  /** Sources whose fetch fails, to prove a failure preserves state. */
   fetchFails?: string[];
+  summarizeFails?: boolean;
+  /** Observation hooks. They record; they never change what the real code does. */
+  onFetch?: (url: string, allowedDomains: readonly string[]) => void;
+  onSummarize?: (inputs: readonly SummaryInput[]) => void;
 }
 
 const DEFAULT_SOURCE = {
@@ -389,10 +492,12 @@ function feedXml(items: readonly FakeItem[]): string {
       <link>${item.link}</link>
       <dc:date>${item.dcDate ?? '2026-08-20'}</dc:date>
       <description>${item.summary ?? 'x'.repeat(600)}</description>
+      ${item.contentEncoded ? `<content:encoded>${item.contentEncoded}</content:encoded>` : ''}
       ${item.doi ? `<dc:identifier>${item.doi}</dc:identifier>` : ''}
     </item>`).join('');
   return `<?xml version="1.0"?><rss version="2.0"
-    xmlns:dc="http://purl.org/dc/elements/1.1/"><channel>${entries}</channel></rss>`;
+    xmlns:dc="http://purl.org/dc/elements/1.1/"
+    xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel>${entries}</channel></rss>`;
 }
 
 export async function makeRun(options: HarnessOptions = {}) {
@@ -400,23 +505,23 @@ export async function makeRun(options: HarnessOptions = {}) {
   const paths = {
     sourcesPath: join(dir, 'sources.json'),
     storiesPath: join(dir, 'stories.json'),
-    watermarksPath: join(dir, 'feed-watermarks.json'),
   };
 
   const feeds = options.feeds ?? {};
-  const sources = Object.keys(feeds).length > 0 ? Object.keys(feeds) : ['s1'];
-  await writeFile(paths.sourcesPath, JSON.stringify(sources.map((id) => ({
+  const ids = Object.keys(feeds).length > 0 ? Object.keys(feeds) : ['s1'];
+  await writeFile(paths.sourcesPath, JSON.stringify(ids.map((id) => ({
     ...DEFAULT_SOURCE, id,
     feedUrl: `https://example.org/${id}/feed`,
     ...(options.sources?.[id] ?? {}),
   })), null, 2));
   // Only seed stories.json on a fresh directory: a reused one carries the
-  // previous run's output, which is the point of reusing it.
+  // previous run output, which is the point of reusing it.
   if (!options.dir) await writeFile(paths.storiesPath, '[]');
 
   const deps = {
-    fetchFeed: async (url: string) => {
-      const id = url.split('/')[3];
+    fetchFeed: async (url: string, allowedDomains: readonly string[]) => {
+      options.onFetch?.(url, allowedDomains);
+      const id = new URL(url).pathname.split('/')[1];
       if (options.fetchFails?.includes(id)) {
         return { url, finalUrl: url, status: null, body: null,
                  fetchedAt: new Date().toISOString(), error: 'network' as const, redirectChain: [] };
@@ -424,7 +529,10 @@ export async function makeRun(options: HarnessOptions = {}) {
       return { url, finalUrl: url, status: 200, body: feedXml(feeds[id] ?? []),
                fetchedAt: new Date().toISOString(), error: null, redirectChain: [] };
     },
-    fetchArticlePage: async () => null,
+    fetchArticle: async (url: string, allowedDomains: readonly string[]) => {
+      options.onFetch?.(url, allowedDomains);
+      return { text: null, title: null, error: 'not stubbed', status: null };
+    },
     classify: async (inputs: readonly { id: string }[]) => {
       const undecided = new Set(options.undecided ?? []);
       const answersNothing = undecided.has('*');
@@ -442,14 +550,21 @@ export async function makeRun(options: HarnessOptions = {}) {
         attempts: [], errors: [],
       };
     },
-    summarize: async (stories: readonly { id: string }[]) =>
-      new Map(stories.map((story) => [story.id, {
-        titleZhTW: '測試標題', summaryZhTW: '測試摘要。',
-      }])),
-    openAlex: async () => ({
-      found: true, abstract: null, access: 'unknown' as const, openUrl: null,
-      ...options.openAlex,
-    }),
+    // Matches summarizeAll: takes the assembled SummaryInput[], returns the
+    // full SummarizeResult. Input selection and accounting stay in runWeek.
+    summarize: async (inputs: readonly SummaryInput[]) => {
+      options.onSummarize?.(inputs);
+      if (options.summarizeFails) {
+        return { outputs: [], failures: inputs.length, errors: ['stubbed failure'],
+                 attempts: [], retriesUsed: 0 };
+      }
+      return {
+        outputs: inputs.map((input) => ({
+          id: input.id, titleZhTW: '測試標題', summaryZhTW: '測試摘要。',
+        })),
+        failures: 0, errors: [], attempts: [], retriesUsed: 0,
+      };
+    },
     now: () => new Date(options.now ?? '2026-08-25T00:00:00.000Z'),
   };
 
@@ -464,53 +579,40 @@ export async function makeRun(options: HarnessOptions = {}) {
     }),
     readStories: async (): Promise<Story[]> =>
       JSON.parse(await readFile(paths.storiesPath, 'utf8')),
-    readWatermarks: async (): Promise<Record<string, string[]>> => {
-      try {
-        return JSON.parse(await readFile(paths.watermarksPath, 'utf8'));
-      } catch {
-        return {};
-      }
-    },
   };
 }
 ```
 
-- [ ] **Step 5: 跑測試確認通過**
+- [ ] **Step 6: 跑測試確認通過**
 
 Run: `npx vitest run pipeline/tests/run-harness.test.ts`
 Expected: PASS
-
-- [ ] **Step 6: 確認 `main()` 仍然可用**
-
-抽取不得改變正式執行的行為。跑一次乾跑（不需要金鑰，摘要階段會跳過）：
-
-```bash
-npx tsx pipeline/src/run.ts --dry-run --since 7
-```
-
-Expected: 輸出一份 JSON 報告，`src/data/stories.json` 未被修改。
 
 - [ ] **Step 7: 提交**
 
 ```bash
 git add pipeline/src/run.ts pipeline/tests/harness.ts pipeline/tests/run-harness.test.ts
+git diff --cached --name-only   # confirm both test files are staged
 git commit -m "test: a run-level seam that exercises the real pipeline
 
 Every high-severity finding in three rounds of review landed on the
 orchestration path, and every test written for those fixes checked a
 pure function instead. The tests went green and the bugs stayed.
 
-Only the outside edges are replaceable here: network, model, paths and
-clock. Screening, enrichment, acceptance, report aggregation and the
-watermark write all run for real, and the assertions are on what
-reached disk rather than on internal flags. A harness that reimplements
-the pipeline would make every later test green and prove nothing, so
-the first tests in this file exist to prove it did not: an out-of-window
-item is dropped by the real screening code, and the real per-source cap
-still applies to the fake model's verdicts."
-```
+Only the outside edges are replaceable: network, model, paths, clock.
+Two things stay deliberately inside the seam. The per-source allowlist
+remains a parameter of fetchFeed and fetchArticle, because it is the
+SSRF boundary and a seam without it would push the check into a
+dependency that nothing can configure per source. And summarization is
+seamed at summarizeAll, not above it, so SummaryInput assembly, the
+choice between feed body and excerpt, and the attempt and failure
+accounting all stay in runWeek where Task 10 can verify them.
 
----
+The first tests exist to prove this is not a reimplementation: an
+out-of-window item is dropped by the real screening code, an off-domain
+link is refused by the real allowlist, and the real per-source cap
+still applies to the fake model verdicts."
+```
 
 ## Task 3: 主題詞彙與全站文案
 
@@ -866,71 +968,13 @@ classify-agent.ts:241 「there is a keyword answer standing behind every」
 前面那些測試只呼叫 `ingestSourceItems`，碰不到 `classifyAll → run → report`
 這條真正的生產路徑，所以攔不住上面那個矛盾。
 
-`pipeline/tests/run-fail-closed.test.ts`：
+**不要為此另外抽一個 `judgeRelevance`。** Task 2 的 `runWeek()` 已經是這條路徑的
+接縫；再挖一個洞只會多一個沒有人消費的介面，而且它只看得到需要模型判斷的候選，
+正好看不到這裡真正的矛盾 —— `relevanceMode: 'always'` 的來源在模型停擺時**照常
+發布**（Step 6 的第三個測試就是這樣要求的）。
 
-```ts
-import { describe, expect, it, vi } from 'vitest';
-import { judgeRelevance } from '../src/run';
-
-// judgeRelevance is the seam extracted from run.ts's relevance stage so this
-// path can be tested without a network or a clock. It returns the verdict map,
-// the undecided set, and the warnings the report will carry.
-
-describe('the relevance stage fails closed', () => {
-  const inputs = [
-    { id: 'a', title: 'A', excerpt: 'x', body: '', sourceName: 's' },
-    { id: 'b', title: 'B', excerpt: 'y', body: '', sourceName: 's' },
-  ];
-
-  it('publishes nothing and says so when no provider has a key', async () => {
-    const result = await judgeRelevance(inputs, [], { classify: vi.fn() });
-    expect(result.undecided.size).toBe(2);
-    expect(result.classified.size).toBe(0);
-    expect(result.warnings.join(' ')).toContain('model-gated');
-    expect(result.warnings.join(' ')).not.toMatch(/keyword/i);
-  });
-
-  it('publishes nothing when every provider times out', async () => {
-    const classify = vi.fn().mockResolvedValue({
-      decisions: new Map(), undecided: ['a', 'b'], attempts: [], errors: ['nvidia: timeout'],
-    });
-    const result = await judgeRelevance(inputs, [{ id: 'nvidia' }] as never, { classify });
-    expect(result.undecided.size).toBe(2);
-    expect(result.warnings.join(' ')).not.toMatch(/keyword/i);
-  });
-
-  // A partial answer must not quietly publish the half it could not judge.
-  it('leaves the unanswered half undecided when only one verdict comes back', async () => {
-    const classify = vi.fn().mockResolvedValue({
-      decisions: new Map([['a', { relevant: true, topics: ['trust'] }]]),
-      undecided: ['b'], attempts: [], errors: [],
-    });
-    const result = await judgeRelevance(inputs, [{ id: 'nvidia' }] as never, { classify });
-    expect(result.classified.has('a')).toBe(true);
-    expect(result.undecided.has('b')).toBe(true);
-  });
-
-  it('never uses the word keyword in any warning it produces', async () => {
-    const classify = vi.fn().mockResolvedValue({
-      decisions: new Map(), undecided: ['a', 'b'], attempts: [],
-      errors: ['nvidia: HTTP 503', 'groq: HTTP 429'],
-    });
-    const result = await judgeRelevance(inputs, [{ id: 'nvidia' }] as never, { classify });
-    for (const warning of result.warnings) expect(warning).not.toMatch(/keyword/i);
-  });
-});
-```
-
-`judgeRelevance` 已經由 Task 2 的 `runWeek()` 抽取涵蓋；這裡的測試直接呼叫它，
-驗證的是警告文字與 undecided 集合。
-
-**但只測 `judgeRelevance` 會固化一個矛盾**：它只收到需要模型判斷的候選，
-所以它說「沒有東西被發布」時，同一次執行裡 `relevanceMode: 'always'` 的來源
-可能正在照常發布。上面那個 `it('still publishes an always-relevant source...')`
-就是這樣要求的。
-
-**警告的措辭因此必須限定範圍**（已在 Step 9 改成 `model-gated candidates`），
-而且要用 harness 在完整的執行上驗證 —— 這是 `judgeRelevance` 單獨測不到的：
+所以警告的措辭必須限定範圍（Step 9 已改成 `model-gated candidates`），
+並在**完整的執行**上驗證：
 
 ```ts
 // pipeline/tests/run-outage.test.ts
@@ -961,7 +1005,7 @@ describe('a model outage reports itself honestly', () => {
     expect(warnings).not.toMatch(/nothing was published/i);
   });
 
-  it('the gated source shows its loss as undecided, not as irrelevant', async () => {
+  it('shows the gated loss as undecided, not as irrelevant', async () => {
     const run = await makeRun({
       sources: { gated: { relevanceMode: 'keyword' } },
       feeds: { gated: [{ title: 'Needs a verdict', link: 'https://example.org/b',
@@ -973,10 +1017,21 @@ describe('a model outage reports itself honestly', () => {
     expect(outcome.rejectCounts.undecided).toBe(1);
     expect(outcome.rejectCounts['not-relevant']).toBeUndefined();
   });
+
+  it('never says keyword in any warning it produces', async () => {
+    const run = await makeRun({
+      sources: { gated: { relevanceMode: 'keyword' } },
+      feeds: { gated: [{ title: 'Needs a verdict', link: 'https://example.org/b',
+                         dcDate: '2026-08-20' }] },
+      undecided: ['*'],
+    });
+    const report = await run.execute();
+    expect(await run.readStories()).toHaveLength(0);
+    for (const warning of report.warnings) expect(warning).not.toMatch(/keyword/i);
+  });
 });
 ```
 
-`harness.ts` 的 `undecided` 選項要支援 `'*'` 代表「模型對任何項目都不回答」。
 
 - [ ] **Step 11: 跑測試確認通過**
 
@@ -1092,8 +1147,9 @@ Expected: PASS。若 `astro check` 抱怨 `tests/unit/*.test.ts` 引用舊主題
 git add src/domain/story.ts src/domain/i18n.ts src/domain/format.ts \
         pipeline/src/classify.ts pipeline/tests/classify.test.ts \
         pipeline/src/ingest.ts pipeline/src/run.ts pipeline/src/classify-agent.ts \
-        pipeline/tests/ingest.test.ts pipeline/tests/run-fail-closed.test.ts \
+        pipeline/tests/ingest.test.ts pipeline/tests/run-outage.test.ts \
         tests/fixtures/stories.ts
+git diff --cached --name-only | grep run-outage   # the regression test must ship
 git commit -m "feat: seven human-impact tags, and a gate that fails closed
 
 Relevance no longer lives in classify.ts at all. The editorial line is
@@ -1976,7 +2032,8 @@ Expected: PASS
 
 ```bash
 git add pipeline/src/contracts.ts pipeline/src/ingest.ts pipeline/src/run.ts \
-        pipeline/tests/ingest.test.ts
+        pipeline/tests/ingest.test.ts pipeline/tests/run-reconciliation.test.ts
+git diff --cached --name-only | grep run-reconciliation   # the invariant must ship
 git commit -m "feat: per-item detail for rare rejections, and numbers that reconcile
 
 A count cannot tell a masthead page from a real study, and by the time
@@ -2442,7 +2499,37 @@ export async function enrichCandidate(
 Run: `npx vitest run pipeline/tests/enrich.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: 接進 `run.ts`，把補完排到守門之前**
+- [ ] **Step 5: 把 `openAlex` 加進 Task 2 的接縫**
+
+Task 2 的 `RunDeps` 刻意不含 `openAlex`，因為當時它還不存在。這個任務要把它加上去，
+並同步擴充 harness，否則後面的測試沒辦法在不打真實網路的情況下跑。
+
+`pipeline/src/run.ts`：
+
+```ts
+export interface RunDeps {
+  // …existing members…
+  /** Wraps openalex.lookup. Seamed at the lookup, not at the enrichment: the
+   *  three-rung ladder in enrich.ts must run for real. */
+  openAlex: (query: { doi?: string | null; title?: string }) => Promise<OpenAlexResult>;
+}
+```
+
+`main()` 傳入真實的 `lookup`；`pipeline/tests/harness.ts` 的 `HarnessOptions` 加上：
+
+```ts
+  /** What the fake OpenAlex returns. The ladder itself is not faked. */
+  openAlex?: Partial<OpenAlexResult>;
+```
+
+```ts
+    openAlex: async () => ({
+      found: true, abstract: null, access: 'unknown' as const, openUrl: null,
+      ...options.openAlex,
+    }),
+```
+
+- [ ] **Step 6: 接進 `run.ts`，把補完排到守門之前**
 
 在 `run.ts` 中，於收集 `candidates` 之後、呼叫 `classifyAll` 之前插入補完迴圈。
 補完結果寫進候選項目的 `summaryOriginal`（給守門模型讀，也是網站上要顯示的摘錄，
@@ -2452,7 +2539,7 @@ Expected: PASS
 
 節流：沿用既有的 `createHostPacer`，OpenAlex 每秒最多 4 次。
 
-- [ ] **Step 6: 確認補來的摘要不會整篇上網**
+- [ ] **Step 7: 確認補來的摘要不會整篇上網**
 
 **這一步是承重的，不是收尾。** 補完拿到的摘要有兩個用途，必須分開：
 
@@ -2475,12 +2562,12 @@ npx vitest run tests/unit/guards.test.ts
 **不是放寬 guard**。規格裡有數個來源的 `licenseNote` 寫著「只保留摘要與連結」，
 那是授權承諾，不是風格偏好。
 
-- [ ] **Step 7: 跑全部測試與建置**
+- [ ] **Step 8: 跑全部測試與建置**
 
 Run: `npm run verify`
 Expected: PASS
 
-- [ ] **Step 8: 提交**
+- [ ] **Step 9: 提交**
 
 ```bash
 git add pipeline/src/enrich.ts pipeline/tests/enrich.test.ts pipeline/src/run.ts
@@ -3181,7 +3268,34 @@ async function writeAtomic(path: string, contents: string): Promise<void> {
 stories 寫入失敗會讓 watermark 已經前移，那一週的內容既沒發布、也失去了重抓的
 連續性證據。
 
-- [ ] **Step 9: 接進 `run.ts`**
+- [ ] **Step 9: 把 `watermarksPath` 加進 Task 2 的接縫**
+
+Task 2 的 `RunPaths` 刻意只有 `sourcesPath` 與 `storiesPath`，因為 watermark
+當時還不存在。這個任務要把它加上去：
+
+```ts
+export interface RunPaths {
+  sourcesPath: string;
+  storiesPath: string;
+  /** Added here, not in Task 2: the baseline only exists from this task on. */
+  watermarksPath: string;
+}
+```
+
+`pipeline/tests/harness.ts` 的 `paths` 加上同名項目，並補一個
+`readWatermarks()` 讀檔函式；檔案不存在時回傳 `{}`，因為第一次執行本來就沒有基準：
+
+```ts
+    readWatermarks: async (): Promise<Record<string, string[]>> => {
+      try {
+        return JSON.parse(await readFile(paths.watermarksPath, 'utf8'));
+      } catch {
+        return {};
+      }
+    },
+```
+
+- [ ] **Step 10: 接進 `run.ts`**
 
 比較用舊值，寫入用新值，逐來源決定：
 
@@ -3200,7 +3314,7 @@ nextWatermarks[source.id] = shouldCommitWatermark({ dryRun, fetchOk, parseOk, cu
 `--dry-run` 一律不寫 `pipeline/state/feed-watermarks.json`，與它不寫
 `src/data/stories.json` 的理由完全相同。
 
-- [ ] **Step 10: 用 harness 測真正的寫入行為**
+- [ ] **Step 11: 用 harness 測真正的寫入行為**
 
 前面五個測試只證明一個布林函式回傳正確的布林值。**沒有任何東西證明 `run.ts` 有把
 旗標傳對、乾跑真的沒寫檔、或失敗的來源保住了舊值。** 這些只有跑真的那條路才測得到。
@@ -3296,16 +3410,18 @@ describe('the watermark survives everything that could erase it', () => {
 `harness.ts` 需要多支援一個 `dir` 選項，讓第二次執行沿用第一次的暫存目錄與狀態檔 ——
 這是「上一次執行留下的狀態」唯一誠實的模擬方式。
 
-- [ ] **Step 11: 跑測試確認通過**
+- [ ] **Step 12: 跑測試確認通過**
 
 Run: `npx vitest run pipeline/tests/watermark.test.ts pipeline/tests/run-watermark.test.ts`
 Expected: PASS
 
-- [ ] **Step 12: 提交**
+- [ ] **Step 13: 提交**
 
 ```bash
 git add pipeline/src/watermark.ts pipeline/tests/watermark.test.ts \
+        pipeline/tests/run-watermark.test.ts \
         pipeline/src/run.ts pipeline/state/feed-watermarks.json
+git diff --cached --name-only | grep run-watermark   # the state test must ship
 git commit -m "feat: warn when a short feed rotated completely between runs
 
 Nature and JMIR feeds hold eight to ten items, all of them recent. If
