@@ -725,3 +725,78 @@ Groq 的中文品質尚未驗證。沒有非換不可的理由時，不拿已證
 2. 實作時實測 Groq 上所選模型的繁體中文品質，把結果記進
    `pipeline/config/agents.json` 的註解。備援模型寫出來的中文如果不能用，
    那個備援就是假的。
+
+
+---
+
+## 12. 端到端實測（2026-08-25）
+
+在寫實作計畫之前，先用一次性的驗證腳本把整條線在真實資料上跑過一遍。
+**目的是證明設計可行，不是產出正式程式碼**；腳本是拋棄式的。
+
+取樣六個來源，涵蓋所有已知的格式怪癖：ScienceDirect（無摘要、散文日期、無 DOI）、
+Taylor & Francis（無摘要、DOI 帶網址參數）、ACM（無摘要）、
+Nature（RSS 1.0/RDF、需抓文章頁）、JMIR（Atom、feed 帶摘要）、
+arXiv 查詢 API（Atom、feed 帶摘要）。
+
+### 12.1 結果：全線通過
+
+| 關卡 | 結果 |
+|---|---|
+| 抓取 6 個 feed | 全部 HTTP 200，最慢 1.5 秒 |
+| 解析（RSS 2.0 / RDF / Atom） | 共 1,022 筆 |
+| 日期解析與時間窗 | 全部解析成功，491 筆正確判為窗外 |
+| 摘要補完 | **15 / 18 取得可用摘要** |
+| 守門模型 | 15 篇判定完成，收 6 篇 |
+| 中文摘要 | 6 篇全數產出 |
+| 完整故事記錄 | **6 筆，含 ISO 週次、標籤、開放取用狀態** |
+
+補摘要的三層都真的動起來了：T&F 的 feed 只給 **7 個字元**（比先前含標籤的量測還少），
+OpenAlex 用 DOI 補到 1,131 字元；ACM 補到 926–2,312 字元；ScienceDirect 3 篇中 2 篇
+以標題查到。3 筆補不到的被 `no-abstract` 擋下並記錄，經人工核對，那三篇分別是
+Comment 與 News & Views 短文，**本來就沒有摘要，擋對了**。
+
+### 12.2 守門判斷品質：6 篇明確正確，1 篇邊界
+
+正確擋掉的例子值得記錄，因為它們證明這條線抓得住微妙的差異：
+
+- 「Execution of Harm-Enabling Actions by LLM Agents During Simulated Psychiatric
+  Crises」→ 擋掉，理由「無真人參與，僅模型模擬審計」。這篇標題極度貼題，是本規格
+  第 3.1 節拿來當旗艦範例的那本期刊的頭條，**而它正是我們定義要排除的那一類**。
+- 「Parasocial Engagement With Social Media Influencers」→ 擋掉，理由「社媒網紅擬社會
+  關係，非 AI 系統互動」。主題是擬社會關係沒錯，但對象是真人網紅。
+- 「Association of Supportive Text Messaging…」→ 擋掉，簡訊介入不是 AI。
+
+**邊界案例，需要修正提示詞**：「Affective Context Amplifies Sycophancy in LLM
+Responses」被收錄。它用 Reddit 的真人貼文當素材去測七款模型的行為 —— 有真人的文字，
+但**被測量的是模型不是人**。而「AI writing assistants shrink linguistic diversity」
+分析 88 萬篇真人文本、測量的是人的寫作如何改變，應該收。
+
+兩者的差別不是「有沒有用到真人資料」，而是**測量對象是人還是模型**。
+守門提示詞要把這句話寫進去。
+
+### 12.3 實測發現的三個必修問題
+
+**一、中文摘要長度限制模型不遵守。** 提示詞要求 80–120 字，實際產出
+6 篇中有 5 篇超標，最長 **279 字**。
+修法照本專案既有的哲學 —— 約束解碼器而不是事後修補：在 JSON schema 的
+`summaryZhTW` 上加 `maxLength`，讓超長在生成階段就不可能發生。
+
+**二、標籤會重複。** 模型為了湊滿三個標籤，回傳
+`[cognition, cognition, cognition]`、`[sycophancy, sycophancy, sycophancy]`。
+收錄前必須去重，且不應要求湊滿三個。
+
+**三、NVIDIA 當下的 503 比率很高。** 實測每一個批次都先收到兩次
+「Service temporarily overloaded」，第三次才成功，第一批耗時 55 秒。
+**重試與供應商切換是承重機制，不是保險。** 第 11.5 節「NVIDIA 在前、Groq 備援」
+的決議因此更重要 —— 備援必須是真的能用的備援。
+
+### 12.4 順帶驗證到的
+
+- arXiv 與 Nature 的項目在 OpenAlex 查到的開放取用狀態是 `unknown`，
+  證實第 5.2 節「整本免費的期刊要在來源層標 `accessDefault: 'open'`」是必要的，
+  否則 arXiv 這種一律免費的來源會顯示成「未確認」。
+- `reasoning_effort: 'none'` 必須送出。第一次實測沒送，模型吐了一整段推理散文、
+  沒有 JSON，整批失敗。教育站的 `extractJsonEnvelope` 要一併沿用。
+- 驗證腳本位置（拋棄式，不進版本庫）：
+  `scratchpad/e2e/{lib,stage1,stage2,stage3}.mjs`
