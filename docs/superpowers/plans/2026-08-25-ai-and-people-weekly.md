@@ -181,6 +181,7 @@ replaced task by task from here."
 **Files:**
 - Modify: `src/domain/story.ts:16-25`、`src/domain/i18n.ts`、`src/domain/format.ts`
 - Create: `pipeline/src/classify.ts`（整檔重寫）、`pipeline/tests/classify.test.ts`
+- Modify: `pipeline/src/run.ts:35,319-323`、`pipeline/src/ingest.ts:10,299-305`（移除關鍵字退路）
 - Create: `tests/fixtures/stories.ts`
 
 **Interfaces:**
@@ -189,6 +190,8 @@ replaced task by task from here."
   - `TOPICS: readonly ['sycophancy','dependence','relationships','trust','wellbeing','cognition','social']`
   - `inferTopics(item: RawFeedItem): Topic[]`
   - `resolveTopics(item: RawFeedItem, defaultTopics: readonly Topic[]): Topic[]`
+  - **`isEducationRelevant` 不再存在。** `run.ts` 與 `ingest.ts` 都匯入它，兩處都要改。
+  - `REJECT_REASONS` 新增 `'undecided'`
 
 - [ ] **Step 1: 先寫失敗的測試**
 
@@ -371,7 +374,116 @@ export function resolveTopics(item: RawFeedItem, defaultTopics: readonly Topic[]
 Run: `npx vitest run pipeline/tests/classify.test.ts`
 Expected: PASS
 
-- [ ] **Step 6: 換掉主題標籤的中英文案**
+- [ ] **Step 6: 先寫「模型判不出來就不發」的失敗測試**
+
+**這一步比換詞表重要得多。** 複製過來的 `run.ts:319` 帶著這段註解與行為：
+
+```ts
+// Fallback: the deterministic rules, so a model outage degrades
+// judgement rather than stopping the week.
+return isEducationRelevant(candidate.raw)
+```
+
+教育站在模型掛掉時退回關鍵字規則**繼續發布**。那對「教育 + AI」是合理的，關鍵字判得
+出來。這個站不行：編輯界線是「測量對象是人還是模型」，沒有任何詞表判斷得出來。
+照抄那個退路，等於在模型掛掉的那一週，讓一批**沒有經過守門的論文自動上線** —— 而
+這個站的前提正是沒有人會在上線前看。
+
+正確行為是**失敗就不發**：判不出來的項目這一週不收，並在報告裡以自己的理由現身。
+少一週的內容是小事；發出一批沒守門的東西不是。
+
+加進 `pipeline/tests/ingest.test.ts`：
+
+```ts
+import { ingestSourceItems } from '../src/ingest';
+
+describe('fail-closed relevance', () => {
+  const source = {
+    id: 's', officialDomains: ['example.org'], region: 'GLOBAL', language: 'en' as const,
+    relevanceMode: 'keyword' as const, defaultTopics: ['trust' as const],
+    maxPerRun: 10, dateStrategy: 'dcdate' as const,
+  };
+  const item = {
+    title: 'A study of companion chatbots', link: 'https://example.org/a',
+    summary: 'x'.repeat(500), fullText: '', publishedAt: null,
+    publishedAtRaw: '2026-08-20', doi: null, guid: null,
+  };
+  const window = { start: new Date('2026-08-18'), end: new Date('2026-08-25') };
+
+  it('publishes nothing when the model reached no verdict', () => {
+    const result = ingestSourceItems(source, [item], window, new Set());
+    expect(result.accepted).toHaveLength(0);
+    expect(result.rejectCounts.undecided).toBe(1);
+  });
+
+  it('does not silently call it irrelevant — an outage is its own reason', () => {
+    const result = ingestSourceItems(source, [item], window, new Set());
+    expect(result.rejectCounts['not-relevant']).toBeUndefined();
+  });
+
+  it('still publishes an always-relevant source when the model is down', () => {
+    const result = ingestSourceItems({ ...source, relevanceMode: 'always' }, [item], window, new Set());
+    expect(result.accepted).toHaveLength(1);
+  });
+});
+```
+
+- [ ] **Step 7: 跑測試確認失敗**
+
+Run: `npx vitest run pipeline/tests/ingest.test.ts -t 'fail-closed'`
+Expected: FAIL — 目前會退回關鍵字規則，且 `undecided` 不是有效的拒絕理由。
+
+- [ ] **Step 8: 改成失敗就不發**
+
+`pipeline/src/ingest.ts` 第 10 行，移除 `isEducationRelevant`：
+
+```ts
+import { resolveTopics, type Topic } from './classify';
+```
+
+`REJECT_REASONS` 加入 `'undecided'`（Task 4 還會再加兩個）：
+
+```ts
+export const REJECT_REASONS = [
+  'no-title', 'bad-url', 'off-domain', 'no-date', 'future-dated',
+  'outside-window', 'not-relevant', 'undecided', 'duplicate', 'over-cap',
+] as const;
+```
+
+`ingestSourceItems` 內第 299-305 行的 verdict 函式換成：
+
+```ts
+    (candidate) => {
+      if (source.relevanceMode === 'always') {
+        return { relevant: true, topics: resolveTopics(candidate.raw, source.defaultTopics) };
+      }
+      // Fail closed. There is no deterministic fallback for this site's
+      // editorial line — "was a person measured, or a model" is not a question
+      // a word list can answer — and this site publishes without review. A
+      // week with fewer stories is a small loss; a week of unvetted papers
+      // going live unread is not.
+      return { relevant: false, topics: [], undecided: true };
+    },
+```
+
+`RelevanceVerdict` 加上 `undecided?: boolean`，並在 `acceptCandidates` 裡讓
+`undecided` 的項目以 `'undecided'` 而不是 `'not-relevant'` 記錄 —— 模型停擺不是
+「不相關」，把它記成不相關會讓一次停機在報告裡看起來像一個安靜的週末。
+
+`pipeline/src/run.ts` 第 35 行同樣移除該匯入，第 319-323 行換成：
+
+```ts
+        // Fail closed: see the note in ingest.ts. An undecided item waits for
+        // a week when the model answers, rather than being published unvetted.
+        return { relevant: false, topics: [], undecided: true };
+```
+
+- [ ] **Step 9: 跑測試確認通過**
+
+Run: `npx vitest run pipeline/tests/ingest.test.ts && npm run build`
+Expected: PASS。`astro check` 現在應該找不到任何 `isEducationRelevant` 的殘留引用。
+
+- [ ] **Step 10: 換掉主題標籤的中英文案**
 
 `src/domain/i18n.ts`，把 `topicPolicy` 到 `topicWorkforce` 那八行換成：
 
@@ -385,7 +497,7 @@ Expected: PASS
   topicSocial: { 'zh-tw': '社會行為', en: 'Social behaviour' },
 ```
 
-- [ ] **Step 7: 換掉站名與說明文案**
+- [ ] **Step 11: 換掉站名與說明文案**
 
 `src/domain/i18n.ts` 上方：
 
@@ -412,13 +524,13 @@ Expected: PASS
   },
 ```
 
-- [ ] **Step 8: 修好 `format.ts` 的主題對應**
+- [ ] **Step 12: 修好 `format.ts` 的主題對應**
 
 `src/domain/format.ts` 裡把主題 key 對應到訊息 key 的表換成新的七個。跑
 `npm run build`，`astro check` 會把每一個沒改到的地方指出來 —— 訊息型別是聯集，
 漏一個就是編譯錯誤，不是執行期問題。
 
-- [ ] **Step 9: 建立新的測試測資**
+- [ ] **Step 13: 建立新的測試測資**
 
 `tests/fixtures/stories.ts`：兩筆假故事，主題用新標籤，其餘欄位照 `storySchema`。
 
@@ -461,22 +573,31 @@ export const fixtureStories: Story[] = [
 ];
 ```
 
-- [ ] **Step 10: 跑全部測試與建置**
+- [ ] **Step 14: 跑全部測試與建置**
 
 Run: `npm test && npm run build`
 Expected: PASS。若 `astro check` 抱怨 `tests/unit/*.test.ts` 引用舊主題，把該檔案
 用新標籤改寫 —— 這些是通用邏輯測試，只有測資要換。
 
-- [ ] **Step 11: 提交**
+- [ ] **Step 15: 提交**
 
 ```bash
 git add src/domain/story.ts src/domain/i18n.ts src/domain/format.ts \
-        pipeline/src/classify.ts pipeline/tests/classify.test.ts tests/fixtures/stories.ts
-git commit -m "feat: replace the education topic vocabulary with seven human-impact tags
+        pipeline/src/classify.ts pipeline/tests/classify.test.ts \
+        pipeline/src/ingest.ts pipeline/src/run.ts pipeline/tests/ingest.test.ts \
+        tests/fixtures/stories.ts
+git commit -m "feat: seven human-impact tags, and a gate that fails closed
 
 Relevance no longer lives in classify.ts at all. The editorial line is
 'were real people measured', which no word list can decide, so this
-module now only tags; the gate is the model in classify-agent.ts."
+module only tags now.
+
+That also removes the inherited keyword fallback. The education site
+degraded to word matching when the model was down, which was sensible
+there. Here it would publish a week of unvetted papers on a site where
+nobody reads anything before it goes live. Undecided items are rejected
+under their own reason, so an outage looks like an outage in the report
+rather than like a quiet week."
 ```
 
 ---
@@ -737,8 +858,10 @@ schema now refuses a source that would fetch pages it may not."
 
 **Files:**
 - Create: `pipeline/src/published-at.ts`、`pipeline/tests/published-at.test.ts`
-- Modify: `pipeline/src/contracts.ts`（`RawFeedItem` 新增 `publishedAtRaw`）
-- Modify: `pipeline/src/feed-parser.ts`（保留原始日期字串）
+- Modify: `pipeline/src/contracts.ts`（`RawFeedItem` 新增 `publishedAtRaw`、`doi`）
+- Modify: `pipeline/src/feed-parser.ts`（**三個**建構子都要填：`parseRssItems`、
+  `parseAtomEntries`、`parseJsonFeed:185`）
+- Modify: `pipeline/tests/feed-parser.test.ts`
 - Modify: `pipeline/src/ingest.ts`（新增 `imprecise-date`）
 
 **Interfaces:**
@@ -847,18 +970,18 @@ Expected: FAIL — 找不到 `../src/published-at`。
   doi: string | null;
 ```
 
-`pipeline/src/feed-parser.ts` 同時填入這個欄位。DOI 可能出現在
-`<dc:identifier>`、`<prism:doi>`，或直接埋在 link 裡：
+- [ ] **Step 4: 三個解析器都要填新欄位，一個都不能漏**
+
+`RawFeedItem` 的欄位是**必填**的，而 `feed-parser.ts` 有**三個**建構子，每一個都被
+型別檢查成 `RawFeedItem`：`parseRssItems`（RSS 2.0 與 RSS 1.0/RDF 共用）、
+`parseAtomEntries`、以及 `parseJsonFeed`（第 185 行）。漏掉任何一個都編不過，
+而且就算硬繞過型別，該格式的來源也會失去日期精度與 DOI 補完。
+
+先加共用的 DOI 抽取函式。出版社把 DOI 放在好幾個不同的地方，而且沒有一個是一致的：
 
 ```ts
 /** Publishers put the DOI in several places and none of them consistently. */
-function readDoi(item: Record<string, unknown>): string | null {
-  const candidates = [
-    textOf(item['dc:identifier']),
-    textOf(item['prism:doi']),
-    textOf(item['link']),
-    textOf(item['guid']),
-  ];
+function readDoi(...candidates: string[]): string | null {
   for (const candidate of candidates) {
     const match = candidate.match(/10\.\d{4,}\/[^\s<"']+/);
     if (match) return match[0];
@@ -867,21 +990,85 @@ function readDoi(item: Record<string, unknown>): string | null {
 }
 ```
 
-- [ ] **Step 4: 在 `feed-parser.ts` 填入該欄位**
-
-在 `parseRssItems` 的回傳物件中：
+`parseRssItems` 的回傳物件加上：
 
 ```ts
         publishedAtRaw: firstNonEmpty(item['pubDate'], item['dc:date'], item['date']),
+        doi: readDoi(
+          textOf(item['dc:identifier']),
+          textOf(item['prism:doi']),
+          textOf(item['link']),
+          textOf(item['guid']),
+        ),
 ```
 
-在 `parseAtomEntries` 的回傳物件中：
+`parseAtomEntries` 的回傳物件加上：
 
 ```ts
         publishedAtRaw: firstNonEmpty(entry['published'], entry['updated']),
+        doi: readDoi(
+          textOf(entry['id']),
+          textOf(entry['dc:identifier']),
+          atomLink(entry),
+        ),
 ```
 
-- [ ] **Step 5: 寫 `pipeline/src/published-at.ts`**
+`parseJsonFeed` 的回傳物件加上（JSON Feed 的日期欄位是 `date_published`）：
+
+```ts
+      publishedAtRaw: typeof item['date_published'] === 'string' ? item['date_published'] : '',
+      doi: readDoi(
+        typeof item['id'] === 'string' ? item['id'] : '',
+        typeof item['url'] === 'string' ? item['url'] : '',
+        typeof item['external_url'] === 'string' ? item['external_url'] : '',
+      ),
+```
+
+- [ ] **Step 5: 三種格式各配一個測試**
+
+加進 `pipeline/tests/feed-parser.test.ts`：
+
+```ts
+describe('publishedAtRaw and doi across all three formats', () => {
+  it('keeps the raw date and DOI from RSS', () => {
+    const { items } = parseFeed(`<?xml version="1.0"?><rss version="2.0"><channel><item>
+      <title>A study</title><link>https://www.tandfonline.com/doi/full/10.1080/10447318.2025.2598113?af=R</link>
+      <dc:date>2026-08</dc:date></item></channel></rss>`);
+    expect(items[0].publishedAtRaw).toBe('2026-08');
+    expect(items[0].doi).toBe('10.1080/10447318.2025.2598113?af=R');
+  });
+
+  it('keeps the raw date and DOI from Atom', () => {
+    const { items } = parseFeed(`<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom"><entry>
+      <title>A study</title><id>https://doi.org/10.2196/12345</id>
+      <published>2026-08-21T11:45:12-04:00</published></entry></feed>`);
+    expect(items[0].publishedAtRaw).toBe('2026-08-21T11:45:12-04:00');
+    expect(items[0].doi).toBe('10.2196/12345');
+  });
+
+  it('keeps the raw date and DOI from a JSON Feed', () => {
+    const { items } = parseFeed(JSON.stringify({
+      items: [{ title: 'A study', url: 'https://example.org/10.1145/3803855',
+                date_published: '2026-08-08T11:45:26Z', id: 'x' }],
+    }));
+    expect(items[0].publishedAtRaw).toBe('2026-08-08T11:45:26Z');
+    expect(items[0].doi).toBe('10.1145/3803855');
+  });
+
+  // The raw value is deliberately uncleaned. cleanDoi in openalex.ts is the one
+  // place that knows how to strip the query strings publishers append.
+  it('does not clean the DOI here', () => {
+    const { items } = parseFeed(`<?xml version="1.0"?><rss version="2.0"><channel><item>
+      <title>t</title><link>https://x.org/10.1080/abc.123?af=R</link></item></channel></rss>`);
+    expect(items[0].doi).toContain('?af=R');
+  });
+});
+```
+
+Run: `npx vitest run pipeline/tests/feed-parser.test.ts`
+Expected: 先 FAIL（欄位不存在），實作後 PASS。
+
+- [ ] **Step 6: 寫 `pipeline/src/published-at.ts`**
 
 ```ts
 // Publication dates, one publisher at a time.
@@ -949,12 +1136,12 @@ export function resolvePublishedAt(strategy: DateStrategy, item: RawFeedItem): R
 }
 ```
 
-- [ ] **Step 6: 跑測試確認通過**
+- [ ] **Step 7: 跑測試確認通過**
 
 Run: `npx vitest run pipeline/tests/published-at.test.ts`
 Expected: PASS
 
-- [ ] **Step 7: 在 ingest 加入 `imprecise-date`**
+- [ ] **Step 8: 在 ingest 加入 `imprecise-date`**
 
 `pipeline/src/ingest.ts`，`REJECT_REASONS` 加入兩個新理由：
 
@@ -964,11 +1151,12 @@ export const REJECT_REASONS = [
   'bad-url',
   'off-domain',
   'no-date',
-  'imprecise-date',
+  'imprecise-date',   // new here
   'future-dated',
   'outside-window',
   'not-relevant',
-  'no-abstract',
+  'undecided',        // added in Task 2
+  'no-abstract',      // new here, used from Task 7
   'duplicate',
   'over-cap',
 ] as const;
@@ -992,17 +1180,18 @@ export const REJECT_REASONS = [
 
 `reject` 的簽名在 Task 5 一併擴充，這一步先讓它多接兩個參數並忽略。
 
-- [ ] **Step 8: 跑全部測試**
+- [ ] **Step 9: 跑全部測試**
 
 Run: `npm test`
 Expected: PASS。`pipeline/tests/ingest.test.ts` 會因為 `IngestSource` 多了必填欄位
 而失敗 —— 在每個測試的 source 物件加上 `dateStrategy: 'dcdate'`。
 
-- [ ] **Step 9: 提交**
+- [ ] **Step 10: 提交**
 
 ```bash
 git add pipeline/src/published-at.ts pipeline/tests/published-at.test.ts \
         pipeline/src/contracts.ts pipeline/src/feed-parser.ts \
+        pipeline/tests/feed-parser.test.ts \
         pipeline/src/ingest.ts pipeline/tests/ingest.test.ts
 git commit -m "feat: resolve publication dates per publisher, and never invent a day
 
@@ -2132,33 +2321,120 @@ stale answer forever."
 ## Task 12: 小 feed 翻頁警告
 
 **Files:**
+- Create: `pipeline/src/watermark.ts`、`pipeline/tests/watermark.test.ts`
 - Create: `pipeline/state/feed-watermarks.json`
 - Modify: `pipeline/src/run.ts`
+
+**Interfaces:**
+- Consumes: 無
+- Produces: `detectFeedGap(previousIds: readonly string[], currentIds: readonly string[]): string | null`
 
 **為什麼**：Nature 系列與 JMIR 的 feed 總長只有 8–10 筆，而且全部落在近 7 天內。
 它們是滾動視窗，翻頁速度可能比每週執行一次還快。若某週發表 15 篇，我們只會看到
 最新的 8 篇 —— **另外 7 篇不會出現在任何拒絕統計裡，因為它們根本沒進過管線**。
 這比日期問題更會漏稿，因為連被拒絕的痕跡都不留。
 
-- [ ] **Step 1: 實作**
+**不要只記最舊那一筆。** 初版計畫寫的是「記下最舊一筆，下次不在了就警告」。
+滾動式 feed 只要進來一篇新文章，最舊那筆就會被擠掉 —— **每一週都會警告**。
+一個每次都響的警報等於沒有警報，而且會把真正的漏稿蓋在雜訊底下。
 
-每次執行時，為每個來源記下該次 feed 中最舊一筆的 story id 與日期。
-下次執行時，若上次記下的那一筆**已經不在 feed 裡**，就在報告的 `warnings`
-加一行：
+正確的判準是**交集**：把上次看到的整組 id 存下來，只有當這次的 feed 與上次
+**完全沒有交集**時才警告。有任何一筆重疊，就證明兩次執行之間的內容是連續的，
+沒有東西掉在中間。
+
+- [ ] **Step 1: 先寫失敗的測試**
+
+`pipeline/tests/watermark.test.ts`：
+
+```ts
+import { describe, expect, it } from 'vitest';
+import { detectFeedGap } from '../src/watermark';
+
+describe('detectFeedGap', () => {
+  // The ordinary case: one new article arrives, the oldest is evicted. Nothing
+  // was lost, and warning here would make the warning worthless.
+  it('is silent on ordinary churn', () => {
+    expect(detectFeedGap(['a', 'b', 'c', 'd'], ['b', 'c', 'd', 'e'])).toBeNull();
+  });
+
+  it('is silent when a single item still overlaps', () => {
+    expect(detectFeedGap(['a', 'b', 'c', 'd'], ['d', 'e', 'f', 'g'])).toBeNull();
+  });
+
+  // No overlap: the feed turned over entirely, so items may have appeared and
+  // been evicted without ever being fetched.
+  it('warns when nothing overlaps', () => {
+    const gap = detectFeedGap(['a', 'b', 'c'], ['x', 'y', 'z']);
+    expect(gap).not.toBeNull();
+    expect(gap).toContain('no overlap');
+  });
+
+  it('is silent on the first run, when there is nothing to compare', () => {
+    expect(detectFeedGap([], ['a', 'b'])).toBeNull();
+  });
+
+  it('is silent when the feed is empty this run', () => {
+    expect(detectFeedGap(['a', 'b'], [])).toBeNull();
+  });
+});
+```
+
+- [ ] **Step 2: 跑測試確認失敗**
+
+Run: `npx vitest run pipeline/tests/watermark.test.ts`
+Expected: FAIL — 找不到 `../src/watermark`。
+
+- [ ] **Step 3: 實作 `pipeline/src/watermark.ts`**
+
+```ts
+// Detecting a feed that turned over completely between runs.
+//
+// Nature and JMIR feeds hold eight to ten items, all of them recent. If one
+// publishes more in a week than its feed can hold, the overflow is never
+// fetched at all: no rejection, no count, no trace. This is the only place that
+// loss can be made visible.
+//
+// The test is overlap, not the oldest item. The oldest item is the FIRST thing
+// evicted when even one new article arrives, so watching it would fire every
+// ordinary week — and a warning that always fires hides the one that matters.
+
+export function detectFeedGap(
+  previousIds: readonly string[],
+  currentIds: readonly string[],
+): string | null {
+  // Nothing to compare on a first run, and an empty fetch is a fetch failure
+  // that the source outcome already reports.
+  if (previousIds.length === 0 || currentIds.length === 0) return null;
+
+  const current = new Set(currentIds);
+  const overlaps = previousIds.some((id) => current.has(id));
+  if (overlaps) return null;
+
+  return `no overlap with the previous run's ${previousIds.length} items: the feed turned over completely, so anything published in the gap was never fetched`;
+}
+```
+
+- [ ] **Step 4: 跑測試確認通過**
+
+Run: `npx vitest run pipeline/tests/watermark.test.ts`
+Expected: PASS
+
+- [ ] **Step 5: 接進 `run.ts`**
+
+每次執行為每個來源存下這次 feed 的整組 story id 到
+`pipeline/state/feed-watermarks.json`，並把 `detectFeedGap` 的回傳值（若非 null）
+加進報告的 `warnings`，格式為：
 
 ```
-feed "nature-human-behaviour" rotated completely between runs: the oldest item
-seen last time (2026-08-18) is gone. Items published in the gap were never seen.
+feed "nature-human-behaviour": no overlap with the previous run's 8 items:
+the feed turned over completely, so anything published in the gap was never fetched
 ```
 
-- [ ] **Step 2: 加測試**
-
-驗證：水位仍在 feed 中 → 無警告；水位消失 → 有警告。
-
-- [ ] **Step 3: 提交**
+- [ ] **Step 6: 提交**
 
 ```bash
-git add pipeline/src/run.ts pipeline/state/feed-watermarks.json pipeline/tests/run.test.ts
+git add pipeline/src/watermark.ts pipeline/tests/watermark.test.ts \
+        pipeline/src/run.ts pipeline/state/feed-watermarks.json
 git commit -m "feat: warn when a short feed rotated completely between runs
 
 Nature and JMIR feeds hold eight to ten items, all of them recent. If
