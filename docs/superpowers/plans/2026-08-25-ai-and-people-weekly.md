@@ -478,12 +478,130 @@ export const REJECT_REASONS = [
         return { relevant: false, topics: [], undecided: true };
 ```
 
-- [ ] **Step 9: 跑測試確認通過**
+- [ ] **Step 9: 改掉會在事故當下說謊的警告字串**
 
-Run: `npx vitest run pipeline/tests/ingest.test.ts && npm run build`
-Expected: PASS。`astro check` 現在應該找不到任何 `isEducationRelevant` 的殘留引用。
+**光改行為不夠。** 基底 `run.ts` 還有兩處警告，以及 `classify-agent.ts` 的契約註解，
+都還在宣稱「退回關鍵字規則」：
 
-- [ ] **Step 10: 換掉主題標籤的中英文案**
+```
+run.ts:289            `${result.undecided.length} candidates fell back to keyword relevance
+                       because no provider answered`
+run.ts:293            'relevance judged by keyword rules: no model provider has a key'
+run.ts:236（註解）     // --- relevance: judged by model, keyword rules as the fallback ---
+classify-agent.ts:159 「fails the whole batch and the caller falls back to the keyword rules」
+classify-agent.ts:237 「the caller applies the keyword rules to those」
+classify-agent.ts:241 「there is a keyword answer standing behind every」
+```
+
+改成失敗就不發之後，**模型全掛的那一週，報告會說「已用關鍵字規則判定」，
+實際上一篇都沒發。** 這是在事故當下對著讀報告的人說謊 —— 而讀報告的人正是要靠它
+判斷這週為什麼是空的。
+
+`run.ts:236` 的段落註解換成：
+
+```ts
+  // --- relevance: judged by model, and by nothing else ---
+  //
+  // There is no fallback. This site's editorial line is whether a person or a
+  // model was measured, which no word list can answer, and it publishes without
+  // review. An unanswered candidate waits for a week when the model answers.
+```
+
+`run.ts:289` 換成：
+
+```ts
+      warnings.push(
+        `${result.undecided.length} candidates were not published: no provider returned a verdict`,
+      );
+```
+
+`run.ts:293` 換成：
+
+```ts
+    warnings.push(
+      'no model provider has a key: nothing was judged, so nothing was published this run',
+    );
+```
+
+`classify-agent.ts` 的三處契約註解改成說明呼叫端會 fail closed。
+
+- [ ] **Step 10: 加 run 層整合測試 —— 單元測試碰不到這條路**
+
+前面那些測試只呼叫 `ingestSourceItems`，碰不到 `classifyAll → run → report`
+這條真正的生產路徑，所以攔不住上面那個矛盾。
+
+`pipeline/tests/run-fail-closed.test.ts`：
+
+```ts
+import { describe, expect, it, vi } from 'vitest';
+import { judgeRelevance } from '../src/run';
+
+// judgeRelevance is the seam extracted from run.ts's relevance stage so this
+// path can be tested without a network or a clock. It returns the verdict map,
+// the undecided set, and the warnings the report will carry.
+
+describe('the relevance stage fails closed', () => {
+  const inputs = [
+    { id: 'a', title: 'A', excerpt: 'x', body: '', sourceName: 's' },
+    { id: 'b', title: 'B', excerpt: 'y', body: '', sourceName: 's' },
+  ];
+
+  it('publishes nothing and says so when no provider has a key', async () => {
+    const result = await judgeRelevance(inputs, [], { classify: vi.fn() });
+    expect(result.undecided.size).toBe(2);
+    expect(result.classified.size).toBe(0);
+    expect(result.warnings.join(' ')).toContain('nothing was published');
+    expect(result.warnings.join(' ')).not.toMatch(/keyword/i);
+  });
+
+  it('publishes nothing when every provider times out', async () => {
+    const classify = vi.fn().mockResolvedValue({
+      decisions: new Map(), undecided: ['a', 'b'], attempts: [], errors: ['nvidia: timeout'],
+    });
+    const result = await judgeRelevance(inputs, [{ id: 'nvidia' }] as never, { classify });
+    expect(result.undecided.size).toBe(2);
+    expect(result.warnings.join(' ')).not.toMatch(/keyword/i);
+  });
+
+  // A partial answer must not quietly publish the half it could not judge.
+  it('leaves the unanswered half undecided when only one verdict comes back', async () => {
+    const classify = vi.fn().mockResolvedValue({
+      decisions: new Map([['a', { relevant: true, topics: ['trust'] }]]),
+      undecided: ['b'], attempts: [], errors: [],
+    });
+    const result = await judgeRelevance(inputs, [{ id: 'nvidia' }] as never, { classify });
+    expect(result.classified.has('a')).toBe(true);
+    expect(result.undecided.has('b')).toBe(true);
+  });
+
+  it('never uses the word keyword in any warning it produces', async () => {
+    const classify = vi.fn().mockResolvedValue({
+      decisions: new Map(), undecided: ['a', 'b'], attempts: [],
+      errors: ['nvidia: HTTP 503', 'groq: HTTP 429'],
+    });
+    const result = await judgeRelevance(inputs, [{ id: 'nvidia' }] as never, { classify });
+    for (const warning of result.warnings) expect(warning).not.toMatch(/keyword/i);
+  });
+});
+```
+
+實作上把 `run.ts` 第 262-295 行那段抽成一個匯出的 `judgeRelevance(inputs, providers, deps)`，
+回傳 `{ classified, undecided, warnings }`。**這是為了可測試性而做的最小抽取**，
+不是重構 —— 搬動的是同一段程式碼，行為不變。
+
+- [ ] **Step 11: 跑測試確認通過**
+
+Run: `npx vitest run pipeline/tests/ && npm run build`
+Expected: PASS。另外確認殘留字串已清乾淨：
+
+```bash
+grep -rin "keyword" pipeline/src/ | grep -v "^pipeline/src/classify.ts"
+```
+
+Expected: 只剩下解釋「為什麼這裡沒有關鍵字退路」的註解，不得有任何宣稱
+「已使用關鍵字規則」的執行期訊息。
+
+- [ ] **Step 12: 換掉主題標籤的中英文案**
 
 `src/domain/i18n.ts`，把 `topicPolicy` 到 `topicWorkforce` 那八行換成：
 
@@ -497,7 +615,7 @@ Expected: PASS。`astro check` 現在應該找不到任何 `isEducationRelevant`
   topicSocial: { 'zh-tw': '社會行為', en: 'Social behaviour' },
 ```
 
-- [ ] **Step 11: 換掉站名與說明文案**
+- [ ] **Step 13: 換掉站名與說明文案**
 
 `src/domain/i18n.ts` 上方：
 
@@ -524,13 +642,13 @@ Expected: PASS。`astro check` 現在應該找不到任何 `isEducationRelevant`
   },
 ```
 
-- [ ] **Step 12: 修好 `format.ts` 的主題對應**
+- [ ] **Step 14: 修好 `format.ts` 的主題對應**
 
 `src/domain/format.ts` 裡把主題 key 對應到訊息 key 的表換成新的七個。跑
 `npm run build`，`astro check` 會把每一個沒改到的地方指出來 —— 訊息型別是聯集，
 漏一個就是編譯錯誤，不是執行期問題。
 
-- [ ] **Step 13: 建立新的測試測資**
+- [ ] **Step 15: 建立新的測試測資**
 
 `tests/fixtures/stories.ts`：兩筆假故事，主題用新標籤，其餘欄位照 `storySchema`。
 
@@ -573,18 +691,19 @@ export const fixtureStories: Story[] = [
 ];
 ```
 
-- [ ] **Step 14: 跑全部測試與建置**
+- [ ] **Step 16: 跑全部測試與建置**
 
 Run: `npm test && npm run build`
 Expected: PASS。若 `astro check` 抱怨 `tests/unit/*.test.ts` 引用舊主題，把該檔案
 用新標籤改寫 —— 這些是通用邏輯測試，只有測資要換。
 
-- [ ] **Step 15: 提交**
+- [ ] **Step 17: 提交**
 
 ```bash
 git add src/domain/story.ts src/domain/i18n.ts src/domain/format.ts \
         pipeline/src/classify.ts pipeline/tests/classify.test.ts \
-        pipeline/src/ingest.ts pipeline/src/run.ts pipeline/tests/ingest.test.ts \
+        pipeline/src/ingest.ts pipeline/src/run.ts pipeline/src/classify-agent.ts \
+        pipeline/tests/ingest.test.ts pipeline/tests/run-fail-closed.test.ts \
         tests/fixtures/stories.ts
 git commit -m "feat: seven human-impact tags, and a gate that fails closed
 
@@ -597,7 +716,12 @@ degraded to word matching when the model was down, which was sensible
 there. Here it would publish a week of unvetted papers on a site where
 nobody reads anything before it goes live. Undecided items are rejected
 under their own reason, so an outage looks like an outage in the report
-rather than like a quiet week."
+rather than like a quiet week.
+
+The warnings had to change with the behaviour. Two of them still said
+relevance had fallen back to keyword rules, which during an outage
+would tell whoever reads the report that judging happened when nothing
+was published at all."
 ```
 
 ---
@@ -1316,28 +1440,130 @@ export interface RejectDetail {
 
 ```ts
     outcome.rejectCounts = screened.rejectCounts as Record<string, number>;
-    outcome.itemsRejected = Object.values(screened.rejectCounts).reduce((a, b) => a + b, 0);
+    outcome.itemsRejected = sumCounts(screened.rejectCounts);
     outcome.rejectDetails = screened.rejected;
 ```
 
 以及初始化 outcome 的地方（第 149 行附近）加上 `rejectDetails: [],`。
 
-- [ ] **Step 4: 跑測試確認通過**
+- [ ] **Step 4: 修好第二階段的計數 —— 這是這個任務真正的坑**
+
+`rejected` 現在只保留稀有理由，但 `run.ts:333` 仍然用它的長度來累加總數：
+
+```ts
+      outcome.itemsRejected += accepted.rejected.length;   // ← 現在永遠是 0
+```
+
+收錄階段產出的是 `not-relevant`、`undecided`、`over-cap`，**一個都不在明細集合裡**。
+照舊寫法，每週幾百篇被守門刷掉的論文會在報告上顯示成「拒絕 0 篇」，
+而 Task 13 要拿這份報告去對照規格的成本預估 —— **量測會系統性失真**。
+
+同一行下面還有一個既有的錯誤：
+
+```ts
+      outcome.rejectCounts = { ...outcome.rejectCounts, ...accepted.rejectCounts };
+```
+
+`duplicate` **兩個階段都會產生**，物件展開是覆寫不是相加，所以收錄階段的
+duplicate 數會直接蓋掉篩選階段的。這在教育站就已經錯了，只是沒有不變量去撞它。
+
+兩處一起改：
+
+```ts
+/** Reject counts add up; they do not replace each other. `duplicate` is
+ *  produced by both the screening and the acceptance stage. */
+function mergeCounts(
+  left: Record<string, number>,
+  right: Record<string, number>,
+): Record<string, number> {
+  const merged = { ...left };
+  for (const [reason, count] of Object.entries(right)) {
+    merged[reason] = (merged[reason] ?? 0) + count;
+  }
+  return merged;
+}
+
+function sumCounts(counts: Record<string, number>): number {
+  return Object.values(counts).reduce((total, count) => total + count, 0);
+}
+```
+
+```ts
+      outcome.itemsAccepted = accepted.accepted.length;
+      outcome.itemsRejected += sumCounts(accepted.rejectCounts as Record<string, number>);
+      outcome.rejectCounts = mergeCounts(
+        outcome.rejectCounts,
+        accepted.rejectCounts as Record<string, number>,
+      );
+      outcome.rejectDetails = [...outcome.rejectDetails, ...accepted.rejected];
+```
+
+- [ ] **Step 5: 加對帳不變量測試**
+
+這條不變量是報告可信的唯一保證。加進 `pipeline/tests/ingest.test.ts`：
+
+```ts
+describe('the numbers must reconcile', () => {
+  const source = {
+    id: 's', officialDomains: ['example.org'], region: 'GLOBAL', language: 'en' as const,
+    relevanceMode: 'always' as const, defaultTopics: ['trust' as const],
+    maxPerRun: 2, dateStrategy: 'dcdate' as const,
+  };
+  const window = { start: new Date('2026-08-18'), end: new Date('2026-08-25') };
+  const item = (n: number, over = {}) => ({
+    title: `Study ${n}`, link: `https://example.org/${n}`, summary: 'x'.repeat(500),
+    fullText: '', publishedAt: null, publishedAtRaw: '2026-08-20', doi: null, guid: null, ...over,
+  });
+
+  it('screening: seen equals candidates plus every rejection', () => {
+    const items = [item(1), item(2, { publishedAtRaw: '2026-08' }), item(3, { title: '' })];
+    const screened = screenSourceItems(source, items, window, new Set());
+    const rejected = Object.values(screened.rejectCounts).reduce((a, b) => a + b, 0);
+    expect(screened.candidates.length + rejected).toBe(items.length);
+  });
+
+  // The cap is 2, so the third candidate must appear as over-cap rather than
+  // simply going missing from the arithmetic.
+  it('acceptance: candidates equals accepted plus every rejection', () => {
+    const result = ingestSourceItems(source, [item(1), item(2), item(3)], window, new Set());
+    const rejected = Object.values(result.rejectCounts).reduce((a, b) => a + b, 0);
+    expect(result.accepted.length + rejected).toBe(3);
+  });
+
+  it('counts from both stages add rather than overwrite', () => {
+    const merged = mergeCounts({ duplicate: 3, 'no-date': 1 }, { duplicate: 2, 'over-cap': 4 });
+    expect(merged).toEqual({ duplicate: 5, 'no-date': 1, 'over-cap': 4 });
+  });
+});
+```
+
+- [ ] **Step 6: 跑測試確認通過**
 
 Run: `npx vitest run pipeline/tests/ingest.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: 提交**
+- [ ] **Step 7: 提交**
 
 ```bash
 git add pipeline/src/contracts.ts pipeline/src/ingest.ts pipeline/src/run.ts \
         pipeline/tests/ingest.test.ts
-git commit -m "feat: keep per-item detail for the rare rejections
+git commit -m "feat: per-item detail for rare rejections, and numbers that reconcile
 
 A count cannot tell a masthead page from a real study, and by the time
 a count draws attention the item may have rotated out of the feed. The
 report is on disk, so the URL survives. High-volume reasons stay as
-counts: a log nobody reads is not observability."
+counts: a log nobody reads is not observability.
+
+Shrinking the detail list broke the totals, because the runner counted
+rejections by the length of that list. Every not-relevant and undecided
+item would have vanished from the report — hundreds a week, shown as
+zero, on the report the cost measurements are read from. Totals now sum
+the histogram at both stages.
+
+Merging the two stages' histograms with object spread also silently
+overwrote `duplicate`, which both stages produce. That was wrong in the
+education project too; nothing had ever checked the arithmetic. The
+reconciliation test does."
 ```
 
 ---
@@ -2419,18 +2645,110 @@ export function detectFeedGap(
 Run: `npx vitest run pipeline/tests/watermark.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: 接進 `run.ts`**
+- [ ] **Step 5: 先寫「什麼時候才可以寫入 watermark」的失敗測試**
 
-每次執行為每個來源存下這次 feed 的整組 story id 到
-`pipeline/state/feed-watermarks.json`，並把 `detectFeedGap` 的回傳值（若非 null）
-加進報告的 `warnings`，格式為：
+**這裡有一個會自我毀滅的陷阱。** 初版寫的是「每次執行都存下這次的整組 id」，
+同時 `detectFeedGap` 對空的 `currentIds` 靜默回 null。兩件事湊在一起的後果是：
 
+- 抓取失敗或解析失敗的那一週，會把有效基準**覆寫成空陣列**。
+- 下一次成功抓取時 `previousIds` 是空的，被當成「第一次執行」而不警告。
+- 中間那段到底有沒有整組翻頁，**永遠查不出來了**。
+
+而 Task 13 要跑 `--dry-run`，如果乾跑也寫入，一次乾跑就會毀掉唯一的連續性證據。
+
+**一個為了偵測漏稿而存在的機制，不能自己抹掉證據。**
+
+`pipeline/tests/watermark.test.ts` 補上：
+
+```ts
+import { shouldCommitWatermark } from '../src/watermark';
+
+describe('shouldCommitWatermark', () => {
+  const ok = { dryRun: false, fetchOk: true, parseOk: true, currentIds: ['a'] };
+
+  it('commits after a clean run', () => {
+    expect(shouldCommitWatermark(ok)).toBe(true);
+  });
+
+  it('never commits on a dry run', () => {
+    expect(shouldCommitWatermark({ ...ok, dryRun: true })).toBe(false);
+  });
+
+  it('keeps the old baseline when the fetch failed', () => {
+    expect(shouldCommitWatermark({ ...ok, fetchOk: false })).toBe(false);
+  });
+
+  it('keeps the old baseline when the parse failed', () => {
+    expect(shouldCommitWatermark({ ...ok, parseOk: false })).toBe(false);
+  });
+
+  // The one that matters: an empty fetch must not erase the evidence.
+  it('keeps the old baseline when the feed came back empty', () => {
+    expect(shouldCommitWatermark({ ...ok, currentIds: [] })).toBe(false);
+  });
+});
 ```
-feed "nature-human-behaviour": no overlap with the previous run's 8 items:
-the feed turned over completely, so anything published in the gap was never fetched
+
+- [ ] **Step 6: 跑測試確認失敗**
+
+Run: `npx vitest run pipeline/tests/watermark.test.ts -t shouldCommitWatermark`
+Expected: FAIL — `shouldCommitWatermark` 尚未匯出。
+
+- [ ] **Step 7: 實作提交契約**
+
+加進 `pipeline/src/watermark.ts`：
+
+```ts
+export interface WatermarkCommitCheck {
+  dryRun: boolean;
+  fetchOk: boolean;
+  parseOk: boolean;
+  currentIds: readonly string[];
+}
+
+/**
+ * When the baseline may be replaced.
+ *
+ * Every condition here exists because failing it would destroy the only
+ * evidence this module produces. An empty or failed fetch overwriting a good
+ * baseline makes the NEXT run look like a first run, and the question "did the
+ * feed turn over in between" becomes permanently unanswerable. A dry run that
+ * writes state is not a dry run.
+ */
+export function shouldCommitWatermark(check: WatermarkCommitCheck): boolean {
+  if (check.dryRun) return false;
+  if (!check.fetchOk || !check.parseOk) return false;
+  return check.currentIds.length > 0;
+}
 ```
 
-- [ ] **Step 6: 提交**
+- [ ] **Step 8: 接進 `run.ts`**
+
+比較用舊值，寫入用新值，而且**寫入只在整次 run 走到最後才發生**（與
+`stories.json` 同一個階段），這樣中途失敗不會留下半套狀態：
+
+```ts
+// Compare against the stored baseline before anything can overwrite it.
+const gap = detectFeedGap(previousIds[source.id] ?? [], currentIds);
+if (gap) warnings.push(`feed "${source.id}": ${gap}`);
+
+// Stage the update; it is written only if the whole run completes.
+if (shouldCommitWatermark({ dryRun, fetchOk, parseOk, currentIds })) {
+  nextWatermarks[source.id] = currentIds;
+} else {
+  nextWatermarks[source.id] = previousIds[source.id] ?? [];
+}
+```
+
+`--dry-run` 一律不寫 `pipeline/state/feed-watermarks.json`，與它不寫
+`src/data/stories.json` 的理由完全相同。
+
+- [ ] **Step 9: 跑測試確認通過**
+
+Run: `npx vitest run pipeline/tests/watermark.test.ts`
+Expected: PASS
+
+- [ ] **Step 10: 提交**
 
 ```bash
 git add pipeline/src/watermark.ts pipeline/tests/watermark.test.ts \
@@ -2440,7 +2758,18 @@ git commit -m "feat: warn when a short feed rotated completely between runs
 Nature and JMIR feeds hold eight to ten items, all of them recent. If
 one turns over faster than the weekly run, the items in the gap are
 never seen at all — no rejection, no count, no trace. This is the only
-way that loss becomes visible."
+way that loss becomes visible.
+
+The test is overlap, not the oldest item. The oldest item is the first
+thing evicted when a single new article arrives, so watching it would
+fire every ordinary week, and a warning that always fires hides the one
+that matters.
+
+The baseline is replaced only after a clean, non-dry run that actually
+returned items. Letting an empty or failed fetch overwrite it would
+make the next run look like a first run, and whether the feed turned
+over in between would become permanently unanswerable — the mechanism
+would erase the evidence it exists to preserve."
 ```
 
 ---
