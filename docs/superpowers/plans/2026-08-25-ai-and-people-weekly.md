@@ -28,6 +28,19 @@
 - **不得加入廣告、聯盟連結、評分、排名、引用數、影響因子、讀者帳號或分析追蹤。**
 - **不得把 Ming 的 email 送給任何外部服務**（OpenAlex 的 `mailto` 參數也不行）。
 - **git 一律指定明確路徑。** 不得 `git add .` 或 `git add -A`。
+- **`pipeline/tests/harness.ts` 是跨任務共用的檔案**（Task 2 建立，Task 8 加
+  `openAlex`，Task 13 加 `watermarksPath` 與 `readWatermarks`）。**任何修改它的任務
+  都必須把它列進自己的 Files 與 `git add` 清單。** 漏掉的話，工作樹裡 `npm run verify`
+  會過，但乾淨 checkout 少了那個擴充 —— 所有經由 `makeRun` 的測試會編不過。
+- **驗證要對「暫存後的快照」跑，不是對工作樹跑。** 每個任務提交前：
+
+  ```bash
+  git stash push --keep-index --include-untracked   # 把沒 staged 的東西暫時收走
+  npm run verify                                     # 這才是別人 checkout 會拿到的狀態
+  git stash pop
+  ```
+
+  這是唯一能抓到「忘了 stage 某個檔案」的方法，而這份計畫已經因為這個原因錯過三次。
 - 主題標籤固定為七個：`sycophancy`、`dependence`、`relationships`、`trust`、`wellbeing`、`cognition`、`social`。
 - 網站名稱：中文「AI 與人週報」，英文 "AI and People Weekly"，路徑 `ai-people-weekly`。
 - 摘要模型輸入上限 **6,000 字元**（本站摘要的是 abstract，不是新聞全文）。
@@ -189,7 +202,7 @@ replaced task by task from here."
   - `interface RunDeps { fetchFeed; fetchArticle; classify; summarize; now }`
   - `interface RunPaths { sourcesPath; storiesPath }`
   - 測試工具 `makeRun(overrides)`，回傳暫存目錄與斷言用的讀檔函式
-- **這個任務只抽取骨架「現在就有」的依賴。** `openAlex` 由 Task 7 加進 `RunDeps`，
+- **這個任務只抽取骨架「現在就有」的依賴。** `openAlex` 由 Task 8 加進 `RunDeps`，
   `watermarksPath` 由 Task 13 加進 `RunPaths`，各自帶著自己的測試。
   Task 2 不得引用它們 —— 否則這個任務在自己的位置上不可能通過。
 
@@ -276,17 +289,37 @@ describe('the harness exercises the real pipeline, not a copy of it', () => {
 
 describe('the seam does not weaken the SSRF boundary', () => {
   // The allowlist is a parameter of the seam, so a test can prove the real
-  // check still runs. If this ever passes, the boundary has been moved into
-  // the dependency where nothing can configure it per source.
-  it('passes each source own allowlist to the fetcher', async () => {
+  // check still receives it. Two sources with DIFFERENT allowlists: with one
+  // source, a wrapper that passed a hardcoded list would still pass.
+  it('gives each source its own allowlist, for feeds and article pages alike', async () => {
     const seen: { url: string; allowed: readonly string[] }[] = [];
     const run = await makeRun({
-      sources: { s1: { officialDomains: ['example.org'] } },
-      feeds: { s1: [] },
+      sources: {
+        alpha: { officialDomains: ['alpha.example'], abstractStrategy: 'article-page',
+                 articlePageAllowed: true },
+        beta: { officialDomains: ['beta.example'] },
+      },
+      feeds: {
+        alpha: [{ title: 'Needs its page read', link: 'https://alpha.example/a',
+                  dcDate: '2026-08-20', summary: 'Volume 42, Issue 16' }],
+        beta: [{ title: 'Has an abstract', link: 'https://beta.example/b',
+                 dcDate: '2026-08-20', summary: 'x'.repeat(600) }],
+      },
+      verdicts: { relevant: true, topics: ['trust'] },
       onFetch: (url, allowed) => seen.push({ url, allowed }),
     });
     await run.execute();
-    expect(seen[0].allowed).toEqual(['example.org']);
+
+    const forAlpha = seen.filter((call) => call.url.includes('alpha'));
+    const forBeta = seen.filter((call) => call.url.includes('beta'));
+    expect(forAlpha.length).toBeGreaterThan(0);
+    expect(forBeta.length).toBeGreaterThan(0);
+    for (const call of forAlpha) expect(call.allowed).toEqual(['alpha.example']);
+    for (const call of forBeta) expect(call.allowed).toEqual(['beta.example']);
+
+    // The article page fetch is the one most easily forgotten. Prove it happened
+    // AND that it carried the allowlist.
+    expect(forAlpha.some((call) => call.url === 'https://alpha.example/a')).toBe(true);
   });
 
   it('rejects an item whose link left the source domain', async () => {
@@ -332,12 +365,30 @@ describe('summarization stays orchestrated by runWeek', () => {
 });
 ```
 
-- [ ] **Step 2: 跑測試確認失敗**
+- [ ] **Step 2: 確認重新導向的邊界仍有測試守著**
+
+**上面那些測試證明不了重新導向。** harness 的假 fetcher 不會執行 `safeFetch`，
+所以「抓取過程中被 302 導到別的網域」這條路徑，run 層永遠測不到 —— 它只能在
+`fetcher.ts` 自己的測試裡測。
+
+那些測試是骨架帶過來的，這一步只是確認它們還在、還有效，因為接縫改動之後
+最容易發生的事，就是「run 層看起來有測 SSRF，於是沒人再看 fetcher 層」：
+
+```bash
+npx vitest run pipeline/tests/fetcher.test.ts
+grep -c "redirect" pipeline/tests/fetcher.test.ts
+```
+
+Expected: 測試全綠，且確實存在重新導向相關的案例（初始 URL 合法但
+`finalUrl` 落在白名單外時必須被拒絕）。**若沒有，就在這裡補上**，不要留到之後 ——
+接縫剛動過，正是最需要它的時候。
+
+- [ ] **Step 3: 跑測試確認失敗**
 
 Run: `npx vitest run pipeline/tests/run-harness.test.ts`
 Expected: FAIL — 找不到 `./harness`。
 
-- [ ] **Step 3: 把 `run.ts` 的 `main()` 拆成注入式的 `runWeek()`**
+- [ ] **Step 4: 把 `run.ts` 的 `main()` 拆成注入式的 `runWeek()`**
 
 **這是為了可測試性而做的最小抽取，不是重構。** 搬動的是同一段程式碼，行為不變：
 `main()` 留下讀 argv、從環境組出真實依賴、印出報告、設定 exit code；其餘全部移進
@@ -402,7 +453,7 @@ async function main(): Promise<void> {
 }
 ```
 
-- [ ] **Step 4: 確認抽取沒有改變正式行為**
+- [ ] **Step 5: 確認抽取沒有改變正式行為**
 
 抽取最容易出的錯是「測試路徑對了，正式路徑壞了」。三件事要親眼確認：
 
@@ -421,7 +472,7 @@ echo "exit code: $?"
 
 Expected: 三項都符合。**`main()` 現在唯一的工作是組出真實依賴並印出結果。**
 
-- [ ] **Step 5: 寫 `pipeline/tests/harness.ts`**
+- [ ] **Step 6: 寫 `pipeline/tests/harness.ts`**
 
 ```ts
 // A real run, with only its outside edges replaced.
@@ -583,12 +634,12 @@ export async function makeRun(options: HarnessOptions = {}) {
 }
 ```
 
-- [ ] **Step 6: 跑測試確認通過**
+- [ ] **Step 7: 跑測試確認通過**
 
 Run: `npx vitest run pipeline/tests/run-harness.test.ts`
 Expected: PASS
 
-- [ ] **Step 7: 提交**
+- [ ] **Step 8: 提交**
 
 ```bash
 git add pipeline/src/run.ts pipeline/tests/harness.ts pipeline/tests/run-harness.test.ts
@@ -2003,22 +2054,12 @@ describe('every source's numbers reconcile in the report', () => {
     expect(outcome.itemsSeen).toBe(outcome.itemsAccepted + sumCounts(outcome.rejectCounts));
   });
 
-  // Added when Task 8 lands: the enrichment stage must not fall out of the sum.
-  it('counts the no-abstract stage too', async () => {
-    const run = await makeRun({
-      sources: { s1: { abstractStrategy: 'openalex' } },
-      feeds: { s1: [{ title: 'No abstract anywhere', link: 'https://example.org/a',
-                      dcDate: '2026-08-20', summary: 'Volume 42, Issue 16' }] },
-      openAlex: { found: false, abstract: null },
-      verdicts: { relevant: true, topics: ['trust'] },
-    });
-    const report = await run.execute();
-    const outcome = report.sources[0];
-    expect(outcome.rejectCounts['no-abstract']).toBe(1);
-    expect(outcome.itemsSeen).toBe(outcome.itemsAccepted + sumCounts(outcome.rejectCounts));
-  });
 });
 ```
+
+**`no-abstract` 的對帳案例不在這裡。** 那個階段要到 Task 8 才存在，harness 也還沒有
+`openAlex` 選項 —— 寫在這裡的話這個任務在自己的位置上就不可能通過。
+Task 8 會把它加進同一個檔案，並把這個檔案一起提交。
 
 不要直接測 `mergeCounts` 這種內部 helper —— 測它只證明 helper 正確，不證明
 `run.ts` 有在用它。上面三個測試斷言的是**報告本身**。
@@ -2313,7 +2354,9 @@ reads exactly like 'no abstract exists'. That one detail produced a
 
 **Files:**
 - Create: `pipeline/src/enrich.ts`、`pipeline/tests/enrich.test.ts`
-- Modify: `pipeline/src/run.ts`（流程順序）
+- Modify: `pipeline/src/run.ts`（流程順序、`RunDeps` 加 `openAlex`）
+- Modify: `pipeline/tests/harness.ts`（**跨任務共用，必須一起提交**）
+- Modify: `pipeline/tests/run-reconciliation.test.ts`（補 `no-abstract` 的對帳案例）
 
 **Interfaces:**
 - Consumes: `lookup`（Task 7）、`fetchArticleText`（既有 `article.ts`）、`Source`（Task 4）
@@ -2515,7 +2558,8 @@ export interface RunDeps {
 }
 ```
 
-`main()` 傳入真實的 `lookup`；`pipeline/tests/harness.ts` 的 `HarnessOptions` 加上：
+`main()` 傳入真實的 `lookup`；`pipeline/tests/harness.ts` 的 `HarnessOptions` 加上
+（**這個檔案是 Task 2 建立的共用檔案，改了就要一起提交，見全域約束**）：
 
 ```ts
   /** What the fake OpenAlex returns. The ladder itself is not faked. */
@@ -2529,7 +2573,31 @@ export interface RunDeps {
     }),
 ```
 
-- [ ] **Step 6: 接進 `run.ts`，把補完排到守門之前**
+- [ ] **Step 6: 把 `no-abstract` 補進對帳不變量**
+
+Task 6 建立的對帳不變量刻意沒有涵蓋這個階段，因為當時它還不存在。現在它存在了，
+而**一個新增的淘汰階段如果沒有進入加總，報告的數字就會再次對不起來** ——
+那正是 Task 6 要防止的事。
+
+加進 `pipeline/tests/run-reconciliation.test.ts`：
+
+```ts
+it('counts the no-abstract stage too', async () => {
+  const run = await makeRun({
+    sources: { s1: { abstractStrategy: 'openalex' } },
+    feeds: { s1: [{ title: 'No abstract anywhere', link: 'https://example.org/a',
+                    dcDate: '2026-08-20', summary: 'Volume 42, Issue 16' }] },
+    openAlex: { found: false, abstract: null },
+    verdicts: { relevant: true, topics: ['trust'] },
+  });
+  const report = await run.execute();
+  const outcome = report.sources[0];
+  expect(outcome.rejectCounts['no-abstract']).toBe(1);
+  expect(outcome.itemsSeen).toBe(outcome.itemsAccepted + sumCounts(outcome.rejectCounts));
+});
+```
+
+- [ ] **Step 7: 接進 `run.ts`，把補完排到守門之前**
 
 在 `run.ts` 中，於收集 `candidates` 之後、呼叫 `classifyAll` 之前插入補完迴圈。
 補完結果寫進候選項目的 `summaryOriginal`（給守門模型讀，也是網站上要顯示的摘錄，
@@ -2539,7 +2607,7 @@ export interface RunDeps {
 
 節流：沿用既有的 `createHostPacer`，OpenAlex 每秒最多 4 次。
 
-- [ ] **Step 7: 確認補來的摘要不會整篇上網**
+- [ ] **Step 8: 確認補來的摘要不會整篇上網**
 
 **這一步是承重的，不是收尾。** 補完拿到的摘要有兩個用途，必須分開：
 
@@ -2562,15 +2630,17 @@ npx vitest run tests/unit/guards.test.ts
 **不是放寬 guard**。規格裡有數個來源的 `licenseNote` 寫著「只保留摘要與連結」，
 那是授權承諾，不是風格偏好。
 
-- [ ] **Step 8: 跑全部測試與建置**
+- [ ] **Step 9: 跑全部測試與建置**
 
 Run: `npm run verify`
 Expected: PASS
 
-- [ ] **Step 9: 提交**
+- [ ] **Step 10: 提交**
 
 ```bash
-git add pipeline/src/enrich.ts pipeline/tests/enrich.test.ts pipeline/src/run.ts
+git add pipeline/src/enrich.ts pipeline/tests/enrich.test.ts pipeline/src/run.ts \
+        pipeline/tests/harness.ts pipeline/tests/run-reconciliation.test.ts
+git diff --cached --name-only | grep harness   # the shared harness must ship with it
 git commit -m "feat: fill in the abstract before the gate runs, not after
 
 The gate reads the abstract, so enrichment has to come first. The
@@ -3065,8 +3135,9 @@ stale answer forever."
 
 **Files:**
 - Create: `pipeline/src/watermark.ts`、`pipeline/tests/watermark.test.ts`
-- Create: `pipeline/state/feed-watermarks.json`
-- Modify: `pipeline/src/run.ts`
+- Create: `pipeline/tests/run-watermark.test.ts`、`pipeline/state/feed-watermarks.json`
+- Modify: `pipeline/src/run.ts`（`RunPaths` 加 `watermarksPath`）
+- Modify: `pipeline/tests/harness.ts`（**跨任務共用，必須一起提交**）
 
 **Interfaces:**
 - Consumes: 無
@@ -3419,9 +3490,9 @@ Expected: PASS
 
 ```bash
 git add pipeline/src/watermark.ts pipeline/tests/watermark.test.ts \
-        pipeline/tests/run-watermark.test.ts \
+        pipeline/tests/run-watermark.test.ts pipeline/tests/harness.ts \
         pipeline/src/run.ts pipeline/state/feed-watermarks.json
-git diff --cached --name-only | grep run-watermark   # the state test must ship
+git diff --cached --name-only | grep -E 'run-watermark|harness'   # both must ship
 git commit -m "feat: warn when a short feed rotated completely between runs
 
 Nature and JMIR feeds hold eight to ten items, all of them recent. If
