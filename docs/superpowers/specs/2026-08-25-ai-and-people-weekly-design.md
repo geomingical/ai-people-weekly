@@ -367,7 +367,7 @@ Ming 的決定：**以線上發表日（online-first）為準，不是期別出�
 規則：
 - 解析不出日期 → 用既有的 `no-date` 理由拒絕，不猜。
 - **只有年月（`YYYY-MM`）→ 用新的拒絕理由 `imprecise-date` 擋掉，並記進執行
-  報告的拒絕統計。不猜日期。** 理由見下。
+  報告的逐則明細。不猜日期。** 理由見下。
 - 沿用既有的未來日期容忍度（6 小時）與拒絕機制。
 - **每一種格式都要有單元測試，用實際抓到的字串當測資。**
 
@@ -409,8 +409,8 @@ outcome.itemsRejected = screened.rejected.length;
 **逐則明細被算完就丟掉了**，`RunReport` 型別裡根本沒有承載它的欄位。
 所以初版規格說的「看得見」在現況下是假的。
 
-**要求**：執行報告必須為日期類拒絕（`no-date`、`imprecise-date`、
-`future-dated`、`outside-window`）保留逐則明細：
+**要求**：執行報告必須為日期類與摘要類拒絕（`no-date`、`imprecise-date`、
+`future-dated`、`outside-window`、`no-abstract`）保留逐則明細：
 
 ```
 source id、原標題、URL、原始日期字串、首次發現時間
@@ -476,16 +476,94 @@ source id、原標題、URL、原始日期字串、首次發現時間
 | `pipeline/src/refresh-access.ts` | 補查 `unknown`（獨立工具） |
 | `pipeline/src/europepmc.ts` | **階段二**：Europe PMC 轉接器 |
 
-### 7.4 一個行為要改：什麼時候去抓原文頁
+### 7.4 摘要從哪裡來 —— 這是本設計最大的一個修正
 
-教育站的規則是「feed 沒帶全文時才去抓原文頁」。期刊的情況不同：
+**初版規格寫錯了。** 它說「ScienceDirect、SAGE、T&F、ACM 的 feed 都已經帶摘要」。
+2026-08-25 逐一實測，事實相反：
 
-- **ScienceDirect、SAGE、T&F、ACM、JMIR、Cyberpsychology、arXiv 的 feed 都已經帶摘要**
-  → 一律不去敲對方伺服器。
-- **Nature 系列的 feed 只有標題，沒有摘要**（`content:encoded` 只有一句
-  「Published online: ... doi:...」加標題重複）→ 這種才需要抓摘要頁。
+| 出版社 | feed 的 description 內容 | 長度 |
+|---|---|---|
+| ScienceDirect（5 本） | 只有出版日期、期刊名、作者名單 | 144–173 |
+| Taylor & Francis（5 本） | 只有卷、期、頁碼 | **52** |
+| ACM（2 本） | 只有引用資訊 | 91 |
+| SAGE（5 本） | 引用資訊 ＋ 摘要開頭殘句 | 326 |
+| Nature（5 本） | 「Published online… doi…」＋ 標題重複 | 131–431 |
+| Cell、JMIR、Cyberpsychology、Lancet、arXiv（6 個） | **完整摘要** | 543–2,615 |
+| Pew | 一句導言（新聞型來源，足夠） | 110–156 |
 
-規則寫成來源層的設定，不是靠猜。
+**這件事會癱瘓整個設計**，因為第 1 節寫死了：「『有沒有真人參與』這條線只靠標題
+判斷不出來，守門的模型必須讀摘要。」而 17 本期刊的 feed 不給摘要。
+
+#### 摘要取得順位（fallback ladder）
+
+實測驗證過的三層，依序嘗試：
+
+1. **feed 自己帶的**（Cell、JMIR、Cyberpsychology、Lancet、arXiv、Pew）。
+2. **OpenAlex 以 DOI 查詢**。實測命中率：
+   Taylor & Francis 5/5、ACM 5/5、SAGE 5/5、ScienceDirect 4/5。
+   摘要長度 750–1,650 字元，足夠守門模型判斷。
+3. **抓出版社的文章頁**（僅限 robots.txt 允許者）。目前只有 Nature 走這條。
+
+取不到 → 用新的拒絕理由 **`no-abstract`** 擋掉，並列入第 6.2 節的逐則明細。
+
+#### 各出版社走哪一條，以及為什麼
+
+| 出版社 | 摘要來源 | 依據 |
+|---|---|---|
+| Cell / JMIR / Cyberpsychology / Lancet / arXiv / Pew | feed | 已帶完整摘要 |
+| Taylor & Francis / ACM / SAGE | OpenAlex（DOI） | 實測 15/15 命中 |
+| ScienceDirect | OpenAlex（DOI 或標題） | 實測 4/5 命中。**文章頁絕對不可抓** |
+| Nature（5 本） | **抓文章頁** | OpenAlex 對 Nature 命中率只有 35–50%（見下） |
+
+#### 為什麼 ScienceDirect 的文章頁不可以抓
+
+`www.sciencedirect.com/robots.txt` 對一般客戶端直接回 **403**，而且回應頁面帶著
+`<meta name="tdm-reservation" content="1">` 與指向 Elsevier TDM 政策的連結 ——
+**這是明確的、機器可讀的文字與資料探勘保留聲明**。連 robots.txt 本身都讀不到的
+網站，不能去抓它的文章頁。
+
+feed 主機（`rss.sciencedirect.com`）是另一台，讀 feed 沒有問題。
+
+ScienceDirect 那 20% OpenAlex 查不到的，就用 `no-abstract` 擋掉並記錄。
+
+#### 為什麼 Nature 例外，要抓文章頁
+
+OpenAlex 對 Nature 的摘要覆蓋不是延遲問題，是**永久性的不完整**：
+取樣 2026 上半年（已出版半年以上）的文章，Nature Human Behaviour 只有 35% 有摘要，
+Nature Machine Intelligence 50%。Springer Nature 交摘要給索引服務的習慣不穩定。
+
+而 `www.nature.com/robots.txt` **允許** `/articles/`（只擋 `/figures`、`/tables`、
+`/metrics`、`*.ris` 等子路徑）。實測抓取研究論文頁：HTTP 200，摘要在
+`id="Abs1-content"` 區塊內，約 1,100 字元，可穩定取出。
+
+News & Views、Comment 這類短文本來就沒有摘要區塊 → 走 `no-abstract`，正確。
+
+#### 這對流程順序的影響
+
+**摘要補完必須排在守門之前**，因為守門模型要讀它。流程從：
+
+```
+篩選 → 守門 → 收錄 → 抓全文 → 摘要
+```
+
+改為：
+
+```
+篩選 → 摘要補完（feed／OpenAlex／文章頁）→ 守門 → 收錄 → 中文摘要
+```
+
+**因此 OpenAlex 不再是「開放取用徽章」的附屬功能，而是承重結構**：28 本期刊裡
+有 17 本的守門判斷依賴它。它的失敗處理要照承重元件的標準寫，不是照裝飾品。
+
+一次 OpenAlex 呼叫同時取得摘要與開放取用狀態，只對通過篩選的候選項目發出，
+每週約 50 次，成本可忽略。
+
+#### 實作陷阱（實測踩到的）
+
+**feed 裡的 DOI 後面會黏著網址參數。** Taylor & Francis 的 feed 給的是
+`10.1080/10447318.2025.2598113?af=R`，直接拿去查 OpenAlex 會全部落空。
+**必須在 `?` 與 `#` 處截斷。** 這個 bug 在研究階段造成兩次錯誤的量測結果
+（一度誤判命中率只有 16%，實際是 76%）。要寫測試把它釘住。
 
 ### 7.5 模型供應商
 
