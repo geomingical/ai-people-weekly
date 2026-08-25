@@ -41,10 +41,10 @@
 
 | 路徑 | 職責 |
 |---|---|
-| `src/layouts/`、`src/components/`、`src/pages/`、`src/styles/` | 網站骨架與雙語路由（`StoryRow.astro` 於 Task 10 加一個徽章） |
+| `src/layouts/`、`src/components/`、`src/pages/`、`src/styles/` | 網站骨架與雙語路由（`StoryRow.astro` 於 Task 11 加一個徽章） |
 | `src/domain/{filters,rows,issue,locale,format}.ts` | 純邏輯：篩選、列組裝、ISO 週、語系、格式化 |
 | `src/lib/paths.ts` | 基底路徑前綴，唯一加 `base` 的地方 |
-| `pipeline/src/feed-parser.ts` | RSS 2.0 / RSS 1.0 RDF / Atom / JSON Feed 解析（Task 4 只加一個欄位） |
+| `pipeline/src/feed-parser.ts` | RSS 2.0 / RSS 1.0 RDF / Atom / JSON Feed 解析（Task 5 只加一個欄位） |
 | `pipeline/src/fetcher.ts` | SSRF 白名單抓取 |
 | `pipeline/src/article.ts` | 文章頁抓取與正文抽取、每主機節流 |
 | `pipeline/src/summarize/{transport,providers}.ts` | 模型 HTTP 傳輸與供應商切換 |
@@ -105,7 +105,7 @@ rsync -a \
   /Users/ming/Desktop/git_project/AI_education/ ./
 ```
 
-`.env` 被排除是刻意的：金鑰不跨專案複製，Task 9 會建立本專案自己的 `.env`。
+`.env` 被排除是刻意的：金鑰不跨專案複製，Task 10 會建立本專案自己的 `.env`。
 
 - [ ] **Step 2: 清空資料檔**
 
@@ -139,7 +139,7 @@ rm tests/unit/schema.test.ts tests/unit/filters.test.ts tests/unit/rows.test.ts
 rm -rf tests/e2e
 ```
 
-這些全部在 Task 2 與 Task 10 用新主題重寫。`tests/unit/guards.test.ts`、
+這些全部在 Task 3 與 Task 11 用新主題重寫。`tests/unit/guards.test.ts`、
 `tests/unit/{format,issue,locale}.test.ts` 與其餘 pipeline 測試留著 —— 它們測的是
 與主題無關的邏輯，現在就該通過。
 
@@ -176,7 +176,343 @@ replaced task by task from here."
 
 ---
 
-## Task 2: 主題詞彙與全站文案
+## Task 2: run 層整合測試接縫
+
+**Files:**
+- Modify: `pipeline/src/run.ts`（把 `main()` 拆成注入式的 `runWeek()`）
+- Create: `pipeline/tests/harness.ts`、`pipeline/tests/run-harness.test.ts`
+
+**Interfaces:**
+- Consumes: Task 1 的骨架
+- Produces:
+  - `runWeek(options: RunOptions): Promise<RunReport>`
+  - `interface RunDeps { fetchFeed; fetchArticlePage; classify; summarize; openAlex; now }`
+  - `interface RunPaths { sourcesPath; storiesPath; watermarksPath }`
+  - 測試工具 `makeRun(overrides)`，回傳暫存目錄與斷言用的讀檔函式
+
+**為什麼這個任務排在這裡**：接下來每一個動到 `run.ts` 的任務（Task 3 的 fail-closed、
+Task 6 的拒絕數聚合、Task 8 的補摘要階段、Task 13 的 watermark）都需要在**真正的
+編排路徑**上被驗證。前三輪審查的每一個 high 級發現都落在這條路徑上，而當時的測試
+測的是各自的純函式，所以測試全綠、bug 還在。接縫必須在第一個改 `run.ts` 的任務**之前**
+就存在。
+
+**這個接縫最容易失敗的方式**（Codex 2026-08-25 指出，寫進驗收條件）：
+假物件重建了一套簡化流程，最後只證明 harness 自己是對的。
+
+**因此規則是：只准替換外部 I/O。** 可以替換的只有網路抓取、模型呼叫、檔案路徑與時鐘。
+篩選、補摘要淘汰、收錄、統計聚合、watermark 寫入**一律跑真的那一條**。
+斷言的對象是**磁碟上的產物與報告**，不是內部旗標。
+
+- [ ] **Step 1: 先寫失敗的測試**
+
+`pipeline/tests/run-harness.test.ts`：
+
+```ts
+import { describe, expect, it } from 'vitest';
+import { makeRun } from './harness';
+
+describe('the harness exercises the real pipeline, not a copy of it', () => {
+  // If this passes with a stubbed screening stage, the harness is worthless.
+  it('drops an out-of-window item through the real screening code', async () => {
+    const run = await makeRun({
+      feeds: { s1: [{ title: 'Old study', link: 'https://example.org/old',
+                      dcDate: '2020-01-01', summary: 'x'.repeat(600) }] },
+    });
+    const report = await run.execute();
+    expect(await run.readStories()).toHaveLength(0);
+    expect(report.sources[0].rejectCounts['outside-window']).toBe(1);
+  });
+
+  it('writes what the report claims it wrote', async () => {
+    const run = await makeRun({
+      feeds: { s1: [{ title: 'A companion chatbot study', link: 'https://example.org/a',
+                      dcDate: '2026-08-20', summary: 'x'.repeat(600) }] },
+      verdicts: { relevant: true, topics: ['relationships'] },
+    });
+    const report = await run.execute();
+    const stories = await run.readStories();
+    expect(stories).toHaveLength(report.storiesAdded);
+    expect(stories[0].url).toBe('https://example.org/a');
+  });
+
+  it('writes both state files on a clean run', async () => {
+    const run = await makeRun({
+      feeds: { s1: [{ title: 'A study', link: 'https://example.org/a',
+                      dcDate: '2026-08-20', summary: 'x'.repeat(600) }] },
+      verdicts: { relevant: true, topics: ['trust'] },
+    });
+    await run.execute();
+    expect(await run.readStories()).toHaveLength(1);
+    expect(Object.keys(await run.readWatermarks())).toContain('s1');
+  });
+
+  it('writes nothing at all on a dry run', async () => {
+    const run = await makeRun({
+      dryRun: true,
+      feeds: { s1: [{ title: 'A study', link: 'https://example.org/a',
+                      dcDate: '2026-08-20', summary: 'x'.repeat(600) }] },
+      verdicts: { relevant: true, topics: ['trust'] },
+    });
+    const report = await run.execute();
+    expect(report.storiesAdded).toBeGreaterThan(0);   // it decided to publish
+    expect(await run.readStories()).toHaveLength(0);  // and wrote nothing
+    expect(await run.readWatermarks()).toEqual({});
+  });
+
+  // Proves the fake model is a fake MODEL, not a fake gate: the real
+  // acceptance code still has to apply the verdict and the per-source cap.
+  it('applies the real per-source cap to the fake model's verdicts', async () => {
+    const run = await makeRun({
+      sources: { s1: { maxPerRun: 2 } },
+      feeds: { s1: [1, 2, 3, 4].map((n) => ({
+        title: `Study ${n}`, link: `https://example.org/${n}`,
+        dcDate: '2026-08-20', summary: 'x'.repeat(600) })) },
+      verdicts: { relevant: true, topics: ['trust'] },
+    });
+    const report = await run.execute();
+    expect(await run.readStories()).toHaveLength(2);
+    expect(report.sources[0].rejectCounts['over-cap']).toBe(2);
+  });
+});
+```
+
+- [ ] **Step 2: 跑測試確認失敗**
+
+Run: `npx vitest run pipeline/tests/run-harness.test.ts`
+Expected: FAIL — 找不到 `./harness`。
+
+- [ ] **Step 3: 把 `run.ts` 的 `main()` 拆成注入式的 `runWeek()`**
+
+**這是為了可測試性而做的最小抽取，不是重構。** 搬動的是同一段程式碼，行為不變：
+`main()` 留下讀 argv、從環境組出真實依賴、印出報告、設定 exit code；其餘全部移進
+`runWeek()`。
+
+```ts
+/**
+ * Everything this run reaches outside its own process.
+ *
+ * Only these may be replaced in a test. Screening, enrichment, acceptance, the
+ * report aggregation and the watermark write all run for real — otherwise a
+ * green test would only prove the test's own copy of the pipeline works.
+ */
+export interface RunDeps {
+  fetchFeed: (url: string) => Promise<FetchResult>;
+  fetchArticlePage: (url: string) => Promise<string | null>;
+  classify: typeof classifyAll;
+  summarize: (stories: readonly IngestedItem[]) => Promise<Map<string, MachineSummary>>;
+  openAlex: (query: { doi?: string | null; title?: string }) => Promise<OpenAlexResult>;
+  /** Injected so a fixture's dates do not rot as the calendar moves. */
+  now: () => Date;
+}
+
+export interface RunPaths {
+  sourcesPath: string;
+  storiesPath: string;
+  watermarksPath: string;
+}
+
+export interface RunOptions {
+  dryRun: boolean;
+  windowDays: number;
+  paths: RunPaths;
+  deps: RunDeps;
+}
+
+export async function runWeek(options: RunOptions): Promise<RunReport> {
+  // …the body of the current main(), with every direct fetch/model/path use
+  // replaced by options.deps and options.paths.
+}
+```
+
+- [ ] **Step 4: 寫 `pipeline/tests/harness.ts`**
+
+```ts
+// A real run, with only its outside edges replaced.
+//
+// The temptation this file exists to resist: writing a fake that returns
+// plausible-looking outcomes. That would make every test green and prove
+// nothing. Only network, model and paths are faked here — every decision the
+// site actually makes is made by the real code under test.
+
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { runWeek, type RunOptions } from '../src/run';
+import type { Story } from '../../src/domain/story';
+
+export interface FakeItem {
+  title: string;
+  link: string;
+  dcDate?: string;
+  summary?: string;
+  doi?: string;
+}
+
+export interface HarnessOptions {
+  dryRun?: boolean;
+  windowDays?: number;
+  now?: string;
+  /**
+   * Reuse a previous run's temp directory, so the second run really does start
+   * from the first run's state files. Anything else would be simulating
+   * continuity rather than testing it.
+   */
+  dir?: string;
+  /** Per-source overrides merged onto the default source record. */
+  sources?: Record<string, Record<string, unknown>>;
+  feeds?: Record<string, FakeItem[]>;
+  /** One verdict applied to every candidate, or a per-id map. */
+  verdicts?: { relevant: boolean; topics: string[] } | Record<string, { relevant: boolean; topics: string[] }>;
+  /** Ids the fake model refuses to answer for — an outage, not a verdict.
+   *  `['*']` means it answers for nothing, which is what a full outage is. */
+  undecided?: string[];
+  openAlex?: Partial<{ found: boolean; abstract: string | null; access: string; openUrl: string | null }>;
+  /** Sources whose fetch or parse fails, to test that failures preserve state. */
+  fetchFails?: string[];
+}
+
+const DEFAULT_SOURCE = {
+  name: 'Test Source', homepage: 'https://example.org/',
+  feedUrl: 'https://example.org/feed', feedFormat: 'rss',
+  category: 'journal-hci', language: 'en', region: 'GLOBAL',
+  officialDomains: ['example.org'], tier: 'research',
+  relevanceMode: 'keyword', defaultTopics: ['trust'], maxPerRun: 10,
+  active: true, dateStrategy: 'dcdate', abstractStrategy: 'feed',
+  articlePageAllowed: false, accessDefault: null,
+  licenseNote: 'test', lastVerified: '2026-08-25', notes: 'test fixture',
+  urlPattern: null,
+};
+
+function feedXml(items: readonly FakeItem[]): string {
+  const entries = items.map((item) => `<item>
+      <title>${item.title}</title>
+      <link>${item.link}</link>
+      <dc:date>${item.dcDate ?? '2026-08-20'}</dc:date>
+      <description>${item.summary ?? 'x'.repeat(600)}</description>
+      ${item.doi ? `<dc:identifier>${item.doi}</dc:identifier>` : ''}
+    </item>`).join('');
+  return `<?xml version="1.0"?><rss version="2.0"
+    xmlns:dc="http://purl.org/dc/elements/1.1/"><channel>${entries}</channel></rss>`;
+}
+
+export async function makeRun(options: HarnessOptions = {}) {
+  const dir = options.dir ?? (await mkdtemp(join(tmpdir(), 'ai-people-weekly-')));
+  const paths = {
+    sourcesPath: join(dir, 'sources.json'),
+    storiesPath: join(dir, 'stories.json'),
+    watermarksPath: join(dir, 'feed-watermarks.json'),
+  };
+
+  const feeds = options.feeds ?? {};
+  const sources = Object.keys(feeds).length > 0 ? Object.keys(feeds) : ['s1'];
+  await writeFile(paths.sourcesPath, JSON.stringify(sources.map((id) => ({
+    ...DEFAULT_SOURCE, id,
+    feedUrl: `https://example.org/${id}/feed`,
+    ...(options.sources?.[id] ?? {}),
+  })), null, 2));
+  // Only seed stories.json on a fresh directory: a reused one carries the
+  // previous run's output, which is the point of reusing it.
+  if (!options.dir) await writeFile(paths.storiesPath, '[]');
+
+  const deps = {
+    fetchFeed: async (url: string) => {
+      const id = url.split('/')[3];
+      if (options.fetchFails?.includes(id)) {
+        return { url, finalUrl: url, status: null, body: null,
+                 fetchedAt: new Date().toISOString(), error: 'network' as const, redirectChain: [] };
+      }
+      return { url, finalUrl: url, status: 200, body: feedXml(feeds[id] ?? []),
+               fetchedAt: new Date().toISOString(), error: null, redirectChain: [] };
+    },
+    fetchArticlePage: async () => null,
+    classify: async (inputs: readonly { id: string }[]) => {
+      const undecided = new Set(options.undecided ?? []);
+      const answersNothing = undecided.has('*');
+      const decisions = new Map();
+      for (const input of inputs) {
+        if (answersNothing || undecided.has(input.id)) continue;
+        const verdict = options.verdicts && 'relevant' in options.verdicts
+          ? options.verdicts
+          : (options.verdicts as Record<string, never> | undefined)?.[input.id];
+        if (verdict) decisions.set(input.id, verdict);
+      }
+      return {
+        decisions,
+        undecided: inputs.filter((i) => !decisions.has(i.id)).map((i) => i.id),
+        attempts: [], errors: [],
+      };
+    },
+    summarize: async (stories: readonly { id: string }[]) =>
+      new Map(stories.map((story) => [story.id, {
+        titleZhTW: '測試標題', summaryZhTW: '測試摘要。',
+      }])),
+    openAlex: async () => ({
+      found: true, abstract: null, access: 'unknown' as const, openUrl: null,
+      ...options.openAlex,
+    }),
+    now: () => new Date(options.now ?? '2026-08-25T00:00:00.000Z'),
+  };
+
+  return {
+    dir,
+    paths,
+    execute: () => runWeek({
+      dryRun: options.dryRun ?? false,
+      windowDays: options.windowDays ?? 7,
+      paths,
+      deps: deps as unknown as RunOptions['deps'],
+    }),
+    readStories: async (): Promise<Story[]> =>
+      JSON.parse(await readFile(paths.storiesPath, 'utf8')),
+    readWatermarks: async (): Promise<Record<string, string[]>> => {
+      try {
+        return JSON.parse(await readFile(paths.watermarksPath, 'utf8'));
+      } catch {
+        return {};
+      }
+    },
+  };
+}
+```
+
+- [ ] **Step 5: 跑測試確認通過**
+
+Run: `npx vitest run pipeline/tests/run-harness.test.ts`
+Expected: PASS
+
+- [ ] **Step 6: 確認 `main()` 仍然可用**
+
+抽取不得改變正式執行的行為。跑一次乾跑（不需要金鑰，摘要階段會跳過）：
+
+```bash
+npx tsx pipeline/src/run.ts --dry-run --since 7
+```
+
+Expected: 輸出一份 JSON 報告，`src/data/stories.json` 未被修改。
+
+- [ ] **Step 7: 提交**
+
+```bash
+git add pipeline/src/run.ts pipeline/tests/harness.ts pipeline/tests/run-harness.test.ts
+git commit -m "test: a run-level seam that exercises the real pipeline
+
+Every high-severity finding in three rounds of review landed on the
+orchestration path, and every test written for those fixes checked a
+pure function instead. The tests went green and the bugs stayed.
+
+Only the outside edges are replaceable here: network, model, paths and
+clock. Screening, enrichment, acceptance, report aggregation and the
+watermark write all run for real, and the assertions are on what
+reached disk rather than on internal flags. A harness that reimplements
+the pipeline would make every later test green and prove nothing, so
+the first tests in this file exist to prove it did not: an out-of-window
+item is dropped by the real screening code, and the real per-source cap
+still applies to the fake model's verdicts."
+```
+
+---
+
+## Task 3: 主題詞彙與全站文案
 
 **Files:**
 - Modify: `src/domain/story.ts:16-25`、`src/domain/i18n.ts`、`src/domain/format.ts`
@@ -276,7 +612,7 @@ export const TOPICS = [
 - [ ] **Step 4: 重寫 `pipeline/src/classify.ts`**
 
 整檔換成標籤推論。**注意：這個模組不再負責相關性判斷** —— 相關性由
-`classify-agent.ts` 的模型決定（Task 8），因為「有沒有真人參與」不是關鍵字判斷得出來的。
+`classify-agent.ts` 的模型決定（Task 9），因為「有沒有真人參與」不是關鍵字判斷得出來的。
 
 ```ts
 // Topic tagging only.
@@ -441,7 +777,7 @@ Expected: FAIL — 目前會退回關鍵字規則，且 `undecided` 不是有效
 import { resolveTopics, type Topic } from './classify';
 ```
 
-`REJECT_REASONS` 加入 `'undecided'`（Task 4 還會再加兩個）：
+`REJECT_REASONS` 加入 `'undecided'`（Task 5 還會再加兩個）：
 
 ```ts
 export const REJECT_REASONS = [
@@ -511,7 +847,7 @@ classify-agent.ts:241 「there is a keyword answer standing behind every」
 
 ```ts
       warnings.push(
-        `${result.undecided.length} candidates were not published: no provider returned a verdict`,
+        `${result.undecided.length} model-gated candidates were not published: no provider returned a verdict`,
       );
 ```
 
@@ -519,7 +855,7 @@ classify-agent.ts:241 「there is a keyword answer standing behind every」
 
 ```ts
     warnings.push(
-      'no model provider has a key: nothing was judged, so nothing was published this run',
+      'no model provider has a key: no model-gated candidate was judged, so none was published',
     );
 ```
 
@@ -550,7 +886,7 @@ describe('the relevance stage fails closed', () => {
     const result = await judgeRelevance(inputs, [], { classify: vi.fn() });
     expect(result.undecided.size).toBe(2);
     expect(result.classified.size).toBe(0);
-    expect(result.warnings.join(' ')).toContain('nothing was published');
+    expect(result.warnings.join(' ')).toContain('model-gated');
     expect(result.warnings.join(' ')).not.toMatch(/keyword/i);
   });
 
@@ -585,9 +921,62 @@ describe('the relevance stage fails closed', () => {
 });
 ```
 
-實作上把 `run.ts` 第 262-295 行那段抽成一個匯出的 `judgeRelevance(inputs, providers, deps)`，
-回傳 `{ classified, undecided, warnings }`。**這是為了可測試性而做的最小抽取**，
-不是重構 —— 搬動的是同一段程式碼，行為不變。
+`judgeRelevance` 已經由 Task 2 的 `runWeek()` 抽取涵蓋；這裡的測試直接呼叫它，
+驗證的是警告文字與 undecided 集合。
+
+**但只測 `judgeRelevance` 會固化一個矛盾**：它只收到需要模型判斷的候選，
+所以它說「沒有東西被發布」時，同一次執行裡 `relevanceMode: 'always'` 的來源
+可能正在照常發布。上面那個 `it('still publishes an always-relevant source...')`
+就是這樣要求的。
+
+**警告的措辭因此必須限定範圍**（已在 Step 9 改成 `model-gated candidates`），
+而且要用 harness 在完整的執行上驗證 —— 這是 `judgeRelevance` 單獨測不到的：
+
+```ts
+// pipeline/tests/run-outage.test.ts
+import { describe, expect, it } from 'vitest';
+import { makeRun } from './harness';
+
+describe('a model outage reports itself honestly', () => {
+  it('publishes the always-sources and says only the gated ones were lost', async () => {
+    const run = await makeRun({
+      sources: { always: { relevanceMode: 'always' }, gated: { relevanceMode: 'keyword' } },
+      feeds: {
+        always: [{ title: 'From an always source', link: 'https://example.org/a',
+                   dcDate: '2026-08-20' }],
+        gated: [{ title: 'Needs a verdict', link: 'https://example.org/b',
+                  dcDate: '2026-08-20' }],
+      },
+      undecided: ['*'],   // the model answers for nothing
+    });
+    const report = await run.execute();
+    const stories = await run.readStories();
+
+    // The site did publish. The report must not claim otherwise.
+    expect(stories).toHaveLength(1);
+    expect(report.storiesAdded).toBe(stories.length);
+    const warnings = report.warnings.join(' ');
+    expect(warnings).toMatch(/model-gated/);
+    expect(warnings).not.toMatch(/keyword/i);
+    expect(warnings).not.toMatch(/nothing was published/i);
+  });
+
+  it('the gated source shows its loss as undecided, not as irrelevant', async () => {
+    const run = await makeRun({
+      sources: { gated: { relevanceMode: 'keyword' } },
+      feeds: { gated: [{ title: 'Needs a verdict', link: 'https://example.org/b',
+                         dcDate: '2026-08-20' }] },
+      undecided: ['*'],
+    });
+    const report = await run.execute();
+    const outcome = report.sources[0];
+    expect(outcome.rejectCounts.undecided).toBe(1);
+    expect(outcome.rejectCounts['not-relevant']).toBeUndefined();
+  });
+});
+```
+
+`harness.ts` 的 `undecided` 選項要支援 `'*'` 代表「模型對任何項目都不回答」。
 
 - [ ] **Step 11: 跑測試確認通過**
 
@@ -726,7 +1115,7 @@ was published at all."
 
 ---
 
-## Task 3: 來源結構擴充與完整來源清單
+## Task 4: 來源結構擴充與完整來源清單
 
 **Files:**
 - Modify: `src/domain/source.ts`（`SOURCE_CATEGORIES`、新增三個欄位）
@@ -734,7 +1123,7 @@ was published at all."
 - Modify: `tests/unit/schema.test.ts`（重建，測新欄位）
 
 **Interfaces:**
-- Consumes: Task 2 的 `TOPICS`
+- Consumes: Task 3 的 `TOPICS`
 - Produces: `Source` 型別新增
   - `dateStrategy: 'prose' | 'dcdate' | 'atom' | 'rss'`
   - `abstractStrategy: 'feed' | 'openalex' | 'article-page'`
@@ -978,7 +1367,7 @@ schema now refuses a source that would fetch pages it may not."
 
 ---
 
-## Task 4: 各出版社的發表日期解析
+## Task 5: 各出版社的發表日期解析
 
 **Files:**
 - Create: `pipeline/src/published-at.ts`、`pipeline/tests/published-at.test.ts`
@@ -989,7 +1378,7 @@ schema now refuses a source that would fetch pages it may not."
 - Modify: `pipeline/src/ingest.ts`（新增 `imprecise-date`）
 
 **Interfaces:**
-- Consumes: `Source['dateStrategy']`（Task 3）
+- Consumes: `Source['dateStrategy']`（Task 4）
 - Produces:
   - `resolvePublishedAt(strategy: DateStrategy, item: RawFeedItem): ResolvedDate`
   - `interface ResolvedDate { iso: string | null; precision: 'day' | 'month' | null; rawValue: string }`
@@ -1279,8 +1668,8 @@ export const REJECT_REASONS = [
   'future-dated',
   'outside-window',
   'not-relevant',
-  'undecided',        // added in Task 2
-  'no-abstract',      // new here, used from Task 7
+  'undecided',        // added in Task 3
+  'no-abstract',      // new here, used from Task 8
   'duplicate',
   'over-cap',
 ] as const;
@@ -1302,7 +1691,7 @@ export const REJECT_REASONS = [
     const published = new Date(resolved.iso);
 ```
 
-`reject` 的簽名在 Task 5 一併擴充，這一步先讓它多接兩個參數並忽略。
+`reject` 的簽名在 Task 6 一併擴充，這一步先讓它多接兩個參數並忽略。
 
 - [ ] **Step 9: 跑全部測試**
 
@@ -1328,7 +1717,7 @@ and month-only items are rejected as imprecise-date instead."
 
 ---
 
-## Task 5: 執行報告的逐則拒絕明細
+## Task 6: 執行報告的逐則拒絕明細
 
 **Files:**
 - Modify: `pipeline/src/ingest.ts`（`reject` 帶上 URL 與原始日期）
@@ -1337,7 +1726,7 @@ and month-only items are rejected as imprecise-date instead."
 - Modify: `pipeline/tests/ingest.test.ts`
 
 **Interfaces:**
-- Consumes: Task 4 的 `ResolvedDate`
+- Consumes: Task 5 的 `ResolvedDate`
 - Produces: `interface RejectDetail { reason: RejectReason; title: string; url: string; rawDate: string }`
 - `ScreenResult.rejected` 型別由 `{ reason, title }[]` 變成 `RejectDetail[]`
 
@@ -1456,7 +1845,7 @@ export interface RejectDetail {
 
 收錄階段產出的是 `not-relevant`、`undecided`、`over-cap`，**一個都不在明細集合裡**。
 照舊寫法，每週幾百篇被守門刷掉的論文會在報告上顯示成「拒絕 0 篇」，
-而 Task 13 要拿這份報告去對照規格的成本預估 —— **量測會系統性失真**。
+而 Task 14 要拿這份報告去對照規格的成本預估 —— **量測會系統性失真**。
 
 同一行下面還有一個既有的錯誤：
 
@@ -1472,7 +1861,7 @@ duplicate 數會直接蓋掉篩選階段的。這在教育站就已經錯了，�
 ```ts
 /** Reject counts add up; they do not replace each other. `duplicate` is
  *  produced by both the screening and the acceptance stage. */
-function mergeCounts(
+export function mergeCounts(
   left: Record<string, number>,
   right: Record<string, number>,
 ): Record<string, number> {
@@ -1483,7 +1872,7 @@ function mergeCounts(
   return merged;
 }
 
-function sumCounts(counts: Record<string, number>): number {
+export function sumCounts(counts: Record<string, number>): number {
   return Object.values(counts).reduce((total, count) => total + count, 0);
 }
 ```
@@ -1498,48 +1887,89 @@ function sumCounts(counts: Record<string, number>): number {
       outcome.rejectDetails = [...outcome.rejectDetails, ...accepted.rejected];
 ```
 
-- [ ] **Step 5: 加對帳不變量測試**
+- [ ] **Step 5: 加對帳不變量測試 —— 測在報告路徑上，不是純函式上**
 
-這條不變量是報告可信的唯一保證。加進 `pipeline/tests/ingest.test.ts`：
+**測錯接縫是這份計畫已經犯過三次的錯。** bug 在 `run.ts` 對 `SourceOutcome` 的
+兩階段聚合，所以測試必須跑過那段聚合。只驗證 `screenSourceItems` 與
+`ingestSourceItems` 的回傳值，會測試全綠而 bug 原封不動 —— Task 6 的整個重點就是
+那個聚合。
+
+而且 Task 8 會在篩選與收錄之間再插入一個 `no-abstract` 淘汰階段，所以不變量必須
+跨**三個**階段成立，不是兩個。
+
+`pipeline/tests/run-reconciliation.test.ts`，跑在 Task 2 的 harness 上：
 
 ```ts
-describe('the numbers must reconcile', () => {
-  const source = {
-    id: 's', officialDomains: ['example.org'], region: 'GLOBAL', language: 'en' as const,
-    relevanceMode: 'always' as const, defaultTopics: ['trust' as const],
-    maxPerRun: 2, dateStrategy: 'dcdate' as const,
-  };
-  const window = { start: new Date('2026-08-18'), end: new Date('2026-08-25') };
-  const item = (n: number, over = {}) => ({
-    title: `Study ${n}`, link: `https://example.org/${n}`, summary: 'x'.repeat(500),
-    fullText: '', publishedAt: null, publishedAtRaw: '2026-08-20', doi: null, guid: null, ...over,
+import { describe, expect, it } from 'vitest';
+import { makeRun } from './harness';
+
+const sumCounts = (counts: Record<string, number>) =>
+  Object.values(counts).reduce((total, count) => total + count, 0);
+
+describe('every source's numbers reconcile in the report', () => {
+  it('seen equals accepted plus every rejection, across all stages', async () => {
+    const run = await makeRun({
+      sources: { s1: { maxPerRun: 2 } },
+      feeds: {
+        s1: [
+          { title: 'Kept 1', link: 'https://example.org/1', dcDate: '2026-08-20' },
+          { title: 'Kept 2', link: 'https://example.org/2', dcDate: '2026-08-21' },
+          { title: 'Over cap', link: 'https://example.org/3', dcDate: '2026-08-22' },
+          { title: 'Too old', link: 'https://example.org/4', dcDate: '2020-01-01' },
+          { title: 'Month only', link: 'https://example.org/5', dcDate: '2026-08' },
+          { title: 'Same as 1', link: 'https://example.org/1', dcDate: '2026-08-20' },
+        ],
+      },
+      verdicts: { relevant: true, topics: ['trust'] },
+    });
+    const report = await run.execute();
+    const outcome = report.sources[0];
+
+    expect(outcome.itemsSeen).toBe(outcome.itemsAccepted + sumCounts(outcome.rejectCounts));
+    expect(outcome.itemsRejected).toBe(sumCounts(outcome.rejectCounts));
+    expect(await run.readStories()).toHaveLength(outcome.itemsAccepted);
   });
 
-  it('screening: seen equals candidates plus every rejection', () => {
-    const items = [item(1), item(2, { publishedAtRaw: '2026-08' }), item(3, { title: '' })];
-    const screened = screenSourceItems(source, items, window, new Set());
-    const rejected = Object.values(screened.rejectCounts).reduce((a, b) => a + b, 0);
-    expect(screened.candidates.length + rejected).toBe(items.length);
+  // duplicate is produced by BOTH stages. Object spread would overwrite one
+  // with the other and the totals would still look plausible.
+  it('adds same-named reasons from both stages instead of overwriting', async () => {
+    const run = await makeRun({
+      feeds: {
+        s1: [
+          { title: 'A', link: 'https://example.org/a', dcDate: '2026-08-20' },
+          { title: 'A again', link: 'https://example.org/a', dcDate: '2026-08-20' },
+        ],
+      },
+      verdicts: { relevant: true, topics: ['trust'] },
+    });
+    const report = await run.execute();
+    const outcome = report.sources[0];
+    expect(outcome.itemsSeen).toBe(outcome.itemsAccepted + sumCounts(outcome.rejectCounts));
   });
 
-  // The cap is 2, so the third candidate must appear as over-cap rather than
-  // simply going missing from the arithmetic.
-  it('acceptance: candidates equals accepted plus every rejection', () => {
-    const result = ingestSourceItems(source, [item(1), item(2), item(3)], window, new Set());
-    const rejected = Object.values(result.rejectCounts).reduce((a, b) => a + b, 0);
-    expect(result.accepted.length + rejected).toBe(3);
-  });
-
-  it('counts from both stages add rather than overwrite', () => {
-    const merged = mergeCounts({ duplicate: 3, 'no-date': 1 }, { duplicate: 2, 'over-cap': 4 });
-    expect(merged).toEqual({ duplicate: 5, 'no-date': 1, 'over-cap': 4 });
+  // Added when Task 8 lands: the enrichment stage must not fall out of the sum.
+  it('counts the no-abstract stage too', async () => {
+    const run = await makeRun({
+      sources: { s1: { abstractStrategy: 'openalex' } },
+      feeds: { s1: [{ title: 'No abstract anywhere', link: 'https://example.org/a',
+                      dcDate: '2026-08-20', summary: 'Volume 42, Issue 16' }] },
+      openAlex: { found: false, abstract: null },
+      verdicts: { relevant: true, topics: ['trust'] },
+    });
+    const report = await run.execute();
+    const outcome = report.sources[0];
+    expect(outcome.rejectCounts['no-abstract']).toBe(1);
+    expect(outcome.itemsSeen).toBe(outcome.itemsAccepted + sumCounts(outcome.rejectCounts));
   });
 });
 ```
 
+不要直接測 `mergeCounts` 這種內部 helper —— 測它只證明 helper 正確，不證明
+`run.ts` 有在用它。上面三個測試斷言的是**報告本身**。
+
 - [ ] **Step 6: 跑測試確認通過**
 
-Run: `npx vitest run pipeline/tests/ingest.test.ts`
+Run: `npx vitest run pipeline/tests/ingest.test.ts pipeline/tests/run-reconciliation.test.ts`
 Expected: PASS
 
 - [ ] **Step 7: 提交**
@@ -1568,7 +1998,7 @@ reconciliation test does."
 
 ---
 
-## Task 6: OpenAlex — 一次呼叫取得摘要與開放取用狀態
+## Task 7: OpenAlex — 一次呼叫取得摘要與開放取用狀態
 
 **Files:**
 - Create: `pipeline/src/openalex.ts`、`pipeline/tests/openalex.test.ts`
@@ -1822,14 +2252,14 @@ reads exactly like 'no abstract exists'. That one detail produced a
 
 ---
 
-## Task 7: 三層摘要補完，並排到守門之前
+## Task 8: 三層摘要補完，並排到守門之前
 
 **Files:**
 - Create: `pipeline/src/enrich.ts`、`pipeline/tests/enrich.test.ts`
 - Modify: `pipeline/src/run.ts`（流程順序）
 
 **Interfaces:**
-- Consumes: `lookup`（Task 6）、`fetchArticleText`（既有 `article.ts`）、`Source`（Task 3）
+- Consumes: `lookup`（Task 7）、`fetchArticleText`（既有 `article.ts`）、`Source`（Task 4）
 - Produces:
   - `enrichCandidate(candidate, source, deps): Promise<Enriched>`
   - `interface Enriched { abstract: string | null; via: 'feed'|'openalex'|'article-page'|'none'; access; openUrl }`
@@ -2064,14 +2494,14 @@ third step never gets it, whatever the first two returned."
 
 ---
 
-## Task 8: 守門提示詞與標籤去重
+## Task 9: 守門提示詞與標籤去重
 
 **Files:**
 - Modify: `pipeline/src/classify-agent.ts`（系統提示詞、標籤去重）
 - Create: `pipeline/tests/classify-agent.test.ts`
 
 **Interfaces:**
-- Consumes: Task 2 的 `TOPICS`
+- Consumes: Task 3 的 `TOPICS`
 - Produces: `CLASSIFY_SYSTEM_PROMPT`（新內容）、`normalizeTopics(raw: string[]): Topic[]`
 
 - [ ] **Step 1: 先寫失敗的測試**
@@ -2209,7 +2639,7 @@ itself."
 
 ---
 
-## Task 9: 摘要模型設定 —— 長度硬約束、輸入上限、Groq 備援
+## Task 10: 摘要模型設定 —— 長度硬約束、輸入上限、Groq 備援
 
 **Files:**
 - Modify: `pipeline/config/agents.json`
@@ -2310,7 +2740,7 @@ let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{
 
 - [ ] **Step 6: 實測 Groq 的繁中品質**
 
-用 Task 13 的乾跑資料，強制走 Groq 產出 3 篇摘要，人工讀過。
+用 Task 14 的乾跑資料，強制走 Groq 產出 3 篇摘要，人工讀過。
 **寫不出可用繁中的備援是假的備援。** 若品質不可用，在 `notes` 記錄，並把這件事
 回報給 Ming 決定，不要默默留著。
 
@@ -2344,7 +2774,7 @@ free-tier 6,000 tokens per minute, which 24,000 would not."
 
 ---
 
-## Task 10: 開放取用徽章
+## Task 11: 開放取用徽章
 
 **Files:**
 - Modify: `src/domain/story.ts`（`access`、`openUrl`）
@@ -2354,7 +2784,7 @@ free-tier 6,000 tokens per minute, which 24,000 would not."
 - Create: `tests/e2e/access-badge.spec.ts`
 
 **Interfaces:**
-- Consumes: Task 7 的 `Enriched.access` / `openUrl`
+- Consumes: Task 8 的 `Enriched.access` / `openUrl`
 - Produces: `Story` 新增 `access: 'open'|'restricted'|'unknown'`、`openUrl: string | null`
 
 - [ ] **Step 1: 先寫失敗的測試**
@@ -2499,14 +2929,14 @@ the original never goes away."
 
 ---
 
-## Task 11: 補查工具
+## Task 12: 補查工具
 
 **Files:**
 - Create: `pipeline/src/refresh-access.ts`
 - Modify: `package.json`（腳本）
 
 **Interfaces:**
-- Consumes: `lookup`（Task 6）、`src/data/stories.json`
+- Consumes: `lookup`（Task 7）、`src/data/stories.json`
 - Produces: `npm run pipeline:refresh-access`
 
 - [ ] **Step 1: 實作**
@@ -2544,7 +2974,7 @@ stale answer forever."
 
 ---
 
-## Task 12: 小 feed 翻頁警告
+## Task 13: 小 feed 翻頁警告
 
 **Files:**
 - Create: `pipeline/src/watermark.ts`、`pipeline/tests/watermark.test.ts`
@@ -2654,7 +3084,7 @@ Expected: PASS
 - 下一次成功抓取時 `previousIds` 是空的，被當成「第一次執行」而不警告。
 - 中間那段到底有沒有整組翻頁，**永遠查不出來了**。
 
-而 Task 13 要跑 `--dry-run`，如果乾跑也寫入，一次乾跑就會毀掉唯一的連續性證據。
+而 Task 14 要跑 `--dry-run`，如果乾跑也寫入，一次乾跑就會毀掉唯一的連續性證據。
 
 **一個為了偵測漏稿而存在的機制，不能自己抹掉證據。**
 
@@ -2722,33 +3152,156 @@ export function shouldCommitWatermark(check: WatermarkCommitCheck): boolean {
 }
 ```
 
-- [ ] **Step 8: 接進 `run.ts`**
+- [ ] **Step 8: 原子寫入，而且排在 stories 之後**
 
-比較用舊值，寫入用新值，而且**寫入只在整次 run 走到最後才發生**（與
-`stories.json` 同一個階段），這樣中途失敗不會留下半套狀態：
+`shouldCommitWatermark` 只是一個布林判斷。**光有它不夠**：真正會毀掉基準的是
+寫入本身。直接 `writeFile` 寫到一半被中止（Ctrl-C、OOM、CI timeout），留下的是一個
+截斷的 JSON —— 下一次讀取失敗、基準當成空的、翻頁偵測失效。**這正是這整個機制
+要防止的事，由這個機制自己造成。**
+
+兩條規則：
+
+```ts
+import { rename, writeFile } from 'node:fs/promises';
+
+/**
+ * Same-directory temp file plus rename. rename(2) is atomic within a
+ * filesystem, so a reader sees either the whole old file or the whole new one,
+ * never a half-written baseline. A truncated watermark file is worse than a
+ * stale one: stale still answers "did the feed turn over", truncated does not.
+ */
+async function writeAtomic(path: string, contents: string): Promise<void> {
+  const temp = `${path}.${process.pid}.tmp`;
+  await writeFile(temp, contents);
+  await rename(temp, path);
+}
+```
+
+**順序：`stories.json` 成功落盤之後，才提交 watermark。** 反過來的話，一次
+stories 寫入失敗會讓 watermark 已經前移，那一週的內容既沒發布、也失去了重抓的
+連續性證據。
+
+- [ ] **Step 9: 接進 `run.ts`**
+
+比較用舊值，寫入用新值，逐來源決定：
 
 ```ts
 // Compare against the stored baseline before anything can overwrite it.
 const gap = detectFeedGap(previousIds[source.id] ?? [], currentIds);
 if (gap) warnings.push(`feed "${source.id}": ${gap}`);
 
-// Stage the update; it is written only if the whole run completes.
-if (shouldCommitWatermark({ dryRun, fetchOk, parseOk, currentIds })) {
-  nextWatermarks[source.id] = currentIds;
-} else {
-  nextWatermarks[source.id] = previousIds[source.id] ?? [];
-}
+// A source that failed keeps its old baseline; it must not be reset to empty
+// just because this run could not reach it.
+nextWatermarks[source.id] = shouldCommitWatermark({ dryRun, fetchOk, parseOk, currentIds })
+  ? currentIds
+  : (previousIds[source.id] ?? []);
 ```
 
 `--dry-run` 一律不寫 `pipeline/state/feed-watermarks.json`，與它不寫
 `src/data/stories.json` 的理由完全相同。
 
-- [ ] **Step 9: 跑測試確認通過**
+- [ ] **Step 10: 用 harness 測真正的寫入行為**
 
-Run: `npx vitest run pipeline/tests/watermark.test.ts`
+前面五個測試只證明一個布林函式回傳正確的布林值。**沒有任何東西證明 `run.ts` 有把
+旗標傳對、乾跑真的沒寫檔、或失敗的來源保住了舊值。** 這些只有跑真的那條路才測得到。
+
+`pipeline/tests/run-watermark.test.ts`：
+
+```ts
+import { describe, expect, it } from 'vitest';
+import { makeRun } from './harness';
+
+const item = (n: number, date = '2026-08-20') => ({
+  title: `Study ${n}`, link: `https://example.org/${n}`, dcDate: date,
+});
+
+describe('the watermark survives everything that could erase it', () => {
+  it('records this run's ids after a clean run', async () => {
+    const run = await makeRun({
+      feeds: { s1: [item(1), item(2)] },
+      verdicts: { relevant: true, topics: ['trust'] },
+    });
+    await run.execute();
+    expect((await run.readWatermarks()).s1).toHaveLength(2);
+  });
+
+  it('writes no watermark file at all on a dry run', async () => {
+    const run = await makeRun({
+      dryRun: true, feeds: { s1: [item(1)] },
+      verdicts: { relevant: true, topics: ['trust'] },
+    });
+    await run.execute();
+    expect(await run.readWatermarks()).toEqual({});
+  });
+
+  // The whole point: a bad week must not destroy the evidence.
+  it('keeps the previous baseline when the fetch fails', async () => {
+    const first = await makeRun({
+      feeds: { s1: [item(1), item(2)] },
+      verdicts: { relevant: true, topics: ['trust'] },
+    });
+    await first.execute();
+    const baseline = (await first.readWatermarks()).s1;
+
+    const second = await makeRun({
+      dir: first.dir, feeds: { s1: [] }, fetchFails: ['s1'],
+    });
+    await second.execute();
+    expect((await second.readWatermarks()).s1).toEqual(baseline);
+  });
+
+  it('keeps the previous baseline when the feed comes back empty', async () => {
+    const first = await makeRun({
+      feeds: { s1: [item(1)] }, verdicts: { relevant: true, topics: ['trust'] },
+    });
+    await first.execute();
+    const baseline = (await first.readWatermarks()).s1;
+
+    const second = await makeRun({ dir: first.dir, feeds: { s1: [] } });
+    await second.execute();
+    expect((await second.readWatermarks()).s1).toEqual(baseline);
+  });
+
+  // One source failing must not reset the others.
+  it('advances the healthy source and preserves the failed one', async () => {
+    const first = await makeRun({
+      feeds: { s1: [item(1)], s2: [item(2)] },
+      verdicts: { relevant: true, topics: ['trust'] },
+    });
+    await first.execute();
+    const before = await first.readWatermarks();
+
+    const second = await makeRun({
+      dir: first.dir, fetchFails: ['s1'],
+      feeds: { s1: [], s2: [item(2), item(3)] },
+      verdicts: { relevant: true, topics: ['trust'] },
+    });
+    await second.execute();
+    const after = await second.readWatermarks();
+    expect(after.s1).toEqual(before.s1);
+    expect(after.s2).toHaveLength(2);
+  });
+
+  it('leaves no temp files behind', async () => {
+    const run = await makeRun({
+      feeds: { s1: [item(1)] }, verdicts: { relevant: true, topics: ['trust'] },
+    });
+    await run.execute();
+    const { readdir } = await import('node:fs/promises');
+    expect((await readdir(run.dir)).filter((f) => f.endsWith('.tmp'))).toEqual([]);
+  });
+});
+```
+
+`harness.ts` 需要多支援一個 `dir` 選項，讓第二次執行沿用第一次的暫存目錄與狀態檔 ——
+這是「上一次執行留下的狀態」唯一誠實的模擬方式。
+
+- [ ] **Step 11: 跑測試確認通過**
+
+Run: `npx vitest run pipeline/tests/watermark.test.ts pipeline/tests/run-watermark.test.ts`
 Expected: PASS
 
-- [ ] **Step 10: 提交**
+- [ ] **Step 12: 提交**
 
 ```bash
 git add pipeline/src/watermark.ts pipeline/tests/watermark.test.ts \
@@ -2774,7 +3327,7 @@ would erase the evidence it exists to preserve."
 
 ---
 
-## Task 13: 乾跑與量測
+## Task 14: 乾跑與量測
 
 **Files:**
 - Create: `docs/research/DRY_RUN_2026-08.md`
