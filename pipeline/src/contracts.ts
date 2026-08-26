@@ -27,6 +27,30 @@ export interface RawFeedItem {
    */
   fullText: string;
   publishedAt: string | null; // ISO 8601, null when the feed omitted a date
+
+  /**
+   * The date exactly as the feed wrote it, before any parsing.
+   *
+   * This exists because `new Date('2026-08')` succeeds and silently means the
+   * first of the month. Cell Press ships month-only dates on issue front
+   * matter, and coercing them to day one puts a late-in-the-month article
+   * outside a weekly window that only moves further away — the story would
+   * disappear permanently and leave no trace. Precision has to be judged
+   * before parsing destroys it.
+   */
+  publishedAtRaw: string;
+
+  /**
+   * The DOI the feed carried, uncleaned. Null when it carried none —
+   * ScienceDirect and JMIR do not, so those fall back to a title search.
+   *
+   * Kept raw on purpose: publishers append query strings and punctuation, and
+   * one place downstream knows how to strip them. Taylor & Francis appends
+   * `?af=R`, and querying with that returns zero hits, which reads exactly
+   * like "this paper has no abstract".
+   */
+  doi: string | null;
+
   guid: string | null;
 }
 

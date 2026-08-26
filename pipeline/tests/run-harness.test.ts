@@ -171,3 +171,28 @@ describe('the report carries what Task 14 will need', () => {
     expect(report.decisions).toBeUndefined();
   });
 });
+
+describe('dates are resolved per publisher', () => {
+  // Cell Press ships month-only dates on issue front matter. Guessing day one
+  // would put a late-month article outside a window that only moves forward.
+  it('rejects a month-only date instead of guessing a day', async () => {
+    const run = await makeRun({
+      sources: { s1: { dateStrategy: 'dcdate' } },
+      feeds: { s1: [{ title: 'Advisory Board and Contents', link: 'https://example.org/a', dcDate: '2026-08' }] },
+      verdicts: { relevant: true, topics: ['cognition'] },
+    });
+    const report = await run.execute();
+    expect(report.sources[0]!.rejectCounts['imprecise-date']).toBe(1);
+    expect(await run.readStories()).toHaveLength(0);
+  });
+
+  it('accepts a full dc:date', async () => {
+    const run = await makeRun({
+      sources: { s1: { dateStrategy: 'dcdate' } },
+      feeds: { s1: [{ title: 'A study', link: 'https://example.org/a', dcDate: '2026-08-20' }] },
+      verdicts: { relevant: true, topics: ['cognition'] },
+    });
+    await run.execute();
+    expect(await run.readStories()).toHaveLength(1);
+  });
+});

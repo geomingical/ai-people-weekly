@@ -10,6 +10,7 @@ const source: IngestSource = {
   maxPerRun: 10,
   region: 'US',
   language: 'en',
+  dateStrategy: 'rss',
 };
 
 const window = {
@@ -18,15 +19,19 @@ const window = {
 };
 
 function item(overrides: Partial<RawFeedItem> = {}): RawFeedItem {
-  return {
+  const base = {
     title: 'AI in schools',
     link: 'https://example.org/a',
     summary: 'A summary.',
     fullText: '',
     publishedAt: '2026-08-15T00:00:00.000Z',
+    doi: null,
     guid: null,
     ...overrides,
   };
+  // The date now comes from publishedAtRaw, so a test that overrides the date
+  // has to move both. Deriving it here keeps that from being a trap.
+  return { ...base, publishedAtRaw: overrides.publishedAtRaw ?? base.publishedAt ?? '' };
 }
 
 function run(items: RawFeedItem[], overrides: Partial<IngestSource> = {}, seen = new Set<string>()) {

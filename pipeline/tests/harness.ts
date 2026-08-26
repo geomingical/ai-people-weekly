@@ -22,6 +22,8 @@ export interface FakeItem {
   link: string;
   /** Written as <pubDate>. */
   publishedAt?: string;
+  /** Written as <dc:date>. Use '2026-08' to exercise month-only precision. */
+  dcDate?: string;
   summary?: string;
   /** Give the item a feed body, so source-text selection can be observed. */
   contentEncoded?: string;
@@ -93,13 +95,14 @@ function feedXml(items: readonly FakeItem[]): string {
       (item) => `<item>
       <title>${item.title}</title>
       <link>${item.link}</link>
-      <pubDate>${item.publishedAt ?? '2026-08-20T00:00:00Z'}</pubDate>
+      ${item.dcDate ? `<dc:date>${item.dcDate}</dc:date>` : `<pubDate>${item.publishedAt ?? '2026-08-20T00:00:00Z'}</pubDate>`}
       <description>${item.summary ?? 'x'.repeat(600)}</description>
       ${item.contentEncoded ? `<content:encoded>${item.contentEncoded}</content:encoded>` : ''}
     </item>`,
     )
     .join('');
   return `<?xml version="1.0"?><rss version="2.0"
+    xmlns:dc="http://purl.org/dc/elements/1.1/"
     xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel>${entries}</channel></rss>`;
 }
 

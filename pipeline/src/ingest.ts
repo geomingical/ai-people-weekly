@@ -8,6 +8,7 @@
 import { createHash } from 'node:crypto';
 import type { RawFeedItem } from './contracts';
 import { resolveTopics, type Topic } from './classify';
+import { resolvePublishedAt, type DateStrategy } from './published-at';
 
 export interface IngestSource {
   id: string;
@@ -17,6 +18,8 @@ export interface IngestSource {
   maxPerRun: number;
   region: string;
   language: 'en' | 'zh-tw' | 'zh-cn' | 'other';
+  /** Where this publisher writes its date. See published-at.ts. */
+  dateStrategy: DateStrategy;
 }
 
 export interface IngestedItem {
@@ -43,6 +46,7 @@ export const REJECT_REASONS = [
   'bad-url',
   'off-domain',
   'no-date',
+  'imprecise-date',
   'future-dated',
   'outside-window',
   'not-relevant',
@@ -189,15 +193,19 @@ export function screenSourceItems(
       continue;
     }
 
-    if (item.publishedAt === null) {
+    // Each publisher writes the date somewhere different, and one writes it in
+    // prose. Month-only values are rejected rather than guessed — see
+    // published-at.ts for why guessing loses the story permanently.
+    const resolved = resolvePublishedAt(source.dateStrategy, item);
+    if (resolved.precision === 'month') {
+      reject('imprecise-date', title);
+      continue;
+    }
+    if (resolved.iso === null) {
       reject('no-date', title);
       continue;
     }
-    const published = new Date(item.publishedAt);
-    if (Number.isNaN(published.getTime())) {
-      reject('no-date', title);
-      continue;
-    }
+    const published = new Date(resolved.iso);
     if (published.getTime() > window.end.getTime() + FUTURE_TOLERANCE_MS) {
       reject('future-dated', title);
       continue;

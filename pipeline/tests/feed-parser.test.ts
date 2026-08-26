@@ -168,3 +168,57 @@ describe('truncateSummary', () => {
     expect(result.length).toBeGreaterThan(40);
   });
 });
+
+
+// RawFeedItem's new fields are required, and there are three constructors. A
+// missing one does not compile; a wrong one loses date precision or the DOI.
+describe('publishedAtRaw and doi across all three formats', () => {
+  it('keeps the raw date and DOI from RSS', () => {
+    const { items } = parseFeed(`<?xml version="1.0"?>
+      <rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><item>
+        <title>A study</title>
+        <link>https://www.tandfonline.com/doi/full/10.1080/10447318.2025.2598113?af=R</link>
+        <dc:date>2026-08</dc:date>
+      </item></channel></rss>`);
+    expect(items[0]!.publishedAtRaw).toBe('2026-08');
+    expect(items[0]!.doi).toBe('10.1080/10447318.2025.2598113?af=R');
+  });
+
+  it('keeps the raw date and DOI from Atom', () => {
+    const { items } = parseFeed(`<?xml version="1.0"?>
+      <feed xmlns="http://www.w3.org/2005/Atom"><entry>
+        <title>A study</title>
+        <id>https://doi.org/10.2196/12345</id>
+        <published>2026-08-21T11:45:12-04:00</published>
+      </entry></feed>`);
+    expect(items[0]!.publishedAtRaw).toBe('2026-08-21T11:45:12-04:00');
+    expect(items[0]!.doi).toBe('10.2196/12345');
+  });
+
+  it('keeps the raw date and DOI from a JSON Feed', () => {
+    const { items } = parseFeed(
+      JSON.stringify({
+        items: [
+          {
+            title: 'A study',
+            url: 'https://example.org/10.1145/3803855',
+            date_published: '2026-08-08T11:45:26Z',
+            id: 'x',
+          },
+        ],
+      }),
+    );
+    expect(items[0]!.publishedAtRaw).toBe('2026-08-08T11:45:26Z');
+    expect(items[0]!.doi).toBe('10.1145/3803855');
+  });
+
+  // Deliberately uncleaned. One place downstream knows how to strip what
+  // publishers append, and a DOI cleaned in two places gets cleaned differently.
+  it('does not clean the DOI here', () => {
+    const { items } = parseFeed(`<?xml version="1.0"?>
+      <rss version="2.0"><channel><item>
+        <title>t</title><link>https://x.org/10.1080/abc.123?af=R</link>
+      </item></channel></rss>`);
+    expect(items[0]!.doi).toContain('?af=R');
+  });
+});

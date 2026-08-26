@@ -115,6 +115,15 @@ function firstNonEmpty(...values: unknown[]): string {
   return '';
 }
 
+/** Publishers put the DOI in several places and none of them consistently. */
+function readDoi(...candidates: string[]): string | null {
+  for (const candidate of candidates) {
+    const match = candidate.match(/10\.\d{4,}\/[^\s<"']+/);
+    if (match) return match[0];
+  }
+  return null;
+}
+
 function parseRssItems(channel: Record<string, unknown>): RawFeedItem[] {
   return asArray(channel['item'] as Record<string, unknown> | Record<string, unknown>[])
     .map((item): RawFeedItem => {
@@ -135,6 +144,13 @@ function parseRssItems(channel: Record<string, unknown>): RawFeedItem[] {
         fullText: body,
         publishedAt: normalizeDate(
           firstNonEmpty(item['pubDate'], item['dc:date'], item['date']),
+        ),
+        publishedAtRaw: firstNonEmpty(item['pubDate'], item['dc:date'], item['date']),
+        doi: readDoi(
+          textOf(item['dc:identifier']),
+          textOf(item['prism:doi']),
+          textOf(item['link']),
+          textOf(item['guid']),
         ),
         guid: textOf(item['guid']).trim() || null,
       };
@@ -165,6 +181,8 @@ function parseAtomEntries(feed: Record<string, unknown>): RawFeedItem[] {
         summary: truncateSummary(toPlainText(summary || content)),
         fullText: pickRicher(content, summary),
         publishedAt: normalizeDate(firstNonEmpty(entry['published'], entry['updated'])),
+        publishedAtRaw: firstNonEmpty(entry['published'], entry['updated']),
+        doi: readDoi(textOf(entry['id']), textOf(entry['dc:identifier']), atomLink(entry)),
         guid: textOf(entry['id']).trim() || null,
       };
     });
@@ -194,6 +212,12 @@ function parseJsonFeed(body: string): FeedParseResult {
       fullText: pickRicher(contentHtml || contentText, summary),
       publishedAt: normalizeDate(
         typeof item['date_published'] === 'string' ? item['date_published'] : '',
+      ),
+      publishedAtRaw: typeof item['date_published'] === 'string' ? item['date_published'] : '',
+      doi: readDoi(
+        typeof item['id'] === 'string' ? item['id'] : '',
+        typeof item['url'] === 'string' ? item['url'] : '',
+        typeof item['external_url'] === 'string' ? item['external_url'] : '',
       ),
       guid: typeof item['id'] === 'string' ? item['id'] : null,
     };

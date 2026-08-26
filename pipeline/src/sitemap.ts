@@ -147,6 +147,10 @@ export async function itemsFromSitemap(
       summary: truncateSummary(article.text),
       fullText: article.text,
       publishedAt: entry.lastmod === null ? null : new Date(entry.lastmod).toISOString(),
+      // A sitemap's <lastmod> is the only date on offer here, and a DOI, if
+      // there is one, can only be in the URL.
+      publishedAtRaw: entry.lastmod ?? '',
+      doi: (entry.loc.match(/10\.\d{4,}\/[^\s"']+/) ?? [null])[0],
       guid: entry.loc,
     });
   }

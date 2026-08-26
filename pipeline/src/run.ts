@@ -158,6 +158,7 @@ function toIngestSource(source: Source): IngestSource {
     maxPerRun: source.maxPerRun,
     region: source.region,
     language: source.language,
+    dateStrategy: source.dateStrategy,
   };
 }
 
