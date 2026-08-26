@@ -86,6 +86,11 @@ export const messages = {
   storyOriginalTitleLabel: { 'zh-tw': '原標題', en: 'Original headline' },
   storySourceLabel: { 'zh-tw': '來源', en: 'Source' },
   storyPublishedLabel: { 'zh-tw': '發布日期', en: 'Published' },
+  accessOpen: { 'zh-tw': '免費全文', en: 'Open access' },
+  accessRestricted: { 'zh-tw': '需訂閱', en: 'Subscription' },
+  accessUnknown: { 'zh-tw': '未確認', en: 'Not checked' },
+  accessFreeVersion: { 'zh-tw': '免費版本', en: 'Free version' },
+
   storyReadOriginal: { 'zh-tw': '讀原文', en: 'Read the original' },
   // Shown on every machine-written line. Auto-publish means no human read
   // this before it went live, and the page must say so plainly.

@@ -1,13 +1,15 @@
-# AI 教育週報 · AI in Education Weekly
+# AI 與人週報 · AI and People Weekly
 
-A bilingual static site that collects news about AI in education from a
-hand-picked list of feeds, files each story under its ISO week, and publishes a
-weekly issue with a machine-written Traditional Chinese summary beside every
-original headline and link.
+A bilingual static site that collects research on what AI does to the people
+who use it — sycophancy, dependence, companionship, trust, wellbeing,
+cognition, social behaviour — from a hand-picked list of journals, preprint
+servers and survey organisations, files each study under its ISO week, and
+publishes a weekly issue with a machine-written Traditional Chinese summary
+beside every original title and link.
 
-**Live: https://geomingical.github.io/ai-education-weekly/**
-
-Start with **[`docs/HANDOFF.md`](docs/HANDOFF.md)**.
+**Only studies where a real person was measured.** A paper about making a model
+less sycophantic does not qualify; a paper measuring how sycophancy changes what
+people do, does. The test is what was measured, not whose data was used.
 
 ## Commands
 
@@ -20,12 +22,12 @@ npm run pipeline:dry            # collect a week, write nothing
 npm run pipeline:run            # collect a week and update src/data/stories.json
 npm run pipeline:resummarize    # fill in Chinese summaries on stories that lack them
 npx tsx pipeline/src/run.ts --since 45              # backfill the archive
-npx tsx pipeline/src/resummarize.ts --dry-run --limit 6   # try the model on six, write nothing
 ```
 
-Chinese summaries need `NVIDIA_API_KEY` (or `AI_EDU_API_KEY`) in `.env`. Without
-a key the pipeline still runs and every story publishes with its source's own
-summary — `pipeline:resummarize` fills them in later.
+Chinese summaries need `NVIDIA_API_KEY` and, as a fallback, `GROQ_API_KEY` in
+`.env` — see `.env.example`. Without a key the gate publishes nothing at all,
+which is deliberate: relevance here means "was a person measured", and no
+keyword rule can answer that, so an outage must not publish unvetted work.
 
 ## Layout
 
@@ -34,12 +36,20 @@ src/domain/     pure logic — schemas, filters, ISO weeks, i18n. No framework.
 src/data/       sources.json (the editorial control) and stories.json (the output)
 src/components/ Astro components; each owns its own scoped styles
 src/pages/      routes, mirrored under /en/, plus rss.xml and sitemap.xml
-pipeline/       fetch feed → parse → gate → get article text → summarize → merge
+pipeline/       fetch feed → parse → date → abstract → gate → summarize → merge
 tests/          unit, guard, and browser suites
-docs/           handoff, and the source research this registry came from
+docs/           the design spec and the implementation plan this was built from
 ```
+
+## Where abstracts come from
+
+Seventeen of the twenty-eight journals ship feeds with no abstract — Taylor &
+Francis sends 52 characters of volume and page numbers. Since the gate has to
+read an abstract, `pipeline/src/enrich.ts` tries three rungs in order: what the
+feed carried, then OpenAlex, then the publisher's own article page where its
+robots.txt permits that. ScienceDirect never gets the third rung; it returns 403
+on robots.txt and asserts a text-and-data-mining reservation.
 
 ## Status
 
-**Live at https://geomingical.github.io/ai-education-weekly/** and running every
-Monday at 09:00 Taipei time. 749 unit tests and 42 browser tests green.
+Not deployed. The pipeline runs locally and the weekly schedule is off.

@@ -12,6 +12,34 @@ const topicKeys: Record<Topic, MessageKey> = {
   social: 'topicSocial',
 };
 
+/**
+ * Three states, never two.
+ *
+ * 'unknown' means the lookup found nothing, which is routine for a paper
+ * published in the last few days — exactly the work a weekly exists to
+ * surface. Collapsing it into 'restricted' would be a visible lie about the
+ * newest research on the page.
+ */
+const accessKeys: Record<Story['access'], MessageKey> = {
+  open: 'accessOpen',
+  restricted: 'accessRestricted',
+  unknown: 'accessUnknown',
+};
+
+export function formatAccess(locale: Locale, access: Story['access']): string {
+  return t(locale, accessKeys[access]);
+}
+
+/** The host a free link points at, so a reader knows before following it. */
+export function freeLinkHost(openUrl: string | null): string | null {
+  if (openUrl === null) return null;
+  try {
+    return new URL(openUrl).hostname;
+  } catch {
+    return null;
+  }
+}
+
 const categoryKeys: Record<Source['category'], MessageKey> = {
   'journal-hci': 'categoryJournalHci',
   'journal-psych': 'categoryJournalPsych',

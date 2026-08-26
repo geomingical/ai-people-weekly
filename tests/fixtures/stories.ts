@@ -23,6 +23,8 @@ export function makeStory(overrides: Partial<Story> = {}): Story {
     topics: ['cognition'],
     region: 'GLOBAL',
     language: 'en',
+    access: 'unknown',
+    openUrl: null,
     ...overrides,
   };
 }

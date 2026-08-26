@@ -111,9 +111,10 @@ describe('published data carries excerpts, not articles', () => {
    * per-story guard below pass vacuously without anyone noticing.
    *
    * This constant makes that state deliberate instead of accidental. The first
-   * real pipeline run flips it to true, and it must never go back.
+   * real pipeline run flipped it to true on 2026-08-26, and it must never go
+   * back: an empty stories.json from here on is a fault, not a fresh start.
    */
-  const SITE_HAS_PUBLISHED = false;
+  const SITE_HAS_PUBLISHED = true;
 
   it('has stories to check, once the site has published anything', () => {
     if (!SITE_HAS_PUBLISHED) {

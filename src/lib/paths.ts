@@ -13,7 +13,7 @@ import { counterpartPath as pureCounterpart, localizedPath as pureLocalizedPath 
 import type { FilterState } from '../domain/filters';
 import type { Locale } from '../domain/story';
 
-/** '' when deployed at a domain root, '/ai-education-weekly' on Pages. */
+/** '' when deployed at a domain root, '/ai-people-weekly' on Pages. */
 export const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
 
 export function withBase(path: string): string {

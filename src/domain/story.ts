@@ -62,6 +62,27 @@ export const storySchema = z
     topics: z.array(z.enum(TOPICS)).min(1),
     region: z.string().min(2),
     language: z.enum(LANGUAGES),
+
+    /**
+     * Whether a free version of this article exists.
+     *
+     * Three states, not two. 'unknown' means the lookup found nothing, which
+     * happens routinely for papers published in the last few days — and those
+     * are exactly the ones a weekly exists to surface. Showing them as
+     * "subscription required" would be a visible lie about the newest work.
+     */
+    access: z.enum(['open', 'restricted', 'unknown']),
+
+    /**
+     * Where the free version is, when there is one. Additive: the original
+     * link is never replaced by it.
+     */
+    openUrl: z
+      .string()
+      .url()
+      .refine((value) => value.startsWith('https://'), { message: 'free links must use https' })
+      .nullable()
+      .default(null),
   })
   .strict()
   .superRefine((story, ctx) => {
@@ -77,6 +98,13 @@ export const storySchema = z
         code: 'custom',
         message: 'summarySource "source-verbatim" requires a non-empty summaryOriginal',
         path: ['summaryOriginal'],
+      });
+    }
+    if (story.access !== 'open' && story.openUrl !== null) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'only an open story may carry a free link',
+        path: ['openUrl'],
       });
     }
     if (Date.parse(story.fetchedAt) < Date.parse(story.publishedAt)) {

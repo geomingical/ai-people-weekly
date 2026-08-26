@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { counterpartPath, localePrefix, localizedPath } from '../../src/domain/locale';
 import { defaultFilterState } from '../../src/domain/filters';
-import { formatCategory, formatTier, formatTopic } from '../../src/domain/format';
+import {
+  formatAccess,
+  formatCategory,
+  formatTier,
+  formatTopic,
+  freeLinkHost,
+} from '../../src/domain/format';
 
 describe('localePrefix', () => {
   it('gives English a prefix and leaves the default locale bare', () => {
@@ -50,5 +56,33 @@ describe('label formatting', () => {
     expect(formatCategory('en', 'preprint')).toBe('Preprints');
     expect(formatTier('zh-tw', 'first-party')).toBe('第一手');
     expect(formatTier('en', 'community')).toBe('Community');
+  });
+});
+
+
+describe('access labels', () => {
+  it('renders all three states in both languages', () => {
+    expect(formatAccess('zh-tw', 'open')).toBe('免費全文');
+    expect(formatAccess('zh-tw', 'restricted')).toBe('需訂閱');
+    expect(formatAccess('zh-tw', 'unknown')).toBe('未確認');
+    expect(formatAccess('en', 'unknown')).toBe('Not checked');
+  });
+
+  // Collapsing unknown into restricted would be a lie about the newest work.
+  it('never gives unknown the same label as restricted', () => {
+    for (const locale of ['zh-tw', 'en'] as const) {
+      expect(formatAccess(locale, 'unknown')).not.toBe(formatAccess(locale, 'restricted'));
+    }
+  });
+});
+
+describe('freeLinkHost', () => {
+  it('names the host so a reader knows where the link goes', () => {
+    expect(freeLinkHost('https://europepmc.org/article/MED/123')).toBe('europepmc.org');
+  });
+
+  it('returns null rather than throwing on a bad url', () => {
+    expect(freeLinkHost('not a url')).toBeNull();
+    expect(freeLinkHost(null)).toBeNull();
   });
 });

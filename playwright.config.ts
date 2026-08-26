@@ -9,7 +9,7 @@ export default defineConfig({
   reporter: 'list',
   use: {
     // Includes the deployment sub-path, so tests exercise the real URLs.
-    baseURL: 'http://localhost:4322/ai-education-weekly/',
+    baseURL: 'http://localhost:4322/ai-people-weekly/',
     trace: 'off',
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
@@ -22,9 +22,9 @@ export default defineConfig({
     // same URLs production will. Copied rather than symlinked — sirv does not
     // follow a symlinked root.
     command:
-      'npx astro build && rm -rf .preview && mkdir -p .preview && cp -R dist .preview/ai-education-weekly && npx sirv .preview --port 4322 --quiet',
+      'npx astro build && rm -rf .preview && mkdir -p .preview && cp -R dist .preview/ai-people-weekly && npx sirv .preview --port 4322 --quiet',
     // The health check has to hit the sub-path; the server root is empty now.
-    url: 'http://localhost:4322/ai-education-weekly/',
+    url: 'http://localhost:4322/ai-people-weekly/',
     reuseExistingServer: false,
     timeout: 120_000,
   },

@@ -1,1 +1,521 @@
-[]
+[
+  {
+    "id": "c89f1028ef78cc6e",
+    "sourceId": "arxiv-cs-hc",
+    "title": "When LLMs Slow Down: How Environmental Impacts Mediate University Students' LLM Usage",
+    "summaryOriginal": "arXiv:2608.23968v1 Announce Type: new Abstract: Large Language Models (LLMs) are increasingly being embedded into all facets of society, from search to education, industrial, and financial applications. These systems' carbon and water footprints raise important sustainability concerns, particularly with adoption rates exceeding 80% among university students, despite limited insight into the…",
+    "titleZhTW": "研究：大學生願為減碳接受較慢的 LLM 回應速度",
+    "summaryZhTW": "針對 89 位修習計算機倫理課程的大學生實驗顯示，當介面即時顯示延遲與碳排權衡時，學生若認同減碳效益，願意接受較慢回應；但感知延遲增加會顯著降低採用意願。環保意識較強的學生基線採用率較高，惟隨延遲增長效果遞減。研究指出即時生態回饋介面可作為永續教育介入，提升大學生對 LLM 環境",
+    "summarySource": "machine",
+    "url": "https://arxiv.org/abs/2608.23968",
+    "publishedAt": "2026-08-26T04:00:00.000Z",
+    "fetchedAt": "2026-08-26T10:39:01.005Z",
+    "issue": "2026-W35",
+    "topics": [
+      "cognition"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "1839566e47c0e6c9",
+    "sourceId": "arxiv-cs-hc",
+    "title": "When AI \"Works,\" When Does Help Begin?: Intergenerational Support Around Older Adults' LLM Usage",
+    "summaryOriginal": "arXiv:2608.24297v1 Announce Type: new Abstract: LLMs are becoming part of everyday life, including for older adults (OAs). OAs often learn digital technologies with younger family members, who have traditionally served as \"warm experts\" providing trusted and personalized operational help. LLMs expand this role: family supporters may also help OAs judge appropriate uses, consider what information…",
+    "titleZhTW": "跨代支援老年人使用 LLM：隱形風險與協作盲點",
+    "summaryZhTW": "研究發現老年人嘗試用 LLM 減少對家人的依賴，但因 LLM 錯誤不易被察覺，年輕家人缺乏介入信號，僅能靠零星透露與籠統提醒應對。這導致支援往往只解決眼前問題，未能沉澱可重複運用的判斷經驗，凸顯需設計「同意制求助」與「保留長者任務主導權」的學習型支援機制。",
+    "summarySource": "machine",
+    "url": "https://arxiv.org/abs/2608.24297",
+    "publishedAt": "2026-08-26T04:00:00.000Z",
+    "fetchedAt": "2026-08-26T10:39:01.005Z",
+    "issue": "2026-W35",
+    "topics": [
+      "dependence",
+      "trust",
+      "social"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "740fe06183518f78",
+    "sourceId": "arxiv-cs-hc",
+    "title": "AI Agents Push Humans Out of the Loop",
+    "summaryOriginal": "arXiv:2608.23642v1 Announce Type: cross Abstract: AI agents pose significant risks as they are granted increasing autonomy. A commonly proposed solution is human oversight and keeping a ''human in the loop'', but this is not a simple solution: Not only do current approaches to AI agent design impede effective human oversight, but the cognitive capacities required for it are also themselves…",
+    "titleZhTW": null,
+    "summaryZhTW": null,
+    "summarySource": "source-verbatim",
+    "url": "https://arxiv.org/abs/2608.23642",
+    "publishedAt": "2026-08-26T04:00:00.000Z",
+    "fetchedAt": "2026-08-26T10:39:01.005Z",
+    "issue": "2026-W35",
+    "topics": [
+      "cognition",
+      "dependence"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "db1bc65095f8f038",
+    "sourceId": "arxiv-cs-hc",
+    "title": "When Youth Enter The Chat: An Epistemic Shift in the Validation of LLM-Based Measures of Student Talk",
+    "summaryOriginal": "arXiv:2608.23780v1 Announce Type: cross Abstract: LLMs are being used increasingly to measure aspects of student discourse (e.g. talk moves, collaboration, equity of voice) at scale. Typically, LLM-based measures of student talk use transcriptions of classroom conversations that only include verbal contributions, which de-contextualize student language. Common practices for validating these…",
+    "titleZhTW": "研究揭示 LLM 分析學生課堂發言與學生自我認知存在落差",
+    "summaryZhTW": "研究發現，以大型語言模型（LLM）分析課堂錄音紀錄來衡量學生發言品質，結果常與學生自身對話經驗的解讀不符。研究團隊邀請八年級數學課的多語言學生參與觀察、訪談與成員核對，發現學生質疑 LLM 的分類標準與編碼方案，凸顯若缺乏青少年視角的參與，僅靠成人專家標註與 F1 分數驗證，無法",
+    "summarySource": "machine",
+    "url": "https://arxiv.org/abs/2608.23780",
+    "publishedAt": "2026-08-26T04:00:00.000Z",
+    "fetchedAt": "2026-08-26T10:39:01.005Z",
+    "issue": "2026-W35",
+    "topics": [
+      "cognition",
+      "trust"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "4385f9322e4d582a",
+    "sourceId": "arxiv-cs-hc",
+    "title": "MemUse: Moving Memory Evaluation from Direct QA to Natural Integration in Long-Term Human-AI Conversation",
+    "summaryOriginal": "arXiv:2608.24189v1 Announce Type: cross Abstract: Memory systems for conversational LLMs are conventionally evaluated by direct, fact-seeking questions about prior dialogue (Direct QA): can the model recall fact X from a prior conversation? We tested whether higher Direct QA accuracy correlates with higher user satisfaction in a 4-month deployment (40 users, 1,872 sessions, 7 memory conditions).…",
+    "titleZhTW": "研究發現對話式 AI 記憶評估指標與用戶滿意度脫節",
+    "summaryZhTW": "研究部署 40 位用戶長達 4 個月，發現傳統「直接問答」記憶準確率（19.7%–70.1%）與用戶滿意度無相關。團隊提出新指標 MemUse，測量模型在自然對話中主動整合過往語境的能力；同一系統在直接問答得 78.8%，實際對話中僅自然引用 7.9% 事實。自然整合程度與滿意度",
+    "summarySource": "machine",
+    "url": "https://arxiv.org/abs/2608.24189",
+    "publishedAt": "2026-08-26T04:00:00.000Z",
+    "fetchedAt": "2026-08-26T10:39:01.005Z",
+    "issue": "2026-W35",
+    "topics": [
+      "dependence",
+      "trust"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "9d897bebe6ad4b54",
+    "sourceId": "arxiv-cs-hc",
+    "title": "AI, Expert or Peer? Provider Biases and Feedback Uptake Among Pre-Service Teachers",
+    "summaryOriginal": "arXiv:2507.16013v2 Announce Type: replace Abstract: The EU AI Act places teachers in charge of using high-risk AI safely in their classes, which requires them to assess AI-generated outputs. Feedback is one of the most consequential of these outputs, yet little is known about pre-service teachers perceptions of AI-generated feedback. In a randomised experiment, 273 pre-service teachers each…",
+    "titleZhTW": "師資生難辨 AI 回饋來源，品質才是採納關鍵",
+    "summaryZhTW": "研究發現 273 位師資生無法準確判斷書面回饋來自專家、同儕或 LLM，判斷主要依據訊息長度而非實際品質。當回饋被歸因為人類撰寫時，LLM 回饋獲得較正面評價；但實際採納率最高的是 LLM 回饋（52%），且唯有編碼後的回饋品質顯著預測採納行為。這顯示師資生對來源的刻板印象影響感",
+    "summarySource": "machine",
+    "url": "https://arxiv.org/abs/2507.16013",
+    "publishedAt": "2026-08-26T04:00:00.000Z",
+    "fetchedAt": "2026-08-26T10:39:01.005Z",
+    "issue": "2026-W35",
+    "topics": [
+      "trust",
+      "cognition"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "14e978b5e59e1500",
+    "sourceId": "arxiv-cs-hc",
+    "title": "Epistemic Transfer in AI-Assisted Verification: A Framework and Evaluation Protocol",
+    "summaryOriginal": "arXiv:2608.08882v4 Announce Type: replace Abstract: AI tools that help people judge online claims are usually evaluated while the tool is present. This paper asks a different question: after using such a tool, what can the user still do on their own? I call this epistemic transfer. It refers to the effect of prior AI-assisted verification on later unassisted performance on new claims. In this…",
+    "titleZhTW": "AI輔助驗證的認知轉移框架：評估工具移除後的獨立判斷力",
+    "summaryZhTW": "研究提出「認知轉移」概念，探討使用AI輔助驗證工具後，使用者在無工具情況下的獨立判斷能力。論文建立評估協定，區分能力建構、工具依賴與去技能化等狀態，強調教育現場在導入AI工具時，不僅要看即時輔助效果，更應測試工具移除後留下的長期認知影響。",
+    "summarySource": "machine",
+    "url": "https://arxiv.org/abs/2608.08882",
+    "publishedAt": "2026-08-26T04:00:00.000Z",
+    "fetchedAt": "2026-08-26T10:39:01.005Z",
+    "issue": "2026-W35",
+    "topics": [
+      "cognition"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "c506af04d5a42467",
+    "sourceId": "arxiv-cs-hc",
+    "title": "TractorBeam: Personalized AI Sensemaking Support via Collaborative Machine Annotation",
+    "summaryOriginal": "arXiv:2608.18994v2 Announce Type: replace Abstract: Language model-based systems which allow asking questions of documents have become popular tools for sensemaking. Despite their implied capability, these systems still suffer from issues of factuality and provenance, while encouraging confirmatory, rather than exploratory, research. We present TractorBeam, a browser extension-based…",
+    "titleZhTW": "TractorBeam：以協同機器標註輔助個人化 AI 理解文獻",
+    "summaryZhTW": "TractorBeam 是一款瀏覽器擴充套件，將語言模型輸出轉為 PDF 上的建議高亮，採「協同機器標註」隱喻讓使用者在文件脈絡中直接檢視與修正 AI 標記。初步使用者研究顯示，參與者皆能評估並迭代改進模型對其標註意圖的反映，部分人更因建議而重新思考原有架構。此工具解決來源追溯與",
+    "summarySource": "machine",
+    "url": "https://arxiv.org/abs/2608.18994",
+    "publishedAt": "2026-08-26T04:00:00.000Z",
+    "fetchedAt": "2026-08-26T10:39:01.005Z",
+    "issue": "2026-W35",
+    "topics": [
+      "cognition"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "91f9c56dbb7c602d",
+    "sourceId": "arxiv-cs-hc",
+    "title": "Delegating or Doing? Understanding User Behavior in Hybrid Human-Agent Interfaces",
+    "summaryOriginal": "arXiv:2608.19551v2 Announce Type: replace Abstract: Large Language Models (LLMs) are increasingly embedded into applications, allowing users to complete tasks either through direct manipulation or by delegating actions to conversational agents. However, little is known about how users balance these modalities when both are available. We present a web-based content management system augmented with…",
+    "titleZhTW": "研究：混合人機介面降低操作負擔但不縮短完成時間",
+    "summaryZhTW": "研究比較傳統圖形介面、AI優先與混合三種模式，發現引入 LLM 代理顯著減少點擊、換頁與捲動，操作負擔降低，但任務完成時間無顯著差異。使用者是否委派任務主要取決於個人習慣而非任務風險，個體差異解釋約半數委派行為變異，顯示混合介面的核心價值在於減輕互動成本而非加速流程。",
+    "summarySource": "machine",
+    "url": "https://arxiv.org/abs/2608.19551",
+    "publishedAt": "2026-08-26T04:00:00.000Z",
+    "fetchedAt": "2026-08-26T10:39:01.005Z",
+    "issue": "2026-W35",
+    "topics": [
+      "dependence",
+      "cognition"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "99d11b60dcf5f4f4",
+    "sourceId": "arxiv-cs-hc",
+    "title": "What Makes an Initial Reaction Ready for Discussion?: Multi-Persona AI Support for Stance Reflection and Writing",
+    "summaryOriginal": "arXiv:2608.23050v2 Announce Type: replace Abstract: An initial reaction to a social or community issue can feel meaningful before it is ready to become a message: people still need to clarify the claim, anticipate audience risks, and decide how much reasoning should become visible to others. We present StanceLab, a prototype for preparing a stance before entering a discussion. The prototype…",
+    "titleZhTW": "多重人格 AI 協助立場反思與寫作：StanceLab 原型系統",
+    "summaryZhTW": "研究團隊開發 StanceLab 原型，讓面試官、導師、反對者三種 AI 人格並行回應，協助使用者在公開發言前釐清主張、預判風險並修飾推理。六位參與者進行 12 次任務，每次皆產出最終訊息。初步發現指出：人格角色需能診斷盲點與異議，且平行回應需要協調機制，未來將朝診斷與寫作整合流",
+    "summarySource": "machine",
+    "url": "https://arxiv.org/abs/2608.23050",
+    "publishedAt": "2026-08-26T04:00:00.000Z",
+    "fetchedAt": "2026-08-26T10:39:01.005Z",
+    "issue": "2026-W35",
+    "topics": [
+      "cognition"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "659c1cebb3554cfc",
+    "sourceId": "arxiv-cs-cy",
+    "title": "An Echo Chamber of One: Should AI Psychosis Be a Distinct Clinical Entity?",
+    "summaryOriginal": "arXiv:2608.23937v1 Announce Type: new Abstract: \"AI psychosis\" has entered public and clinical discourse as a label for the onset or exacerbation of psychotic symptoms, most commonly delusions, following intensive interaction with large language model (LLM)-based chatbots. Current evidence is limited to media reports, case reports, and early observational data, yet the scale of potential exposure…",
+    "titleZhTW": "論文探討「AI 精神病」是否應列為獨立診斷類別",
+    "summaryZhTW": "研究指出大型語言模型的迎合傾向與擬人化設計，可能形成「單人迴音室」放大使用者妄想，導致精神病症狀出現或惡化。作者分析將其納入診斷手冊的利弊：有助識別個案、制定干預與監管，但也可能過早將轶事證據實體化、汙名化使用者，且現有診斷框架或已足夠涵蓋 AI 相關因素。建議臨床評估納入「科技",
+    "summarySource": "machine",
+    "url": "https://arxiv.org/abs/2608.23937",
+    "publishedAt": "2026-08-26T04:00:00.000Z",
+    "fetchedAt": "2026-08-26T10:39:01.005Z",
+    "issue": "2026-W35",
+    "topics": [
+      "sycophancy",
+      "wellbeing",
+      "relationships"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "efeb2a2696251e5b",
+    "sourceId": "arxiv-cs-cy",
+    "title": "Method, Mind, and Morality: How People Make Sense of Artificial Intelligence",
+    "summaryOriginal": "arXiv:2608.24748v1 Announce Type: new Abstract: How can humans make sense of the rapid takeoff of artificial intelligence (AI)? We studied the sensemaking dynamics of AI through an open-ended, mixed-methods study with computational text analysis of millions of AI-related newspaper articles and social media posts grounded in 57 semi-structured interviews with AI professionals in 2021 and…",
+    "titleZhTW": "研究揭示人類如何理解 AI：方法、心智與道德三大框架",
+    "summaryZhTW": "研究分析數百萬篇報導與社群媒體貼文，並訪談 57 位 AI 專業人士，發現大眾透過「開發方法」、「AI 心智屬性」與「發展道德取向」三大框架來理解 AI。這些框架影響專業人士如何分配社會責任，也將塑造未來技術發展與政策決策的方向。",
+    "summarySource": "machine",
+    "url": "https://arxiv.org/abs/2608.24748",
+    "publishedAt": "2026-08-26T04:00:00.000Z",
+    "fetchedAt": "2026-08-26T10:39:01.005Z",
+    "issue": "2026-W35",
+    "topics": [
+      "cognition"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "c0db7376b606611a",
+    "sourceId": "arxiv-cs-cy",
+    "title": "Who Will Become the Next Senior? How Generative AI Erodes the Development Pathway in Software Engineering",
+    "summaryOriginal": "arXiv:2607.17067v3 Announce Type: replace Abstract: Generative AI (GenAI) is reshaping software engineering, raising concerns about how the development pathway through which juniors become seniors is being eroded. While macro statistics show a decline in junior hiring and controlled studies demonstrate the effects of AI on individual task performance, the mechanisms through which GenAI reshapes…",
+    "titleZhTW": "生成式 AI 侵蝕軟體工程師資深化路徑：初階開發者失去關鍵學習機會",
+    "summaryZhTW": "研究透過訪談南韓初階與資深工程師發現，生成式 AI 將入門級工作納入資深工程師的 AI 工作流，導致初階者失去透過「富有成效的掙扎」累積專業的機會。這種現象在大學課堂常態化使用 AI 時進一步被結構性固化，且資深與初階者之間的認知落差，使雙方都難以單獨修正此動態。研究呼籲跨越課堂",
+    "summarySource": "machine",
+    "url": "https://arxiv.org/abs/2607.17067",
+    "publishedAt": "2026-08-26T04:00:00.000Z",
+    "fetchedAt": "2026-08-26T10:39:01.005Z",
+    "issue": "2026-W35",
+    "topics": [
+      "cognition",
+      "dependence"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "b9442510c32caeb1",
+    "sourceId": "nature-machine-intelligence",
+    "title": "The epistemic debt of generative AI",
+    "summaryOriginal": "Nature Machine Intelligence, Published online: 26 August 2026; doi:10.1038/s42256-026-01294-w When authors use generative AI in cognitive tasks, without spending time and effort to understand the output, a gap opens between what they present and what they can defend. This gap widens as further work is built on top, resulting in epistemic debt.",
+    "titleZhTW": "生成式 AI 產生「認知債」：輸出未經驗證恐累積風險",
+    "summaryZhTW": "文章指出，當作者直接使用生成式 AI 完成認知任務卻未花力氣理解輸出內容，會在「呈現的成果」與「可防禦的知識」之間產生落差，形成「認知債」。隨著後續研究持續建構在未經驗證的基礎上，這項債務會不斷擴大，最終削弱學術與教育場域的知識可靠度。",
+    "summarySource": "machine",
+    "url": "https://www.nature.com/articles/s42256-026-01294-w",
+    "publishedAt": "2026-08-26T00:00:00.000Z",
+    "fetchedAt": "2026-08-26T10:39:01.005Z",
+    "issue": "2026-W35",
+    "topics": [
+      "cognition"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "unknown",
+    "openUrl": null
+  },
+  {
+    "id": "bc605b649c1fdf8c",
+    "sourceId": "ijhci",
+    "title": "When AI Venting Helps or Harms: How Perceived Anonymity Shapes Supportive Interactions With Conversational Agents",
+    "summaryOriginal": ".",
+    "titleZhTW": "AI 傾聽發洩：匿名感如何影響壓力與支持雙路徑",
+    "summaryZhTW": "研究調查 408 位中國聊天機器人用戶，發現頻繁向 AI 發洩情緒直接增加壓力，但若感知到 AI 支持與情緒調節，則間接降低壓力。關鍵在於「感知匿名性」：匿名感越強，直接負面效應越弱、間接正面效應越強。對教育現場而言，若引導學生使用 AI 進行情緒宣洩，介面設計應強化匿名感知，以",
+    "summarySource": "machine",
+    "url": "https://www.tandfonline.com/doi/full/10.1080/10447318.2026.2719169?af=R",
+    "publishedAt": "2026-08-24T12:29:56.000Z",
+    "fetchedAt": "2026-08-26T10:39:01.005Z",
+    "issue": "2026-W35",
+    "topics": [
+      "wellbeing",
+      "relationships"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "restricted",
+    "openUrl": null
+  },
+  {
+    "id": "b5421d6d0fa71660",
+    "sourceId": "ijhci",
+    "title": "Improving Older Adults’ Social Interaction Quality with the Virtual Agent: Response Surface Model Based on Self-Disclosure Valence and Interpersonal Distance",
+    "summaryOriginal": ".",
+    "titleZhTW": "虛擬代理人自我揭露與距離對長者社交品質影響研究",
+    "summaryZhTW": "研究發現虛擬代理人的自我揭露情感呈現 U 型曲線影響長者社交互動品質，即正向與負向揭露優於中性；人際距離主效應不顯著，但過近距離會強化情感效應。結果提示設計者需動態協調情感與距離參數，以提升長者與虛擬代理人的互動體驗。",
+    "summarySource": "machine",
+    "url": "https://www.tandfonline.com/doi/full/10.1080/10447318.2026.2715160?af=R",
+    "publishedAt": "2026-08-24T12:21:11.000Z",
+    "fetchedAt": "2026-08-26T10:39:01.005Z",
+    "issue": "2026-W35",
+    "topics": [
+      "relationships"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "restricted",
+    "openUrl": null
+  },
+  {
+    "id": "13d5ffd29a56b50d",
+    "sourceId": "ijhci",
+    "title": "Algorithmic Personalization and Cognitive Dependency: The Psychological Impact of AI-Driven Digital Platforms",
+    "summaryOriginal": ".",
+    "titleZhTW": "研究：演算法高度策展內容恐降低使用者認知自主與批判思考",
+    "summaryZhTW": "國際期刊研究發現，長期完全依賴演算法推薦內容的成年人，自我報告的認知自主感與批判思考投入度顯著低於手動瀏覽者；部分可覆寫推薦的群體介於兩者之間。結果提示平台設計若過度決定資訊流，可能削弱使用者主動判斷能力，對數位素養教育與政策規範具參考價值，但因採自我報告設計，因果關係仍需謹慎解",
+    "summarySource": "machine",
+    "url": "https://www.tandfonline.com/doi/full/10.1080/10447318.2026.2709309?af=R",
+    "publishedAt": "2026-08-24T11:43:15.000Z",
+    "fetchedAt": "2026-08-26T10:39:01.005Z",
+    "issue": "2026-W35",
+    "topics": [
+      "cognition",
+      "dependence"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "restricted",
+    "openUrl": null
+  },
+  {
+    "id": "f4d0f2982ff97068",
+    "sourceId": "nature-human-behaviour",
+    "title": "AI writing assistants shrink linguistic diversity and blur personal identity",
+    "summaryOriginal": "Nature Human Behaviour, Published online: 24 August 2026; doi:10.1038/s41562-026-02549-7 Large language models (LLMs) used as writing assistants homogenize writing style. Studies across 880,000 texts show that, following the release of ChatGPT, writing became less varied as artificial intelligence (AI) use spread. The LLMs preserved meaning but compressed the variety of language and biased author…",
+    "titleZhTW": "AI 寫作助手導致語言多樣性減少、個人風格模糊",
+    "summaryZhTW": "研究分析 88 萬篇文本發現，ChatGPT 釋出後寫作風格趨於同質化，LLM 雖保留原意卻壓縮語言變異，使從文字推斷的作者特徵產生偏差。這提醒教育現場在引入生成式 AI 時，需留意學生獨特表達與身分認同可能被稀釋的風險。",
+    "summarySource": "machine",
+    "url": "https://www.nature.com/articles/s41562-026-02549-7",
+    "publishedAt": "2026-08-24T00:00:00.000Z",
+    "fetchedAt": "2026-08-26T10:39:01.005Z",
+    "issue": "2026-W35",
+    "topics": [
+      "cognition"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "restricted",
+    "openUrl": null
+  },
+  {
+    "id": "0dffbf43ec355030",
+    "sourceId": "arxiv-human-impact-query",
+    "title": "Probing How Users Interact with Turn-Level Design Frictions for AI Chatbots",
+    "summaryOriginal": "AI chatbots can help people write faster, but they can also encourage overreliance by making it easy to turn minimal input into usable text. We study turn-level design friction: intentional constraints added to each chatbot exchange that slow, limit, or redirect how users request, access, or use model responses. We designed six friction probes, organized around three mechanisms: eliciting user…",
+    "titleZhTW": "研究發現 AI 聊天機器人設計摩擦能增加用戶參與感與負荷",
+    "summaryZhTW": "研究設計六種針對對話輪次的設計摩擦，包含引導用戶貢獻、限制生成內容存取、重塑系統輸出三大機制。實驗顯示所有摩擦都提升工作負荷、任務時間與擁有感，但對記憶效果影響不一。同樣限制可能因用戶目標不同而助益或阻礙參與，提示教育場域導入 AI 輔助寫作時，需依學習目標客製化摩擦設計。",
+    "summarySource": "machine",
+    "url": "https://arxiv.org/abs/2608.22427",
+    "publishedAt": "2026-08-23T14:05:09.000Z",
+    "fetchedAt": "2026-08-26T10:39:01.005Z",
+    "issue": "2026-W34",
+    "topics": [
+      "dependence",
+      "cognition"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "16ed7cf7b40e694e",
+    "sourceId": "arxiv-human-impact-query",
+    "title": "AI Watchdog: Agent Interfaces for Detecting and Defending Against Manipulative Dark Patterns in AI Conversations",
+    "summaryOriginal": "Conversational AI increasingly shapes consequential decisions, yet users have limited support for recognizing and resisting manipulation. We present AI Watchdog, a browser-based agent interface that monitors live conversations, detects five dark-pattern categories, including sycophancy, brand bias, anthropomorphization, sneaking, and harmful generation, and alerts users when they occur. Its…",
+    "titleZhTW": "AI Watchdog 瀏覽器介面偵測對話式 AI 五類暗黑模式",
+    "summaryZhTW": "研究團隊開發 AI Watchdog，能即時偵測諂媚、品牌偏見、擬人化、偷渡與有害生成等五類暗黑模式並提醒使用者。實驗發現，即時警告且無認知強制介入，能將使用者對含暗黑模式建議的遵從率從 71.7% 降至 53.7%，但參與者主動標記操縱性回合的比例極低，事後覺察度也未顯著提升。",
+    "summarySource": "machine",
+    "url": "https://arxiv.org/abs/2608.21841",
+    "publishedAt": "2026-08-22T08:24:17.000Z",
+    "fetchedAt": "2026-08-26T10:39:01.005Z",
+    "issue": "2026-W34",
+    "topics": [
+      "sycophancy",
+      "trust",
+      "dependence"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "504815a6fee54390",
+    "sourceId": "chb-artificial-humans",
+    "title": "Harnessing ChatGPT for Workplace Innovation: The Mediating Role of Internal Work Locus of Control",
+    "summaryOriginal": "Publication date: Available online 22 August 2026 Source: Computers in Human Behavior: Artificial Humans Author(s): Hwajin Yang, Zhi Yi Koh, Frosch.Y.X. Quek",
+    "titleZhTW": "研究發現 ChatGPT 使用與職場創新行為呈正相關，內部控制點為關鍵中介",
+    "summaryZhTW": "新加坡 179 名員工的問卷顯示，ChatGPT 使用頻率與感知效能皆能提升員工的內部工作控制點，進而正向影響創意推廣與實施兩階段，但對創意產生階段無顯著間接效果。結果提示 AI 工具對創新不同階段的影響不一，心理賦權機制值得教育訓練關注。",
+    "summarySource": "machine",
+    "url": "https://www.sciencedirect.com/science/article/pii/S294988212600126X?dgcid=rss_sd_all",
+    "publishedAt": "2026-08-22T00:00:00.000Z",
+    "fetchedAt": "2026-08-26T10:39:01.005Z",
+    "issue": "2026-W34",
+    "topics": [
+      "cognition"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "c6a9770fbdac63ca",
+    "sourceId": "behaviour-info-tech",
+    "title": "Delegating for the Greater Green? How competence and autonomy shape acceptance of agentic AI for carbon-intensive choices",
+    "summaryOriginal": ".",
+    "titleZhTW": "研究：用戶願將數位用電決策交給 AI，卻不願放手採買食物",
+    "summaryZhTW": "實驗發現，參與者最願意把數位用電決策委託給 AI，最不願在採買食物時完全交棒；只有在食物領域，人們明顯偏好「人機協作」而非全自動。心理需求滿足度（特別是勝任感）能解釋大多數情境的接受度差異，但食物選擇涉及自我認同與享樂價值，超出單純心理需求框架。對教育現場而言，設計永續導向的輔助",
+    "summarySource": "machine",
+    "url": "https://www.tandfonline.com/doi/full/10.1080/0144929X.2026.2719726?af=R",
+    "publishedAt": "2026-08-20T07:37:51.000Z",
+    "fetchedAt": "2026-08-26T10:39:01.005Z",
+    "issue": "2026-W34",
+    "topics": [
+      "trust",
+      "dependence"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": "https://www.tandfonline.com/doi/pdf/10.1080/0144929X.2026.2719726?needAccess=true"
+  },
+  {
+    "id": "e49be566504d9dde",
+    "sourceId": "arxiv-human-impact-query",
+    "title": "Modeling AI Overreliance as a Complex Adaptive System",
+    "summaryOriginal": "Whether AI assistance helps or harms a population depends less on the model's accuracy than on whether people rely on it appropriately trusting it when it is right and checking it when it is not. Yet reliance is usually studied one user at a time. We model it as a population process: agents repeatedly solve a task alone, accept an AI answer, or verify it, updating a Bayesian belief about AI…",
+    "titleZhTW": "研究將 AI 過度依賴建模為複雜適應系統，揭示群體動態影響校準",
+    "summaryZhTW": "研究以群體層面建模 AI 依賴行為，發現任務難度與 AI 品質決定基準過度依賴程度，社會學習產生共識而非單純過度依賴，但可見的未驗證使用會引發回饋級聯導致集體過度依賴。設計可見驗證機制或弱化社會證明可逆轉崩潰，顯示個體學習、同儕觀察與回饋曝光共同決定群體校準狀態。",
+    "summarySource": "machine",
+    "url": "https://arxiv.org/abs/2608.19616",
+    "publishedAt": "2026-08-20T03:58:39.000Z",
+    "fetchedAt": "2026-08-26T10:39:01.005Z",
+    "issue": "2026-W34",
+    "topics": [
+      "trust",
+      "dependence",
+      "social"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "0b476142cca2754d",
+    "sourceId": "jmir-mental-health",
+    "title": "Generative AI in Youth Mental Health Apps: Rapid Review",
+    "summaryOriginal": "Background: Mental health apps are frequently used as platforms for delivering digital health interventions to young people. New technology such as generative AI enables a wider range of engaging and more personalized features that can be included in mental health apps. However, there is limited insight into the opportunities for integrating generative AI into such apps. Objective: This rapid…",
+    "titleZhTW": "生成式 AI 融入青少年心理健康 App：快速回顧發現潛力與風險並存",
+    "summaryZhTW": "研究回顧 2022 至 2025 年 5 篇實證文獻，發現生成式 AI 主要以聊天機器人形式整合進青少年心理健康 App，使用者普遍給予良好易用度評價，部分研究顯示對憂鬱、焦慮等指標有正向效果。然而現有研究缺乏標準化不良事件監測，未來需進一步探討短長期影響與潛在風險。",
+    "summarySource": "machine",
+    "url": "https://mental.jmir.org/2026/1/e90589",
+    "publishedAt": "2026-08-19T11:00:02.000Z",
+    "fetchedAt": "2026-08-26T10:39:01.005Z",
+    "issue": "2026-W34",
+    "topics": [
+      "wellbeing"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "dd6b35d30cca05d3",
+    "sourceId": "ijhci",
+    "title": "Perceiving Stories, Seeing Selves: Older Adults’ Cognitive and Emotional Engagement with Human-Written Narratives and AI-Generated Imagery",
+    "summaryOriginal": ".",
+    "titleZhTW": "長者認知訓練結合敘事與 AI 圖像 研究揭關鍵設計要素",
+    "summaryZhTW": "質性研究訪談 21 位 59 至 85 歲長者，發現連貫、情感豐富的敘事搭配風格一致的 AI 生成圖像，能顯著提升他們對工作記憶訓練遊戲的動機與投入。長者偏好邏輯合理、主題有意義的故事，並會直覺與反思雙重評估內容真實度。",
+    "summarySource": "machine",
+    "url": "https://www.tandfonline.com/doi/full/10.1080/10447318.2026.2713298?af=R",
+    "publishedAt": "2026-08-19T10:47:43.000Z",
+    "fetchedAt": "2026-08-26T10:39:01.005Z",
+    "issue": "2026-W34",
+    "topics": [
+      "cognition",
+      "wellbeing"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": "https://www.tandfonline.com/doi/pdf/10.1080/10447318.2026.2713298?needAccess=true"
+  }
+]

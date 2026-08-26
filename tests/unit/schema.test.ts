@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { loadSources } from '../../src/domain/source';
+import { storySchema } from '../../src/domain/story';
+import { makeStory } from '../fixtures/stories';
 
 const registry = JSON.parse(readFileSync('src/data/sources.json', 'utf8')) as unknown;
 
@@ -50,5 +52,34 @@ describe('source registry', () => {
     for (const id of ['chb-artificial-humans', 'nature-human-behaviour', 'tochi', 'pew-internet']) {
       expect(ids).toContain(id);
     }
+  });
+});
+
+
+describe('access', () => {
+  it('requires an access state on every story', () => {
+    const { access, ...withoutAccess } = makeStory();
+    expect(() => storySchema.parse(withoutAccess)).toThrow();
+  });
+
+  it('rejects a free link that is not https', () => {
+    expect(() =>
+      storySchema.parse({ ...makeStory(), access: 'open', openUrl: 'http://insecure/pdf' }),
+    ).toThrow();
+  });
+
+  // 'unknown' means the lookup found nothing, which happens routinely for
+  // papers published in the last few days — exactly the ones a weekly exists
+  // to surface. Showing those as paywalled would be a visible lie.
+  it('allows unknown with no free link', () => {
+    expect(() =>
+      storySchema.parse({ ...makeStory(), access: 'unknown', openUrl: null }),
+    ).not.toThrow();
+  });
+
+  it('refuses a free link on a story marked restricted', () => {
+    expect(() =>
+      storySchema.parse({ ...makeStory(), access: 'restricted', openUrl: 'https://free/pdf' }),
+    ).toThrow();
   });
 });

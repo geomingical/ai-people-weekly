@@ -661,6 +661,9 @@ export async function runWeek(options: RunOptions): Promise<RunReport> {
       topics: item.topics,
       region: item.region,
       language: item.language,
+      // Obtained during enrichment, in the same call that fetched the abstract.
+      access: enriched.get(item.id)?.access ?? 'unknown',
+      openUrl: enriched.get(item.id)?.openUrl ?? null,
     };
   });
 

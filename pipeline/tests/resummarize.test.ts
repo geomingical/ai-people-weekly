@@ -18,6 +18,8 @@ function story(overrides: Partial<Story> = {}): Story {
     topics: ['relationships'],
     region: 'US',
     language: 'en',
+  access: 'unknown' as const,
+  openUrl: null,
     ...overrides,
   };
 }

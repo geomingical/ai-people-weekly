@@ -2,9 +2,11 @@
 import { t } from '../domain/i18n';
 import {
   formatPublishedDate,
+  formatAccess,
   formatRegion,
   formatTier,
   formatTopic,
+  freeLinkHost,
   primaryHeadline,
   showsTranslatedHeadline,
   summaryView,
@@ -24,6 +26,9 @@ const headline = primaryHeadline(locale, story);
 const showOriginal = showsTranslatedHeadline(locale, story);
 const summary = summaryView(locale, story);
 const meta = `${row.sourceName} · ${formatTier(locale, row.sourceTier)} · ${formatRegion(locale, story.region)}`;
+
+const accessLabel = formatAccess(locale, story.access);
+const openHost = freeLinkHost(story.openUrl);
 ---
 
 <article class="story" data-story-id={story.id} data-topics={story.topics.join(' ')}>
@@ -54,6 +59,16 @@ const meta = `${row.sourceName} · ${formatTier(locale, row.sourceTier)} · ${fo
     <p class="story__summary story__summary--empty">{t(locale, 'storyNoSummary')}</p>
   )}
 
+  <p class="story__access">
+    <span class:list={['story__access-badge', `story__access-badge--${story.access}`]}>{accessLabel}</span>
+    {story.openUrl && (
+      <a href={story.openUrl} rel="noopener noreferrer nofollow" target="_blank">
+        {t(locale, 'accessFreeVersion')}
+        <span class="story__access-host">({openHost})</span>
+      </a>
+    )}
+  </p>
+
   <ul class="story__topics">
     {story.topics.map((topic) => (
       <li class="story__topic">{formatTopic(locale, topic)}</li>
@@ -74,6 +89,36 @@ const meta = `${row.sourceName} · ${formatTier(locale, row.sourceTier)} · ${fo
      restate it so the controller's row.hidden = true actually hides the row. */
   .story[hidden] {
     display: none;
+  }
+
+  .story__access {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-1) var(--space-2);
+    margin: 0;
+    font-size: 0.8125rem;
+  }
+
+  .story__access-badge {
+    padding-inline: var(--space-1);
+    border: 1px solid var(--color-rule);
+    border-radius: 2px;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--color-muted);
+  }
+
+  .story__access-badge--open {
+    border-color: currentColor;
+    color: var(--color-text);
+  }
+
+  .story__access-host {
+    margin-inline-start: 0.25em;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--color-muted);
   }
 
   .story__meta {
