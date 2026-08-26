@@ -239,6 +239,12 @@ export interface ClassifyOutcome {
     durationMs: number;
     outcome: 'accepted' | 'rejected' | 'transport-failed';
     status?: number;
+    /**
+     * What the reply cost, when the provider said. Absent rather than zero for
+     * an attempt that reported nothing — a 503 carries no token count, and
+     * recording it as zero would make a run look cheaper than it was.
+     */
+    completionTokens?: number;
   }[];
   errors: string[];
 }
@@ -331,6 +337,7 @@ export async function classifyAll(
           durationMs: response.meta.durationMs,
           outcome: 'transport-failed',
           status: response.error.status,
+          completionTokens: response.meta.completionTokens,
         });
         errors.push(`${provider.id}: ${response.error.message}`);
         continue;
@@ -344,6 +351,7 @@ export async function classifyAll(
           size: batch.length,
           durationMs: response.meta.durationMs,
           outcome: 'rejected',
+          completionTokens: response.meta.completionTokens,
           status: response.meta.status,
         });
         errors.push(
@@ -359,6 +367,7 @@ export async function classifyAll(
         size: batch.length,
         durationMs: response.meta.durationMs,
         outcome: 'accepted',
+        completionTokens: response.meta.completionTokens,
         status: response.meta.status,
       });
       settled = true;

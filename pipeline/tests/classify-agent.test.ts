@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   CLASSIFY_SYSTEM_PROMPT,
+  classifyAll,
   buildClassifyPrompt,
   normalizeTopics,
   validateClassifyReply,
@@ -62,6 +63,40 @@ describe('buildClassifyPrompt', () => {
       },
     ]);
     expect(prompt).not.toContain('</item><item index="9">');
+  });
+});
+
+// The first measured run reported tokensUnreported 15 of 15: the attempt
+// records simply had no field for it, so a measurement the spec promised could
+// not be taken at all.
+describe('attempt records carry what the reply cost', () => {
+  it('declares completionTokens on the attempt shape', async () => {
+    const transport = async () => ({
+      content: JSON.stringify({ items: [{ index: 0, relevant: true, topics: ['trust'] }] }),
+      meta: { status: 200, durationMs: 5, completionTokens: 123 },
+      error: null,
+    });
+    const result = await classifyAll(
+      [{ id: 'a', title: 'A study', excerpt: 'x', sourceName: 's' }],
+      [{ id: 'p', model: 'm', maxOutputTokens: 64, jsonMode: 'json-object', transport } as never],
+      { sleep: async () => {} },
+    );
+    expect(result.attempts[0]!.completionTokens).toBe(123);
+  });
+
+  // A 503 reports no count. Recording zero would understate the cost.
+  it('leaves the count absent when the provider reported none', async () => {
+    const transport = async () => ({
+      content: null,
+      meta: { status: 503, durationMs: 1 },
+      error: { kind: 'http' as const, status: 503, message: 'overloaded' },
+    });
+    const result = await classifyAll(
+      [{ id: 'a', title: 'A study', excerpt: 'x', sourceName: 's' }],
+      [{ id: 'p', model: 'm', maxOutputTokens: 64, jsonMode: 'json-object', transport } as never],
+      { sleep: async () => {} },
+    );
+    expect(result.attempts[0]!.completionTokens).toBeUndefined();
   });
 });
 
