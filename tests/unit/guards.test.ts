@@ -59,6 +59,22 @@ describe('source registry', () => {
     JSON.parse(readFileSync(resolve(ROOT, 'src/data/sources.json'), 'utf8')),
   );
 
+  /**
+   * rss.arxiv.org carries exactly one day of announcements, so a weekly run
+   * sees one day and never learns the other six existed — no rejection, no
+   * count, nothing in the report. Measured 2026-08-26: 39 items, all one date.
+   *
+   * The query API takes max_results and sorts by submission date, covering
+   * weeks in a single request. This guard exists because the daily feed is the
+   * obvious URL to reach for and the loss it causes is invisible.
+   */
+  it('never collects arXiv from the daily RSS feed', () => {
+    for (const source of sources) {
+      if (!source.active || source.feedUrl === null) continue;
+      expect(source.feedUrl).not.toContain('rss.arxiv.org');
+    }
+  });
+
   it('has at least one active source or the site has nothing to collect', () => {
     expect(sources.filter((source) => source.active).length).toBeGreaterThan(0);
   });
