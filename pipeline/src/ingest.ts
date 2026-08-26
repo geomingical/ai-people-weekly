@@ -6,7 +6,7 @@
 // are therefore deliberately strict and deliberately boring.
 
 import { createHash } from 'node:crypto';
-import type { RawFeedItem } from './contracts';
+import type { RawFeedItem, RejectDetail } from './contracts';
 import { resolveTopics, type Topic } from './classify';
 import { resolvePublishedAt, type DateStrategy } from './published-at';
 
@@ -61,7 +61,7 @@ export type RejectCounts = Partial<Record<RejectReason, number>>;
 
 export interface IngestResult {
   accepted: IngestedItem[];
-  rejected: { reason: RejectReason; title: string }[];
+  rejected: RejectDetail[];
   /** Reason histogram, so a source that suddenly contributes nothing shows
    *  WHY in the run report instead of just showing a zero. */
   rejectCounts: RejectCounts;
@@ -135,9 +135,23 @@ export interface Candidate {
 
 export interface ScreenResult {
   candidates: Candidate[];
-  rejected: { reason: RejectReason; title: string }[];
+  /** Detail for the rare reasons only — see RejectDetail. */
+  rejected: RejectDetail[];
   rejectCounts: RejectCounts;
 }
+
+/**
+ * Reasons worth keeping per item.
+ *
+ * These should be zero or nearly zero. When one is not, the count alone cannot
+ * say whether a masthead page or a real study was lost. The high-volume
+ * reasons stay as counts.
+ */
+export const DETAILED_REJECT_REASONS: ReadonlySet<string> = new Set([
+  'no-date',
+  'imprecise-date',
+  'future-dated',
+]);
 
 /**
  * Everything that can be decided without judgement: a title, an https link on
@@ -159,9 +173,11 @@ export function screenSourceItems(
   const rejected: ScreenResult['rejected'] = [];
   const rejectCounts: RejectCounts = {};
 
-  const reject = (reason: RejectReason, title: string) => {
-    rejected.push({ reason, title: title.slice(0, 120) });
+  const reject = (reason: RejectReason, title: string, url = '', rawDate = '') => {
     rejectCounts[reason] = (rejectCounts[reason] ?? 0) + 1;
+    if (DETAILED_REJECT_REASONS.has(reason)) {
+      rejected.push({ reason, title: title.slice(0, 200), url, rawDate });
+    }
   };
 
   // Screening does not mark ids as seen — relevance and the cap may still turn
@@ -198,16 +214,16 @@ export function screenSourceItems(
     // published-at.ts for why guessing loses the story permanently.
     const resolved = resolvePublishedAt(source.dateStrategy, item);
     if (resolved.precision === 'month') {
-      reject('imprecise-date', title);
+      reject('imprecise-date', title, url, resolved.rawValue);
       continue;
     }
     if (resolved.iso === null) {
-      reject('no-date', title);
+      reject('no-date', title, url, resolved.rawValue);
       continue;
     }
     const published = new Date(resolved.iso);
     if (published.getTime() > window.end.getTime() + FUTURE_TOLERANCE_MS) {
-      reject('future-dated', title);
+      reject('future-dated', title, url, resolved.rawValue);
       continue;
     }
     if (published.getTime() < window.start.getTime()) {
@@ -272,23 +288,30 @@ export function acceptCandidates(
   const rejected: IngestResult['rejected'] = [];
   const rejectCounts: RejectCounts = {};
 
-  const reject = (reason: RejectReason, title: string) => {
-    rejected.push({ reason, title: title.slice(0, 120) });
+  const reject = (reason: RejectReason, candidate: Candidate) => {
     rejectCounts[reason] = (rejectCounts[reason] ?? 0) + 1;
+    if (DETAILED_REJECT_REASONS.has(reason)) {
+      rejected.push({
+        reason,
+        title: candidate.item.title.slice(0, 200),
+        url: candidate.item.url,
+        rawDate: candidate.raw.publishedAtRaw,
+      });
+    }
   };
 
   for (const candidate of candidates) {
     const verdict = verdictFor(candidate);
     if (verdict.undecided === true) {
-      reject('undecided', candidate.item.title);
+      reject('undecided', candidate);
       continue;
     }
     if (!verdict.relevant) {
-      reject('not-relevant', candidate.item.title);
+      reject('not-relevant', candidate);
       continue;
     }
     if (accepted.length >= maxPerRun) {
-      reject('over-cap', candidate.item.title);
+      reject('over-cap', candidate);
       continue;
     }
     seenIds.add(candidate.item.id);

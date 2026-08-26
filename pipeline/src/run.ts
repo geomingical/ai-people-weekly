@@ -149,6 +149,28 @@ async function readExistingStories(storiesPath: string): Promise<Story[]> {
   }
 }
 
+/**
+ * Reject counts add up; they do not replace each other.
+ *
+ * `duplicate` is produced by both the screening and the acceptance stage, and
+ * an object spread would silently drop one of them. Nothing had ever checked
+ * the arithmetic, so nothing had noticed.
+ */
+function mergeCounts(
+  left: Record<string, number>,
+  right: Record<string, number>,
+): Record<string, number> {
+  const merged = { ...left };
+  for (const [reason, count] of Object.entries(right)) {
+    merged[reason] = (merged[reason] ?? 0) + count;
+  }
+  return merged;
+}
+
+function sumCounts(counts: Record<string, number>): number {
+  return Object.values(counts).reduce((total, count) => total + count, 0);
+}
+
 function toIngestSource(source: Source): IngestSource {
   return {
     id: source.id,
@@ -202,6 +224,7 @@ async function collect(
       itemsAccepted: 0,
       itemsRejected: 0,
       rejectCounts: {},
+      rejectDetails: [],
     };
 
     if (fetched.error !== null || fetched.body === null) {
@@ -254,7 +277,10 @@ async function collect(
 
     const screened = screenSourceItems(toIngestSource(source), parsedItems, window, seenIds);
     outcome.rejectCounts = screened.rejectCounts as Record<string, number>;
-    outcome.itemsRejected = screened.rejected.length;
+    // Counted from the histogram, not from the detail list: the detail list
+    // deliberately holds only the rare reasons, so its length is not the total.
+    outcome.itemsRejected = sumCounts(outcome.rejectCounts);
+    outcome.rejectDetails = screened.rejected;
     // "In window" means the date check passed — the pool relevance chooses from.
     outcome.itemsInWindow = screened.candidates.length;
 
@@ -391,8 +417,15 @@ export async function runWeek(options: RunOptions): Promise<RunReport> {
     const outcome = byOutcome.get(source.id);
     if (outcome) {
       outcome.itemsAccepted = accepted.accepted.length;
-      outcome.itemsRejected += accepted.rejected.length;
-      outcome.rejectCounts = { ...outcome.rejectCounts, ...(accepted.rejectCounts as Record<string, number>) };
+      // Every reason this stage produces — not-relevant, undecided, over-cap —
+      // is a high-volume one, so none of them is in the detail list. Counting
+      // by its length would report hundreds of gated-out papers as zero.
+      outcome.itemsRejected += sumCounts(accepted.rejectCounts as Record<string, number>);
+      outcome.rejectCounts = mergeCounts(
+        outcome.rejectCounts,
+        accepted.rejectCounts as Record<string, number>,
+      );
+      outcome.rejectDetails = [...outcome.rejectDetails, ...accepted.rejected];
     }
   }
   log(`accepted ${items.length} of ${candidates.length} candidates`);

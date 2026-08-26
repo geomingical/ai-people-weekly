@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { canonicalUrl, ingestSourceItems, storyId, type IngestSource } from '../src/ingest';
+import {
+  canonicalUrl,
+  ingestSourceItems,
+  screenSourceItems,
+  storyId,
+  type IngestSource,
+} from '../src/ingest';
 import type { RawFeedItem } from '../src/contracts';
 
 const source: IngestSource = {
@@ -171,5 +177,45 @@ describe('relevance fails closed', () => {
   it('still publishes an always-relevant source when the model is down', () => {
     const result = run([item()], { relevanceMode: 'always' });
     expect(result.accepted).toHaveLength(1);
+  });
+});
+
+
+// A count cannot tell a masthead page from a real study, and by the time a
+// count draws attention the item may have rotated out of the feed. The report
+// is written to disk, so the URL survives even then.
+describe('reject details', () => {
+  it('keeps url and raw date for a month-only item so it can be checked later', () => {
+    const result = screenSourceItems(
+      source,
+      [
+        item({
+          title: 'Advisory Board and Contents',
+          link: 'https://example.org/front-matter',
+          publishedAtRaw: '2026-08',
+        }),
+      ],
+      window,
+      new Set(),
+    );
+    expect(result.rejected).toHaveLength(1);
+    expect(result.rejected[0]).toMatchObject({
+      reason: 'imprecise-date',
+      url: 'https://example.org/front-matter',
+      rawDate: '2026-08',
+    });
+  });
+
+  // not-relevant is hundreds of items a week once whole arXiv categories are
+  // subscribed. A log nobody reads is not observability, it is a bigger report.
+  it('does not keep details for high-volume reasons', () => {
+    const result = screenSourceItems(
+      source,
+      [item({ publishedAtRaw: '2020-01-01T00:00:00.000Z' })],
+      window,
+      new Set(),
+    );
+    expect(result.rejectCounts['outside-window']).toBe(1);
+    expect(result.rejected.filter((r) => r.reason === 'outside-window')).toHaveLength(0);
   });
 });

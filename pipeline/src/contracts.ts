@@ -60,6 +60,25 @@ export interface FeedParseResult {
   error: string | null;
 }
 
+/**
+ * One rejected item, kept in full.
+ *
+ * The histogram alone cannot tell a masthead page from a real study, and by the
+ * time a count draws attention the item may have rotated out of the feed. The
+ * report is written to disk, so the URL survives even then.
+ *
+ * Only rare reasons are detailed. `not-relevant` is hundreds of items a week
+ * once whole arXiv categories are subscribed; a log nobody reads is not
+ * observability, it is a bigger report.
+ */
+export interface RejectDetail {
+  reason: string;
+  title: string;
+  url: string;
+  /** What the feed actually said the date was, before any parsing. */
+  rawDate: string;
+}
+
 /** What one source contributed to a run, successful or not. */
 export interface SourceOutcome {
   sourceId: string;
@@ -73,6 +92,8 @@ export interface SourceOutcome {
   itemsRejected: number;
   /** Why items were dropped, so a silent source is diagnosable from the report. */
   rejectCounts: Record<string, number>;
+  /** Per-item detail for the rare, worth-looking-at reasons only. */
+  rejectDetails: RejectDetail[];
 }
 
 export interface SummaryOutcome {
