@@ -13,7 +13,8 @@
     "verify": "npm run test && npm run build && npm run test:e2e",
     "pipeline:run": "tsx pipeline/src/run.ts",
     "pipeline:dry": "tsx pipeline/src/run.ts --dry-run",
-    "pipeline:resummarize": "tsx pipeline/src/resummarize.ts"
+    "pipeline:resummarize": "tsx pipeline/src/resummarize.ts",
+    "pipeline:refresh-access": "tsx pipeline/src/refresh-access.ts"
   },
   "dependencies": {
     "astro": "^7.1.6"
