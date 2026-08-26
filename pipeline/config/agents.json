@@ -1,22 +1,29 @@
 {
   "summarizer": {
-    "maxInputChars": 24000,
-    "maxOutputTokens": 2000,
+    "_maxInputChars": "6,000 rather than the education project's 24,000: this site summarizes abstracts (1,000-2,600 characters), not news articles. It also keeps one call inside Groq's free-tier 6,000 tokens per minute, which 24,000 would not, and shrinks the prompt-injection surface.",
+    "maxInputChars": 6000,
+    "maxOutputTokens": 1200,
     "providers": [
       {
+        "_note": "Primary. The education site has produced acceptable Traditional Chinese on this model for weeks; reasoningEffort 'none' is not optional - without it the model returns a page of reasoning prose and no JSON, and the whole batch fails.",
         "id": "nvidia",
         "baseUrl": "https://integrate.api.nvidia.com/v1",
         "model": "nvidia/nemotron-3-ultra-550b-a55b",
-        "apiKeyEnv": ["AI_EDU_API_KEY", "NVIDIA_API_KEY"],
+        "apiKeyEnv": [
+          "NVIDIA_API_KEY"
+        ],
         "reasoningEffort": "none",
         "jsonMode": "json-schema"
       },
       {
-        "id": "deepseek",
-        "baseUrl": "https://api.deepseek.com",
-        "model": "deepseek-v4-flash",
-        "apiKeyEnv": ["AI_EDU_FALLBACK_API_KEY", "DEEPSEEK_API_KEY"],
-        "jsonMode": "json-object"
+        "_note": "Fallback, chosen by measurement on 2026-08-26 rather than from memory. Tested against qwen/qwen3.8-27b on a real abstract: qwen was six times faster (489ms vs 3,011ms) and used a tenth of the tokens (118 vs 1,181), and both wrote clean Traditional Chinese with no simplified characters. gpt-oss-120b was chosen anyway because qwen added a conclusion the abstract did not contain ('exposes a serious safety hole'), and the prompt forbids adding anything. On a site that publishes unread, faithfulness beats speed.",
+        "id": "groq",
+        "baseUrl": "https://api.groq.com/openai/v1",
+        "model": "openai/gpt-oss-120b",
+        "apiKeyEnv": [
+          "GROQ_API_KEY"
+        ],
+        "jsonMode": "json-schema"
       }
     ]
   }

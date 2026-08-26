@@ -227,8 +227,13 @@ export function replySchema(itemCount: number): unknown {
               type: 'object',
               properties: {
                 index: { type: 'integer', minimum: 0, maximum: Math.max(0, itemCount - 1) },
-                title: { type: 'string' },
-                summary: { type: 'string' },
+                // Constrain the decoder rather than trim afterwards. A prose
+                // limit is advice the model may ignore, and it did: on a live
+                // feasibility run five of six summaries overshot 120
+                // characters and one reached 279. Trimming after the fact cuts
+                // mid-sentence, and the site publishes without review.
+                title: { type: 'string', maxLength: 40 },
+                summary: { type: 'string', maxLength: 140 },
               },
               required: ['index', 'title', 'summary'],
               additionalProperties: false,
