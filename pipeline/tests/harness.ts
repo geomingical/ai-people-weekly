@@ -118,9 +118,10 @@ const PUBLIC_IP = '93.184.216.34';
 
 export interface Harness {
   dir: string;
-  paths: { sourcesPath: string; storiesPath: string };
+  paths: { sourcesPath: string; storiesPath: string; watermarksPath: string };
   execute: () => Promise<RunReport>;
   readStories: () => Promise<Story[]>;
+  readWatermarks: () => Promise<Record<string, string[]>>;
 }
 
 export async function makeRun(options: HarnessOptions = {}): Promise<Harness> {
@@ -128,6 +129,7 @@ export async function makeRun(options: HarnessOptions = {}): Promise<Harness> {
   const paths = {
     sourcesPath: join(dir, 'sources.json'),
     storiesPath: join(dir, 'stories.json'),
+    watermarksPath: join(dir, 'feed-watermarks.json'),
   };
 
   const feeds = options.feeds ?? {};
@@ -280,5 +282,13 @@ export async function makeRun(options: HarnessOptions = {}): Promise<Harness> {
         deps,
       }),
     readStories: async () => JSON.parse(await readFile(paths.storiesPath, 'utf8')) as Story[],
+    // Missing file means a first run, which is not an error.
+    readWatermarks: async () => {
+      try {
+        return JSON.parse(await readFile(paths.watermarksPath, 'utf8')) as Record<string, string[]>;
+      } catch {
+        return {};
+      }
+    },
   };
 }

@@ -16,7 +16,7 @@
 // Exit code is 0 for a completed or degraded run and 1 only when the run could
 // not produce a usable result at all. A single failing feed is not a failure.
 
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, rename, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { lookup } from 'node:dns/promises';
@@ -27,6 +27,7 @@ import { safeFetch, type FetchIO } from './fetcher';
 import {
   acceptCandidates,
   screenSourceItems,
+  storyId,
   type Candidate,
   type IngestedItem,
   type IngestSource,
@@ -44,6 +45,7 @@ import type {
   SourceOutcome,
 } from './contracts';
 import { enrichCandidate, type Enriched } from './enrich';
+import { detectFeedGap, shouldCommitWatermark } from './watermark';
 import { lookup as openAlexLookup, type OpenAlexResult } from './openalex';
 import { loadSources, type Source } from '../../src/domain/source';
 import { issueLabelFromIso } from '../../src/domain/issue';
@@ -53,6 +55,7 @@ const ROOT = resolve(import.meta.dirname, '../..');
 const SOURCES_PATH = resolve(ROOT, 'src/data/sources.json');
 const STORIES_PATH = resolve(ROOT, 'src/data/stories.json');
 const AGENTS_PATH = resolve(ROOT, 'pipeline/config/agents.json');
+const WATERMARKS_PATH = resolve(ROOT, 'pipeline/state/feed-watermarks.json');
 
 /** How far back a weekly run looks. Slightly over a week so a run that slips a
  *  day does not silently drop the stories it would have covered. Override with
@@ -120,6 +123,14 @@ export interface RunDeps {
 export interface RunPaths {
   sourcesPath: string;
   storiesPath: string;
+  /**
+   * Which ids each feed carried last run.
+   *
+   * Added with the rotation warning: a short feed that turns over completely
+   * between runs loses whatever appeared in the gap, silently, and this file is
+   * the only thing that can notice.
+   */
+  watermarksPath: string;
 }
 
 export interface RunOptions {
@@ -159,6 +170,32 @@ async function readExistingStories(storiesPath: string): Promise<Story[]> {
   } catch {
     // First run: no file yet.
     return [];
+  }
+}
+
+/**
+ * Same-directory temp file plus rename.
+ *
+ * rename(2) is atomic within a filesystem, so a reader sees either the whole
+ * old file or the whole new one, never a half-written baseline. A truncated
+ * watermark file is worse than a stale one: stale still answers "did the feed
+ * turn over", truncated does not — and this file exists to answer exactly that.
+ */
+async function writeAtomic(path: string, contents: string): Promise<void> {
+  const temp = `${path}.${process.pid}.tmp`;
+  await writeFile(temp, contents, 'utf8');
+  await rename(temp, path);
+}
+
+async function readWatermarks(path: string): Promise<Record<string, string[]>> {
+  try {
+    const parsed = JSON.parse(await readFile(path, 'utf8')) as unknown;
+    return typeof parsed === 'object' && parsed !== null
+      ? (parsed as Record<string, string[]>)
+      : {};
+  } catch {
+    // First run, or a file that never existed. Not an error.
+    return {};
   }
 }
 
@@ -266,12 +303,19 @@ async function collect(
   windowDays: number,
   seenIds: Set<string>,
   deps: RunDeps,
-): Promise<{ candidates: { source: Source; candidate: Candidate }[]; outcomes: SourceOutcome[] }> {
+): Promise<{
+  candidates: { source: Source; candidate: Candidate }[];
+  outcomes: SourceOutcome[];
+  /** Every id each feed carried, in-window or not — rotation is about the feed,
+   *  not about what happened to fall inside this week. */
+  feedIds: Map<string, string[]>;
+}> {
   // Sitemap sources read article pages during collection, so they need the same
   // per-host politeness the article stage uses.
   const sitemapPacer = createHostPacer(ARTICLE_FETCH_DELAY_MS, deps.sleep);
   const candidates: { source: Source; candidate: Candidate }[] = [];
   const outcomes: SourceOutcome[] = [];
+  const feedIds = new Map<string, string[]>();
 
   for (const source of sources) {
     if (!source.active || source.feedUrl === null) continue;
@@ -341,6 +385,14 @@ async function collect(
       parsedItems = parsed.items;
     }
 
+    feedIds.set(
+      source.id,
+      parsedItems
+        .map((item) => item.link.trim())
+        .filter((link) => link.length > 0)
+        .map((link) => storyId(link)),
+    );
+
     const screened = screenSourceItems(toIngestSource(source), parsedItems, window, seenIds);
     outcome.rejectCounts = screened.rejectCounts as Record<string, number>;
     // Counted from the histogram, not from the detail list: the detail list
@@ -355,7 +407,7 @@ async function collect(
     log(`  ${source.id}: ${screened.candidates.length} candidates of ${parsedItems.length} seen`);
   }
 
-  return { candidates, outcomes };
+  return { candidates, outcomes, feedIds };
 }
 
 /**
@@ -378,7 +430,7 @@ export async function runWeek(options: RunOptions): Promise<RunReport> {
   const existing = await readExistingStories(paths.storiesPath);
   const seenIds = new Set(existing.map((story) => story.id));
 
-  const { candidates, outcomes } = await collect(sources, window, windowDays, seenIds, deps);
+  const { candidates, outcomes, feedIds } = await collect(sources, window, windowDays, seenIds, deps);
   const byOutcome = new Map(outcomes.map((outcome) => [outcome.sourceId, outcome]));
   const warnings: string[] = outcomes
     .filter((outcome) => outcome.fetchError !== null || outcome.parseError !== null)
@@ -386,6 +438,31 @@ export async function runWeek(options: RunOptions): Promise<RunReport> {
       (outcome) =>
         `${outcome.sourceId}: ${outcome.fetchError ?? outcome.parseError} (status ${outcome.status})`,
     );
+
+  // Compared against the stored baseline before anything can overwrite it, and
+  // staged rather than written: the file is only replaced once the run has got
+  // as far as writing stories, so a crash cannot advance the baseline past
+  // content that never shipped.
+  const previousWatermarks = await readWatermarks(paths.watermarksPath);
+  const nextWatermarks: Record<string, string[]> = { ...previousWatermarks };
+  for (const outcome of outcomes) {
+    const currentIds = feedIds.get(outcome.sourceId) ?? [];
+    const gap = detectFeedGap(previousWatermarks[outcome.sourceId] ?? [], currentIds);
+    if (gap) warnings.push(`feed "${outcome.sourceId}": ${gap}`);
+
+    // A source that failed keeps its old baseline; it must not be reset to
+    // empty just because this run could not reach it.
+    if (
+      shouldCommitWatermark({
+        dryRun,
+        fetchOk: outcome.fetchError === null,
+        parseOk: outcome.parseError === null,
+        currentIds,
+      })
+    ) {
+      nextWatermarks[outcome.sourceId] = currentIds;
+    }
+  }
 
   // --- abstracts: obtained before the gate, because the gate reads them ---
   //
@@ -705,6 +782,10 @@ export async function runWeek(options: RunOptions): Promise<RunReport> {
   if (!dryRun) {
     await writeFile(paths.storiesPath, `${JSON.stringify(merged, null, 2)}\n`, 'utf8');
     log(`wrote ${merged.length} stories to ${paths.storiesPath}`);
+    // Only after the stories landed. The other order would advance the
+    // baseline past content a failed write never published, and the next run
+    // would see continuity that does not exist.
+    await writeAtomic(paths.watermarksPath, `${JSON.stringify(nextWatermarks, null, 2)}\n`);
   } else {
     log('dry run: stories file not written');
   }
@@ -729,7 +810,11 @@ async function main(): Promise<void> {
   const report = await runWeek({
     dryRun: process.argv.includes('--dry-run'),
     windowDays: parseWindowDays(process.argv),
-    paths: { sourcesPath: SOURCES_PATH, storiesPath: STORIES_PATH },
+    paths: {
+      sourcesPath: SOURCES_PATH,
+      storiesPath: STORIES_PATH,
+      watermarksPath: WATERMARKS_PATH,
+    },
     deps: {
       io,
       classify: classifyAll,
