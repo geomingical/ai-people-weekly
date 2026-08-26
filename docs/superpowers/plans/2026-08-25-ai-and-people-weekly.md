@@ -695,10 +695,72 @@ export async function makeRun(options: HarnessOptions = {}) {
 Run: `npx vitest run pipeline/tests/run-harness.test.ts`
 Expected: PASS
 
-- [ ] **Step 8: 提交**
+- [ ] **Step 8: 加 `durationMs` 與乾跑限定的 `decisions`**
+
+Task 14 的量測與人工複核靠這兩個欄位，而**它們必須在這裡就存在** ——
+乾跑跑完才發現報告裡沒有，那時已經來不及。
+
+`pipeline/src/contracts.ts`：
+
+```ts
+export interface RunDecision {
+  sourceId: string;
+  title: string;
+  url: string;
+  verdict: 'accepted' | 'rejected';
+  // abstractVia is added in Task 8, when Enriched exists.
+}
+
+export interface RunReport {
+  // …existing fields…
+  /** Wall-clock time for the whole run, for Task 14's measurement. */
+  durationMs: number;
+  /**
+   * Every candidate and what happened to it. **Dry runs only.**
+   * A weekly report must not carry hundreds of rows nobody reads; a one-off
+   * human review needs exactly those rows. Absent (not empty) on a normal run.
+   */
+  decisions?: RunDecision[];
+}
+```
+
+測試要有正反兩面 —— 只測「乾跑不寫檔」不夠，實作者可以整個省略這個欄位而通過：
+
+```ts
+it('carries a decision list on a dry run', async () => {
+  const run = await makeRun({
+    dryRun: true,
+    feeds: { s1: [{ title: 'A study', link: 'https://example.org/a',
+                    publishedAt: '2026-08-20T00:00:00Z', summary: 'x'.repeat(600) }] },
+    verdicts: { relevant: true, topics: ['research'] },
+  });
+  const report = await run.execute();
+  expect(report.decisions).toHaveLength(1);
+  expect(report.decisions?.[0].verdict).toBe('accepted');
+});
+
+it('carries no decision list on a normal run', async () => {
+  const run = await makeRun({
+    feeds: { s1: [{ title: 'A study', link: 'https://example.org/a',
+                    publishedAt: '2026-08-20T00:00:00Z', summary: 'x'.repeat(600) }] },
+    verdicts: { relevant: true, topics: ['research'] },
+  });
+  const report = await run.execute();
+  expect(report.decisions).toBeUndefined();
+});
+
+it('reports how long the run took', async () => {
+  const run = await makeRun({ feeds: { s1: [] } });
+  const report = await run.execute();
+  expect(report.durationMs).toBeGreaterThanOrEqual(0);
+});
+```
+
+- [ ] **Step 9: 提交**
 
 ```bash
-git add pipeline/src/run.ts pipeline/tests/harness.ts pipeline/tests/run-harness.test.ts
+git add pipeline/src/run.ts pipeline/src/contracts.ts \
+        pipeline/tests/harness.ts pipeline/tests/run-harness.test.ts
 git diff --cached --name-only   # confirm both test files are staged
 git commit -m "test: a run-level seam that exercises the real pipeline
 
@@ -2421,7 +2483,9 @@ reads exactly like 'no abstract exists'. That one detail produced a
 
 **Files:**
 - Create: `pipeline/src/enrich.ts`、`pipeline/tests/enrich.test.ts`
-- Modify: `pipeline/src/run.ts`（流程順序、`RunDeps` 加 `openAlex`）
+- Modify: `pipeline/src/run.ts`（流程順序、`RunDeps` 加 `openAlex`、`enrichment` 統計）
+- Modify: `pipeline/src/contracts.ts`（`RunReport.enrichment`、`RunDecision.abstractVia`）
+- Modify: `pipeline/tests/run-metrics.test.ts`
 - Modify: `pipeline/tests/harness.ts`（**跨任務共用，必須一起提交**）
 - Modify: `pipeline/tests/run-reconciliation.test.ts`（補 `no-abstract` 的對帳案例）
 
@@ -2674,7 +2738,67 @@ it('counts the no-abstract stage too', async () => {
 
 節流：沿用既有的 `createHostPacer`，OpenAlex 每秒最多 4 次。
 
-- [ ] **Step 8: 確認補來的摘要不會整篇上網**
+- [ ] **Step 8: 把補摘要的管道統計與 `abstractVia` 寫進報告**
+
+`Enriched.via` 目前只存在單筆回傳值裡，**沒有被聚合，Task 14 拿不到命中率** ——
+而那正是判斷「三層 fallback 到底有沒有用」的唯一數字。
+
+`pipeline/src/contracts.ts`：
+
+```ts
+export interface RunReport {
+  // …existing fields…
+  /** How each published story's abstract was obtained. Task 14 reads this to
+   *  decide whether the OpenAlex rung is earning its place. */
+  enrichment: { feed: number; openalex: number; articlePage: number; none: number };
+}
+```
+
+同時把 `abstractVia` 補進 Task 2 建立的 `RunDecision`（那時 `Enriched` 還不存在）：
+
+```ts
+export interface RunDecision {
+  sourceId: string;
+  title: string;
+  url: string;
+  verdict: 'accepted' | 'rejected';
+  /** Added here: which rung of the ladder supplied the abstract. */
+  abstractVia?: 'feed' | 'openalex' | 'article-page' | 'none';
+}
+```
+
+加進 `pipeline/tests/run-metrics.test.ts`：
+
+```ts
+it('counts which rung of the ladder supplied each abstract', async () => {
+  const run = await makeRun({
+    sources: { s1: {}, s2: { abstractStrategy: 'openalex' } },
+    feeds: {
+      s1: [{ title: 'Has one', link: 'https://example.org/a',
+             dcDate: '2026-08-20', summary: 'x'.repeat(600) }],
+      s2: [{ title: 'Needs OpenAlex', link: 'https://example.org/b',
+             dcDate: '2026-08-20', summary: 'Volume 42' }],
+    },
+    openAlex: { found: true, abstract: 'y'.repeat(900), access: 'open' },
+    verdicts: { relevant: true, topics: ['trust'] },
+  });
+  const report = await run.execute();
+  expect(report.enrichment).toMatchObject({ feed: 1, openalex: 1 });
+});
+
+it('records abstractVia on each dry-run decision', async () => {
+  const run = await makeRun({
+    dryRun: true,
+    feeds: { s1: [{ title: 'Has one', link: 'https://example.org/a',
+                    dcDate: '2026-08-20', summary: 'x'.repeat(600) }] },
+    verdicts: { relevant: true, topics: ['trust'] },
+  });
+  const report = await run.execute();
+  expect(report.decisions?.[0].abstractVia).toBe('feed');
+});
+```
+
+- [ ] **Step 9: 確認補來的摘要不會整篇上網**
 
 **這一步是承重的，不是收尾。** 補完拿到的摘要有兩個用途，必須分開：
 
@@ -2697,17 +2821,18 @@ npx vitest run tests/unit/guards.test.ts
 **不是放寬 guard**。規格裡有數個來源的 `licenseNote` 寫著「只保留摘要與連結」，
 那是授權承諾，不是風格偏好。
 
-- [ ] **Step 9: 跑全部測試與建置**
+- [ ] **Step 10: 跑全部測試與建置**
 
 Run: `npm run verify`
 Expected: PASS
 
-- [ ] **Step 10: 提交**
+- [ ] **Step 11: 提交**
 
 ```bash
 git add pipeline/src/enrich.ts pipeline/tests/enrich.test.ts pipeline/src/run.ts \
-        pipeline/tests/harness.ts pipeline/tests/run-reconciliation.test.ts
-git diff --cached --name-only | grep harness   # the shared harness must ship with it
+        pipeline/src/contracts.ts pipeline/tests/harness.ts \
+        pipeline/tests/run-reconciliation.test.ts pipeline/tests/run-metrics.test.ts
+git diff --cached --name-only | grep -E 'harness|run-metrics'   # both must ship
 git commit -m "feat: fill in the abstract before the gate runs, not after
 
 The gate reads the abstract, so enrichment has to come first. The
@@ -2722,7 +2847,9 @@ third step never gets it, whatever the first two returned."
 
 **Files:**
 - Modify: `pipeline/src/classify-agent.ts`（系統提示詞、標籤去重）
-- Create: `pipeline/tests/classify-agent.test.ts`
+- Modify: `pipeline/src/contracts.ts`（`RunReport.classifier` 統計）
+- Modify: `pipeline/src/run.ts`（聚合 `classifyAll` 的 attempts）
+- Create: `pipeline/tests/classify-agent.test.ts`、`pipeline/tests/run-metrics.test.ts`
 
 **Interfaces:**
 - Consumes: Task 3 的 `TOPICS`
@@ -2846,10 +2973,76 @@ export function normalizeTopics(raw: readonly string[]): Topic[] {
 Run: `npx vitest run pipeline/tests/classify-agent.test.ts`
 Expected: PASS
 
-- [ ] **Step 6: 提交**
+- [ ] **Step 6: 把守門模型的用量寫進報告**
+
+Task 14 要用這些數字對照規格第 11 節的成本預估。**`classifyAll` 已經回傳
+`attempts`，但 `run.ts` 目前只把它們印到 log，沒有進報告** —— 乾跑結束後
+`/tmp/dryrun.json` 裡找不到。
+
+**計數口徑（三個任務共用，不得各自解釋）：**
+
+| 詞 | 定義 |
+|---|---|
+| call | 一次送往供應商的 HTTP 請求，**包含重試**。同一批重試三次就是三次 call。 |
+| retry | 同一批的第二次以後的 attempt。 |
+| failure | 沒有回傳可用內容的 attempt：連線錯誤、非 2xx、或回覆解析不出來。 |
+| tokens | 各 attempt 回報的 `completionTokens` 加總。**沒有回報的不算 0，另計 `tokensUnreported`** —— NVIDIA 回 503 時不會回報 token，把它當 0 會讓成本看起來比實際低。 |
+
+`pipeline/src/contracts.ts`：
+
+```ts
+export interface ModelUsage {
+  /** HTTP requests sent, retries included. */
+  calls: number;
+  retries: number;
+  failures: number;
+  completionTokens: number;
+  /** Attempts that returned no token count — usually the ones that failed. */
+  tokensUnreported: number;
+  /** Which provider served how many successful calls. */
+  byProvider: Record<string, { served: number; failed: number }>;
+}
+
+export interface RunReport {
+  // …existing fields…
+  classifier: ModelUsage;
+}
+```
+
+測試要用**非空的 attempts** 斷言精確數值，否則全零也會通過：
+
+```ts
+// pipeline/tests/run-metrics.test.ts
+it('counts classifier calls, retries and tokens from the attempts', async () => {
+  const run = await makeRun({
+    feeds: { s1: [{ title: 'A study', link: 'https://example.org/a',
+                    publishedAt: '2026-08-20T00:00:00Z', summary: 'x'.repeat(600) }] },
+    verdicts: { relevant: true, topics: ['research'] },
+    classifyAttempts: [
+      { provider: 'nvidia', batch: 0, outcome: 'http-error', status: 503, durationMs: 10 },
+      { provider: 'nvidia', batch: 0, outcome: 'http-error', status: 503, durationMs: 10 },
+      { provider: 'nvidia', batch: 0, outcome: 'ok', completionTokens: 240, durationMs: 900 },
+    ],
+  });
+  const report = await run.execute();
+  expect(report.classifier).toMatchObject({
+    calls: 3, retries: 2, failures: 2,
+    completionTokens: 240, tokensUnreported: 2,
+    byProvider: { nvidia: { served: 1, failed: 2 } },
+  });
+});
+```
+
+`harness.ts` 的 `HarnessOptions` 加上 `classifyAttempts`，由假 classify 原樣回傳。
+**這個檔案是共用的，要列進本任務的 `git add`。**
+
+- [ ] **Step 7: 提交**
 
 ```bash
-git add pipeline/src/classify-agent.ts pipeline/tests/classify-agent.test.ts
+git add pipeline/src/classify-agent.ts pipeline/tests/classify-agent.test.ts \
+        pipeline/src/contracts.ts pipeline/src/run.ts \
+        pipeline/tests/run-metrics.test.ts pipeline/tests/harness.ts
+git diff --cached --name-only | grep -E 'run-metrics|harness'   # both must ship
 git commit -m "feat: gate on what the study measured, not whose data it used
 
 A live run accepted a paper that ran seven models over real Reddit
@@ -2868,7 +3061,10 @@ itself."
 **Files:**
 - Modify: `pipeline/config/agents.json`
 - Modify: `pipeline/src/summarize/summarizer.ts`（回覆 schema 加 `maxLength`）
-- Modify: `pipeline/tests/summarizer.test.ts`
+- Modify: `pipeline/src/contracts.ts`（`SummaryOutcome` 併入 `ModelUsage`）
+- Modify: `pipeline/src/run.ts`（聚合 `summarizeAll` 的 attempts）
+- Modify: `pipeline/tests/summarizer.test.ts`、`pipeline/tests/run-metrics.test.ts`
+- Modify: `pipeline/tests/harness.ts`（`summarizeAttempts`；**跨任務共用，必須一起提交**）
 - Create: `.env.example`
 
 **Interfaces:**
@@ -2979,12 +3175,53 @@ GROQ_API_KEY=
 EOF
 ```
 
-- [ ] **Step 8: 跑測試與提交**
+- [ ] **Step 8: 把摘要模型的用量寫進報告**
+
+同 Task 9 的口徑，套用在 `summarizeAll` 上。既有的 `SummaryOutcome` 只有
+`requested / succeeded / failed / skippedReason`，補上 `ModelUsage` 的欄位：
+
+```ts
+export interface SummaryOutcome extends ModelUsage {
+  requested: number;
+  succeeded: number;
+  failed: number;
+  skippedReason: string | null;
+}
+```
+
+加進 `pipeline/tests/run-metrics.test.ts`：
+
+```ts
+it('counts summarizer calls and shows which provider served the run', async () => {
+  const run = await makeRun({
+    feeds: { s1: [{ title: 'A study', link: 'https://example.org/a',
+                    publishedAt: '2026-08-20T00:00:00Z', summary: 'x'.repeat(600) }] },
+    verdicts: { relevant: true, topics: ['research'] },
+    summarizeAttempts: [
+      { provider: 'nvidia', batch: 0, attempt: 0, outcome: 'http-error', status: 503, durationMs: 10 },
+      { provider: 'groq', batch: 0, attempt: 0, outcome: 'ok', completionTokens: 310, durationMs: 700 },
+    ],
+  });
+  const report = await run.execute();
+  expect(report.summaries).toMatchObject({
+    calls: 2, retries: 0, failures: 1, completionTokens: 310, tokensUnreported: 1,
+    byProvider: { nvidia: { served: 0, failed: 1 }, groq: { served: 1, failed: 0 } },
+  });
+});
+```
+
+**這個測試同時是 Task 10 供應商切換的驗收**：它證明 NVIDIA 掛掉時 Groq 真的接手，
+而且報告看得出來是誰接的 —— 那正是第 11.5 節「備援必須是真的能用的備援」要的證據。
+
+- [ ] **Step 9: 跑測試與提交**
 
 ```bash
-npx vitest run pipeline/tests/summarizer.test.ts
+npx vitest run pipeline/tests/summarizer.test.ts pipeline/tests/run-metrics.test.ts
 git add pipeline/config/agents.json pipeline/src/summarize/summarizer.ts \
-        pipeline/tests/summarizer.test.ts .env.example
+        pipeline/src/contracts.ts pipeline/src/run.ts \
+        pipeline/tests/summarizer.test.ts pipeline/tests/run-metrics.test.ts \
+        pipeline/tests/harness.ts .env.example
+git diff --cached --name-only | grep -E 'run-metrics|harness'   # both must ship
 git commit -m "feat: cap summary length in the schema and put Groq behind NVIDIA
 
 A prose length limit is advice the model ignored: five of six summaries
@@ -3603,10 +3840,13 @@ npx tsx pipeline/src/run.ts --dry-run --since 7 > /tmp/dryrun.json
 |---|---|
 | 每來源的 seen / in-window / accepted / rejected | 骨架已有 |
 | 拒絕理由直方圖 + 日期與摘要類逐則明細 | Task 6 |
-| 守門模型呼叫次數與 token | Task 9（`classifyAll` 的 `attempts` 已帶 `completionTokens`，聚合進報告即可） |
-| 摘要模型呼叫次數與 token、各供應商失敗與重試次數 | Task 10（`summarizeAll` 的 `attempts` 同上） |
-| 補摘要四條管道的命中數（feed / openalex / article-page / none） | Task 8（`Enriched.via` 目前只存在單筆回傳值，要聚合） |
-| 整體耗時 | Task 2（`runWeek()` 起訖時間） |
+| 守門模型呼叫次數與 token | `report.classifier`（Task 9 Step 6） |
+| 摘要模型呼叫次數與 token、各供應商失敗與重試次數 | `report.summaries`（Task 10 Step 8） |
+| 補摘要四條管道的命中數 | `report.enrichment`（Task 8 Step 8） |
+| 整體耗時 | `report.durationMs`（Task 2 Step 8） |
+
+**每一項都對應一個實際的實作步驟與測試，不只是責任歸屬。** 計數口徑統一定義在
+Task 9 Step 6，Task 10 沿用同一套。
 
 **若某一項在實作時發現代價太高，就在這裡把承諾縮掉，不要留一個做不到的步驟。**
 
@@ -3620,14 +3860,23 @@ Task 6 刻意不保留 `not-relevant` 的逐則明細 —— 每週好幾百篇�
 ```ts
 // Only on --dry-run. A weekly report must not carry hundreds of rows nobody
 // reads; a one-off review needs exactly those rows.
+// Task 2 writes these four fields. Task 8 adds abstractVia when Enriched exists.
 if (dryRun) report.decisions = candidates.map((c) => ({
   sourceId: c.source.id, title: c.candidate.item.title, url: c.candidate.item.url,
-  verdict: verdictFor(c.candidate), abstractVia: enriched.get(c.candidate.item.id)?.via,
+  verdict: verdictFor(c.candidate),
 }));
 ```
 
-這個欄位由 **Task 2** 加進 `runWeek()`（它已經知道 `dryRun`），並由 Task 2 的
-harness 測試釘住：**正式執行的報告不得含 `decisions`。**
+**這個欄位分兩階段建立**，因為 `abstractVia` 來自 Task 8 的 `Enriched`：
+
+| 階段 | 欄位 | 誰做 |
+|---|---|---|
+| 一 | `sourceId`、`title`、`url`、`verdict` | Task 2 |
+| 二 | 加上 `abstractVia` | Task 8 |
+
+兩個任務都要有**正反兩面**的測試：乾跑的報告必須含 `decisions`，
+**正式執行的報告必須不含** —— 只測「乾跑不寫檔」是不夠的，實作者可以整個省略
+這個欄位而仍然通過驗收。
 
 - [ ] **Step 4: 對照規格第 11 節的預估**
 
