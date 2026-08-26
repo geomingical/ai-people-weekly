@@ -32,7 +32,7 @@ import {
   type IngestSource,
 } from './ingest';
 import { classifyAll, type ClassifyInput } from './classify-agent';
-import { isEducationRelevant, resolveTopics } from './classify';
+import { resolveTopics } from './classify';
 import { summarizeAll, type SummaryInput } from './summarize/summarizer';
 import { buildProviders, type SummarizerConfig } from './summarize/providers';
 import type { ProviderConfig } from './summarize/summarizer';
@@ -293,11 +293,15 @@ export async function runWeek(options: RunOptions): Promise<RunReport> {
         `${outcome.sourceId}: ${outcome.fetchError ?? outcome.parseError} (status ${outcome.status})`,
     );
 
-  // --- relevance: judged by model, keyword rules as the fallback ---
+  // --- relevance: judged by model, and by nothing else ---
   //
-  // The date window has already cut 2,463 feed items to a few hundred, so this
-  // is a handful of batched calls. Doing it here rather than inside screening
-  // is what lets the per-source cap count stories worth publishing instead of
+  // There is no fallback. The editorial line is whether a person or a model was
+  // measured, which no word list can answer, and this site publishes without
+  // review. An unanswered candidate waits for a week when the model answers.
+  //
+  // The date window has already cut the feed items to a few hundred, so this is
+  // a handful of batched calls. Doing it here rather than inside screening is
+  // what lets the per-source cap count stories worth publishing instead of
   // stories that happened to be checked first.
   const providers = deps.providers;
 
@@ -339,11 +343,13 @@ export async function runWeek(options: RunOptions): Promise<RunReport> {
     warnings.push(...result.errors.map((error) => `classifier: ${error}`));
     if (result.undecided.length > 0) {
       warnings.push(
-        `${result.undecided.length} candidates fell back to keyword relevance because no provider answered`,
+        `${result.undecided.length} model-gated candidates were not published: no provider returned a verdict`,
       );
     }
   } else if (classifyInputs.length > 0) {
-    warnings.push('relevance judged by keyword rules: no model provider has a key');
+    warnings.push(
+      'no model provider has a key: no model-gated candidate was judged, so none was published',
+    );
   }
 
   // Apply verdicts and the per-source cap, source by source.
@@ -369,11 +375,12 @@ export async function runWeek(options: RunOptions): Promise<RunReport> {
               : source.defaultTopics) as readonly Topic[],
           };
         }
-        // Fallback: the deterministic rules, so a model outage degrades
-        // judgement rather than stopping the week.
-        return isEducationRelevant(candidate.raw)
-          ? { relevant: true, topics: resolveTopics(candidate.raw, source.defaultTopics) }
-          : { relevant: false, topics: [] };
+        // Fail closed. There is no deterministic fallback for this site's
+        // editorial line — "was a person measured, or a model" is not a
+        // question a word list can answer — and this site publishes without
+        // review. An undecided candidate waits for a week when the model
+        // answers, rather than going live unvetted.
+        return { relevant: false, topics: [], undecided: true };
       },
       effectiveCap(source.maxPerRun, windowDays),
       seenIds,

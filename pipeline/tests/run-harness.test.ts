@@ -22,7 +22,7 @@ describe('the harness exercises the real pipeline, not a copy of it', () => {
   it('writes what the report claims it wrote', async () => {
     const run = await makeRun({
       feeds: { s1: [item(1)] },
-      verdicts: { relevant: true, topics: ['research'] },
+      verdicts: { relevant: true, topics: ['cognition'] },
     });
     const report = await run.execute();
     const stories = await run.readStories();
@@ -34,7 +34,7 @@ describe('the harness exercises the real pipeline, not a copy of it', () => {
     const run = await makeRun({
       dryRun: true,
       feeds: { s1: [item(1)] },
-      verdicts: { relevant: true, topics: ['research'] },
+      verdicts: { relevant: true, topics: ['cognition'] },
     });
     const report = await run.execute();
     expect(report.storiesAdded).toBeGreaterThan(0); // it decided to publish
@@ -47,7 +47,7 @@ describe('the harness exercises the real pipeline, not a copy of it', () => {
     const run = await makeRun({
       sources: { s1: { maxPerRun: 2 } },
       feeds: { s1: [item(1), item(2), item(3), item(4)] },
-      verdicts: { relevant: true, topics: ['research'] },
+      verdicts: { relevant: true, topics: ['cognition'] },
     });
     const report = await run.execute();
     expect(await run.readStories()).toHaveLength(2);
@@ -60,7 +60,7 @@ describe('the harness exercises the real pipeline, not a copy of it', () => {
     let called = false;
     const run = await makeRun({
       feeds: { s1: [item(1)] },
-      verdicts: { relevant: true, topics: ['research'] },
+      verdicts: { relevant: true, topics: ['cognition'] },
       onSummarize: () => {
         called = true;
       },
@@ -78,7 +78,7 @@ describe('the seam does not weaken the SSRF boundary', () => {
     const run = await makeRun({
       feeds: { s1: [item(1)] },
       redirects: { s1: 'https://evil.example.net/feed' },
-      verdicts: { relevant: true, topics: ['research'] },
+      verdicts: { relevant: true, topics: ['cognition'] },
     });
     const report = await run.execute();
     expect(report.sources[0].fetchError).toBe('blocked');
@@ -89,7 +89,7 @@ describe('the seam does not weaken the SSRF boundary', () => {
     const run = await makeRun({
       feeds: { s1: [item(1)] },
       redirects: { s1: 'https://example.org/s1/feed-moved' },
-      verdicts: { relevant: true, topics: ['research'] },
+      verdicts: { relevant: true, topics: ['cognition'] },
     });
     const report = await run.execute();
     expect(report.sources[0].fetchError).toBeNull();
@@ -99,7 +99,7 @@ describe('the seam does not weaken the SSRF boundary', () => {
   it('rejects an item whose link left the source domain', async () => {
     const run = await makeRun({
       feeds: { s1: [item(1, { link: 'https://evil.example.net/a' })] },
-      verdicts: { relevant: true, topics: ['research'] },
+      verdicts: { relevant: true, topics: ['cognition'] },
     });
     const report = await run.execute();
     expect(await run.readStories()).toHaveLength(0);
@@ -116,7 +116,7 @@ describe('summarization stays orchestrated by runWeek', () => {
       feeds: {
         s1: [item(1, { summary: 'short teaser', contentEncoded: 'THE FULL BODY '.repeat(60) })],
       },
-      verdicts: { relevant: true, topics: ['research'] },
+      verdicts: { relevant: true, topics: ['cognition'] },
       onSummarize: (inputs) => captured.push(...inputs),
     });
     await run.execute();
@@ -126,7 +126,7 @@ describe('summarization stays orchestrated by runWeek', () => {
   it('carries the summarizer failure count into the report', async () => {
     const run = await makeRun({
       feeds: { s1: [item(1)] },
-      verdicts: { relevant: true, topics: ['research'] },
+      verdicts: { relevant: true, topics: ['cognition'] },
       summarizeFails: true,
     });
     const report = await run.execute();
@@ -155,7 +155,7 @@ describe('the report carries what Task 14 will need', () => {
     const run = await makeRun({
       dryRun: true,
       feeds: { s1: [item(1)] },
-      verdicts: { relevant: true, topics: ['research'] },
+      verdicts: { relevant: true, topics: ['cognition'] },
     });
     const report = await run.execute();
     expect(report.decisions).toHaveLength(1);
@@ -165,7 +165,7 @@ describe('the report carries what Task 14 will need', () => {
   it('carries no decision list on a normal run', async () => {
     const run = await makeRun({
       feeds: { s1: [item(1)] },
-      verdicts: { relevant: true, topics: ['research'] },
+      verdicts: { relevant: true, topics: ['cognition'] },
     });
     const report = await run.execute();
     expect(report.decisions).toBeUndefined();

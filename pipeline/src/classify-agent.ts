@@ -75,10 +75,10 @@ relevant 要判 false 的例子：
 - 把 AI 用在醫療、金融等非教育領域
 
 主題標籤 topics 從這個清單挑 1 到 3 個最貼切的（relevant 為 false 時給空陣列）：
-policy（政策法規）、k12（中小學）、higher-ed（高等教育）、teaching（教學實務）、tools（工具與產品）、research（研究）、integrity（學術誠信）、workforce（人才培育）
+sycophancy（奉承與迎合）、dependence（依賴）、relationships（關係與陪伴）、trust（信任與過度信賴）、wellbeing（心理健康）、cognition（認知與思考）、social（社會行為）
 
 只輸出 JSON，不要有前言、說明或程式碼圍籬，格式必須完全是：
-{"items":[{"index":0,"relevant":true,"topics":["k12"]}]}
+{"items":[{"index":0,"relevant":true,"topics":["trust"]}]}
 陣列必須依序包含你收到的每一個 index，數量一致。`;
 
 /** Short inputs, so more fit per call than the summarizer's one-per-call. */
@@ -156,7 +156,7 @@ const TOPIC_SET: ReadonlySet<string> = new Set(TOPICS);
  *
  * A per-entry problem is not survivable the way it is for summaries: a story
  * with no decision has no fallback inside this reply, so anything malformed
- * fails the whole batch and the caller falls back to the keyword rules.
+ * fails the whole batch, and the caller publishes none of it.
  */
 export function validateClassifyReply(
   reply: string,
@@ -234,11 +234,11 @@ function chunk<T>(items: readonly T[], size: number): T[][] {
  * Classifies every candidate, trying each provider in turn per batch.
  *
  * Never throws. A batch no provider could answer leaves its stories in
- * `undecided`, and the caller applies the keyword rules to those — so the model
+ * `undecided`, and the caller publishes none of those — so the model
  * being down degrades judgement quality rather than stopping the run.
  *
  * Deliberately simpler than the summarizer's retry policy: a classification is
- * cheap to redo next week and there is a keyword answer standing behind every
+ * cheap to redo next week, and nothing goes live unjudged behind every
  * one, so one attempt per provider is enough.
  */
 export async function classifyAll(

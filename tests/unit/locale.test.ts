@@ -21,8 +21,8 @@ describe('localizedPath', () => {
   });
 
   it('appends filter state when given', () => {
-    expect(localizedPath('en', '/', { ...defaultFilterState, topic: 'policy' })).toBe(
-      '/en/?topic=policy&category=all&region=all',
+    expect(localizedPath('en', '/', { ...defaultFilterState, topic: 'trust' })).toBe(
+      '/en/?topic=trust&category=all&region=all',
     );
   });
 });
@@ -44,8 +44,8 @@ describe('counterpartPath', () => {
 
 describe('label formatting', () => {
   it('renders every topic, category, and tier in both languages', () => {
-    expect(formatTopic('zh-tw', 'integrity')).toBe('學術誠信');
-    expect(formatTopic('en', 'integrity')).toBe('Academic integrity');
+    expect(formatTopic('zh-tw', 'wellbeing')).toBe('心理健康');
+    expect(formatTopic('en', 'wellbeing')).toBe('Wellbeing');
     expect(formatCategory('zh-tw', 'vendor-education')).toBe('業者教育方案');
     expect(formatCategory('en', 'taiwan-local')).toBe('Taiwan');
     expect(formatTier('zh-tw', 'first-party')).toBe('第一手');

@@ -7,7 +7,7 @@
 
 import { createHash } from 'node:crypto';
 import type { RawFeedItem } from './contracts';
-import { isEducationRelevant, resolveTopics, type Topic } from './classify';
+import { resolveTopics, type Topic } from './classify';
 
 export interface IngestSource {
   id: string;
@@ -46,6 +46,7 @@ export const REJECT_REASONS = [
   'future-dated',
   'outside-window',
   'not-relevant',
+  'undecided',
   'duplicate',
   'over-cap',
 ] as const;
@@ -238,6 +239,12 @@ export function screenSourceItems(
 export interface RelevanceVerdict {
   relevant: boolean;
   topics: readonly Topic[];
+  /**
+   * The model gave no usable answer, so this is an outage rather than a
+   * judgement. Recorded under its own reason: filing an outage as
+   * `not-relevant` would make a week the model was down look like a quiet week.
+   */
+  undecided?: boolean;
 }
 
 /**
@@ -264,6 +271,10 @@ export function acceptCandidates(
 
   for (const candidate of candidates) {
     const verdict = verdictFor(candidate);
+    if (verdict.undecided === true) {
+      reject('undecided', candidate.item.title);
+      continue;
+    }
     if (!verdict.relevant) {
       reject('not-relevant', candidate.item.title);
       continue;
@@ -280,9 +291,12 @@ export function acceptCandidates(
 }
 
 /**
- * Screen and accept in one call, using the keyword rules. This is the fallback
- * path — what runs when no model is available — and what the unit tests
- * exercise, because it is deterministic.
+ * Screen and accept in one call, with no model available.
+ *
+ * There is no keyword fallback. A `keyword` source whose candidates never
+ * reached a model is undecided, not irrelevant, and undecided means unpublished
+ * — this site puts stories live without anyone reading them, so a week with
+ * fewer stories is a small loss and a week of unvetted papers is not.
  */
 export function ingestSourceItems(
   source: IngestSource,
@@ -298,9 +312,7 @@ export function ingestSourceItems(
       if (source.relevanceMode === 'always') {
         return { relevant: true, topics: resolveTopics(candidate.raw, source.defaultTopics) };
       }
-      return isEducationRelevant(candidate.raw)
-        ? { relevant: true, topics: resolveTopics(candidate.raw, source.defaultTopics) }
-        : { relevant: false, topics: [] };
+      return { relevant: false, topics: [], undecided: true };
     },
     source.maxPerRun,
     seenIds,

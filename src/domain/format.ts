@@ -3,14 +3,13 @@ import type { Source } from './source';
 import type { Locale, Story, Topic } from './story';
 
 const topicKeys: Record<Topic, MessageKey> = {
-  policy: 'topicPolicy',
-  k12: 'topicK12',
-  'higher-ed': 'topicHigherEd',
-  teaching: 'topicTeaching',
-  tools: 'topicTools',
-  research: 'topicResearch',
-  integrity: 'topicIntegrity',
-  workforce: 'topicWorkforce',
+  sycophancy: 'topicSycophancy',
+  dependence: 'topicDependence',
+  relationships: 'topicRelationships',
+  trust: 'topicTrust',
+  wellbeing: 'topicWellbeing',
+  cognition: 'topicCognition',
+  social: 'topicSocial',
 };
 
 const categoryKeys: Record<Source['category'], MessageKey> = {

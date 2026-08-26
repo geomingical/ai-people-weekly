@@ -15,7 +15,7 @@ function story(overrides: Partial<Story> = {}): Story {
     publishedAt: '2026-08-18T09:00:00.000Z',
     fetchedAt: '2026-08-18T12:00:00.000Z',
     issue: '2026-W34',
-    topics: ['k12'],
+    topics: ['relationships'],
     region: 'US',
     language: 'en',
     ...overrides,

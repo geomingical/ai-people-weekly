@@ -6,7 +6,7 @@ const source: IngestSource = {
   id: 'test',
   officialDomains: ['example.org'],
   relevanceMode: 'always',
-  defaultTopics: ['k12'],
+  defaultTopics: ['relationships'],
   maxPerRun: 10,
   region: 'US',
   language: 'en',
@@ -37,7 +37,7 @@ describe('ingest gate', () => {
   it('accepts a well-formed in-window item', () => {
     const result = run([item()]);
     expect(result.accepted).toHaveLength(1);
-    expect(result.accepted[0]).toMatchObject({ sourceId: 'test', region: 'US', topics: ['k12'] });
+    expect(result.accepted[0]).toMatchObject({ sourceId: 'test', region: 'US', topics: ['relationships'] });
   });
 
   it.each([
@@ -73,7 +73,9 @@ describe('ingest gate', () => {
     expect(run([item({ publishedAt: '2026-08-18T15:00:00.000Z' })]).accepted).toHaveLength(1);
   });
 
-  it('applies the relevance gate only in keyword mode', () => {
+  // `always` sources publish without asking anyone; `keyword` sources need a
+  // model verdict, and without one they are held rather than published.
+  it('publishes an always source unjudged, and holds a keyword source', () => {
     const offTopic = item({ title: 'Quarterly earnings report', summary: '' });
     expect(run([offTopic], { relevanceMode: 'always' }).accepted).toHaveLength(1);
     expect(run([offTopic], { relevanceMode: 'keyword' }).accepted).toHaveLength(0);
@@ -140,5 +142,29 @@ describe('canonicalUrl and storyId', () => {
 
   it('returns the input rather than throwing on an unparseable URL', () => {
     expect(canonicalUrl('not a url')).toBe('not a url');
+  });
+});
+
+
+// The education project fell back to keyword rules when the model was down, so
+// a model outage degraded judgement rather than stopping the week. That was
+// right there. Here the editorial line is whether a person or a model was
+// measured, which no word list can answer, and this site publishes without
+// review — so an outage must publish nothing rather than publish unvetted.
+describe('relevance fails closed', () => {
+  it('publishes nothing when the model reached no verdict', () => {
+    const result = run([item()], { relevanceMode: 'keyword' });
+    expect(result.accepted).toHaveLength(0);
+    expect(result.rejectCounts.undecided).toBe(1);
+  });
+
+  it('does not call an outage irrelevant — it has its own reason', () => {
+    const result = run([item()], { relevanceMode: 'keyword' });
+    expect(result.rejectCounts['not-relevant']).toBeUndefined();
+  });
+
+  it('still publishes an always-relevant source when the model is down', () => {
+    const result = run([item()], { relevanceMode: 'always' });
+    expect(result.accepted).toHaveLength(1);
   });
 });

@@ -8,10 +8,14 @@
     "category": "research",
     "language": "en",
     "region": "GLOBAL",
-    "officialDomains": ["sciencedirect.com"],
+    "officialDomains": [
+      "sciencedirect.com"
+    ],
     "tier": "research",
     "relevanceMode": "keyword",
-    "defaultTopics": ["research"],
+    "defaultTopics": [
+      "relationships"
+    ],
     "maxPerRun": 10,
     "active": true,
     "licenseNote": "Feed carries only date, journal name and authors — no abstract. www.sciencedirect.com returns 403 on robots.txt and asserts tdm-reservation, so its article pages are never fetched; only rss.sciencedirect.com is read.",

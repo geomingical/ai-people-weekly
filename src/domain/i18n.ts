@@ -4,10 +4,10 @@ import type { Locale } from './story';
 // missing translation is a compile error rather than a runtime fallback —
 // bilingual completeness is guaranteed at build time, not by review.
 export const messages = {
-  siteTitle: { 'zh-tw': 'AI 教育週報', en: 'AI in Education Weekly' },
+  siteTitle: { 'zh-tw': 'AI 與人週報', en: 'AI and People Weekly' },
   siteTagline: {
-    'zh-tw': '每週一次，追蹤 AI 進入教育現場的動態',
-    en: 'A weekly read on AI arriving in education',
+    'zh-tw': '每週追蹤 AI 如何改變使用它的人',
+    en: 'A weekly read on what AI does to the people who use it',
   },
   skipToContent: { 'zh-tw': '跳至主要內容', en: 'Skip to content' },
 
@@ -20,14 +20,14 @@ export const messages = {
   languageSwitchToChinese: { 'zh-tw': '繁中', en: '繁中' },
 
   introHeadline: {
-    'zh-tw': '本週 AI 教育要聞',
-    en: 'AI in education, this week',
+    'zh-tw': '本週 AI 影響人的研究',
+    en: 'What AI is doing to people, this week',
   },
   introBody: {
     'zh-tw':
-      '每週從一份人工挑選的來源清單抓取，全部保留原文標題與官方連結。中文摘要由模型生成，僅供快速判斷是否值得點進去讀。',
+      '每週從一份人工挑選的學術來源清單抓取，只收有真實受試者的研究。全部保留原文標題與官方連結。中文摘要由模型生成，僅供快速判斷是否值得點進去讀。',
     en:
-      'Collected weekly from a hand-picked source list. Original headlines and official links are always kept. Chinese summaries are machine-generated and exist only to help you decide what to open.',
+      'Collected weekly from a hand-picked list of academic sources, and only studies with real human participants. Original titles and official links are always kept. Chinese summaries are machine-generated and exist only to help you decide what to open.',
   },
 
   issueLabel: { 'zh-tw': '本期', en: 'Issue' },
@@ -52,14 +52,13 @@ export const messages = {
   filterSearchPlaceholder: { 'zh-tw': '關鍵字、機構或來源名稱', en: 'Keyword, organisation, or source' },
   filterAll: { 'zh-tw': '全部', en: 'All' },
 
-  topicPolicy: { 'zh-tw': '政策法規', en: 'Policy' },
-  topicK12: { 'zh-tw': '中小學', en: 'K-12' },
-  topicHigherEd: { 'zh-tw': '高等教育', en: 'Higher education' },
-  topicTeaching: { 'zh-tw': '教學實務', en: 'Teaching practice' },
-  topicTools: { 'zh-tw': '工具與產品', en: 'Tools and products' },
-  topicResearch: { 'zh-tw': '研究', en: 'Research' },
-  topicIntegrity: { 'zh-tw': '學術誠信', en: 'Academic integrity' },
-  topicWorkforce: { 'zh-tw': '人才培育', en: 'Skills and workforce' },
+  topicSycophancy: { 'zh-tw': '奉承與迎合', en: 'Sycophancy' },
+  topicDependence: { 'zh-tw': '依賴', en: 'Dependence' },
+  topicRelationships: { 'zh-tw': '關係與陪伴', en: 'Relationships' },
+  topicTrust: { 'zh-tw': '信任與過度信賴', en: 'Trust and overreliance' },
+  topicWellbeing: { 'zh-tw': '心理健康', en: 'Wellbeing' },
+  topicCognition: { 'zh-tw': '認知與思考', en: 'Cognition' },
+  topicSocial: { 'zh-tw': '社會行為', en: 'Social behaviour' },
 
   categoryVendorEducation: { 'zh-tw': '業者教育方案', en: 'Vendor education' },
   categoryPolicy: { 'zh-tw': '政府與國際組織', en: 'Government and IGOs' },

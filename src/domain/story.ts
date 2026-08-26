@@ -11,14 +11,13 @@ import { z } from 'astro/zod';
 // links. Add them as new optional fields; never rename a field to repurpose it.
 
 export const TOPICS = [
-  'policy',      // 政策法規 — government, regulator, ministry, EU AI Act
-  'k12',         // 中小學
-  'higher-ed',   // 高等教育
-  'teaching',    // 教學實務 — classroom practice, teacher training
-  'tools',       // 工具與產品 — vendor product/programme launches
-  'research',    // 研究 — papers, studies, evaluations
-  'integrity',   // 學術誠信 — cheating, detection, assessment redesign
-  'workforce',   // 人才培育 — skills, curricula, certification, jobs
+  'sycophancy',    // 奉承與迎合 — flattery, agreement-seeking, validation
+  'dependence',    // 依賴 — reliance, habit formation, withdrawal
+  'relationships', // 關係與陪伴 — companionship, parasocial bonds, attachment
+  'trust',         // 信任與過度信賴 — overreliance, automation bias, calibration
+  'wellbeing',     // 心理健康 — loneliness, distress, mental health outcomes
+  'cognition',     // 認知與思考能力 — critical thinking, offloading, deskilling
+  'social',        // 社會行為 — prosocial behaviour, honesty, conflict
 ] as const;
 
 export const LANGUAGES = ['en', 'zh-tw', 'zh-cn', 'other'] as const;

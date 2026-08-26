@@ -20,7 +20,7 @@ export function makeStory(overrides: Partial<Story> = {}): Story {
     publishedAt: '2026-08-20T00:00:00.000Z',
     fetchedAt: '2026-08-21T00:00:00.000Z',
     issue: '2026-W34',
-    topics: ['research'],
+    topics: ['cognition'],
     region: 'GLOBAL',
     language: 'en',
     ...overrides,

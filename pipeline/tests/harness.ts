@@ -73,7 +73,7 @@ const DEFAULT_SOURCE = {
   region: 'GLOBAL',
   tier: 'research',
   relevanceMode: 'keyword',
-  defaultTopics: ['research'],
+  defaultTopics: ['cognition'],
   maxPerRun: 10,
   active: true,
   licenseNote: 'test fixture',
