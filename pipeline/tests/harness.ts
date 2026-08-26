@@ -44,6 +44,13 @@ export interface HarnessOptions {
   verdicts?: Verdict | Record<string, Verdict>;
   /** Ids the fake model refuses to answer for. `['*']` is a full outage. */
   undecided?: string[];
+  /** What the fake OpenAlex returns. The ladder itself is not faked. */
+  openAlex?: Partial<{
+    found: boolean;
+    abstract: string | null;
+    access: 'open' | 'restricted' | 'unknown';
+    openUrl: string | null;
+  }>;
   /** Sources whose socket fails, to prove a failure preserves state. */
   fetchFails?: string[];
   /** Redirect a source's feed here, to exercise the real redirect guard. */
@@ -250,6 +257,13 @@ export async function makeRun(options: HarnessOptions = {}): Promise<Harness> {
         }),
       } as unknown as ProviderConfig,
     ],
+    openAlex: async () => ({
+      found: true,
+      abstract: null,
+      access: 'unknown' as const,
+      openUrl: null,
+      ...options.openAlex,
+    }),
     now: () => new Date(options.now ?? '2026-08-25T00:00:00.000Z'),
     monotonicNow: options.monotonicNow ?? (() => performance.now()),
     sleep: async () => {},

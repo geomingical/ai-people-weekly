@@ -196,3 +196,41 @@ describe('dates are resolved per publisher', () => {
     expect(await run.readStories()).toHaveLength(1);
   });
 });
+
+
+// Several sources' licence notes say "summary and link only". An abstract
+// obtained from OpenAlex or a publisher's page is read by the model and then
+// dropped, exactly like a feed's full article body.
+describe('obtained abstracts do not reach the published data', () => {
+  it('publishes a short excerpt even when a long abstract was fetched', async () => {
+    const captured: { summary: string }[] = [];
+    const run = await makeRun({
+      sources: { s1: { abstractStrategy: 'openalex' } },
+      feeds: {
+        s1: [{ title: 'A study', link: 'https://example.org/a', publishedAt: '2026-08-20T00:00:00Z', summary: 'Volume 42' }],
+      },
+      openAlex: { found: true, abstract: 'ABSTRACT '.repeat(300), access: 'open' },
+      verdicts: { relevant: true, topics: ['cognition'] },
+      onSummarize: (inputs) => captured.push(...inputs),
+    });
+    await run.execute();
+    const stories = await run.readStories();
+
+    // The model saw the whole thing…
+    expect(captured[0]!.summary.length).toBeGreaterThan(2000);
+    // …and the published record did not.
+    expect(stories[0]!.summaryOriginal.length).toBeLessThanOrEqual(450);
+    expect(stories[0]!.summaryOriginal).not.toContain('ABSTRACT ABSTRACT ABSTRACT ABSTRACT');
+  });
+
+  it('records which rung supplied the abstract on a dry run', async () => {
+    const run = await makeRun({
+      dryRun: true,
+      feeds: { s1: [{ title: 'A study', link: 'https://example.org/a', publishedAt: '2026-08-20T00:00:00Z', summary: 'x'.repeat(600) }] },
+      verdicts: { relevant: true, topics: ['cognition'] },
+    });
+    const report = await run.execute();
+    expect(report.decisions?.[0]!.abstractVia).toBe('feed');
+    expect(report.enrichment.feed).toBe(1);
+  });
+});

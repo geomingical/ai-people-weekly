@@ -51,6 +51,7 @@ export const REJECT_REASONS = [
   'outside-window',
   'not-relevant',
   'undecided',
+  'no-abstract',
   'duplicate',
   'over-cap',
 ] as const;
@@ -151,6 +152,7 @@ export const DETAILED_REJECT_REASONS: ReadonlySet<string> = new Set([
   'no-date',
   'imprecise-date',
   'future-dated',
+  'no-abstract',
 ]);
 
 /**

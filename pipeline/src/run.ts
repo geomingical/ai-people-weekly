@@ -37,6 +37,8 @@ import { summarizeAll, type SummaryInput } from './summarize/summarizer';
 import { buildProviders, type SummarizerConfig } from './summarize/providers';
 import type { ProviderConfig } from './summarize/summarizer';
 import type { RawFeedItem, RunDecision, RunReport, SourceOutcome } from './contracts';
+import { enrichCandidate, type Enriched } from './enrich';
+import { lookup as openAlexLookup, type OpenAlexResult } from './openalex';
 import { loadSources, type Source } from '../../src/domain/source';
 import { issueLabelFromIso } from '../../src/domain/issue';
 import type { Story, Topic } from '../../src/domain/story';
@@ -92,6 +94,11 @@ export interface RunDeps {
    * no-provider branch and never reach the fakes at all.
    */
   providers: readonly ProviderConfig[];
+  /**
+   * Wraps openalex.lookup. Seamed at the lookup, not at the enrichment, so the
+   * three-rung ladder in enrich.ts runs for real.
+   */
+  openAlex: (query: { doi?: string | null; title?: string }) => Promise<OpenAlexResult>;
   /** Wall clock, for the dates that end up in records. */
   now: () => Date;
   /**
@@ -313,12 +320,75 @@ export async function runWeek(options: RunOptions): Promise<RunReport> {
   const seenIds = new Set(existing.map((story) => story.id));
 
   const { candidates, outcomes } = await collect(sources, window, windowDays, seenIds, deps);
+  const byOutcome = new Map(outcomes.map((outcome) => [outcome.sourceId, outcome]));
   const warnings: string[] = outcomes
     .filter((outcome) => outcome.fetchError !== null || outcome.parseError !== null)
     .map(
       (outcome) =>
         `${outcome.sourceId}: ${outcome.fetchError ?? outcome.parseError} (status ${outcome.status})`,
     );
+
+  // --- abstracts: obtained before the gate, because the gate reads them ---
+  //
+  // Seventeen of the twenty-eight journals ship feeds with no abstract at all,
+  // and "was a person measured, or a model" cannot be decided from a title. A
+  // candidate with no abstract anywhere is dropped here rather than guessed at.
+  //
+  // This also replaces the education project's separate article-text stage. An
+  // abstract obtained here is what the summarizer reads too, so a publisher
+  // whose page was already read for the gate is not asked for it twice.
+  const articlePacer = createHostPacer(ARTICLE_FETCH_DELAY_MS, deps.sleep);
+  const enriched = new Map<string, Enriched>();
+  const withAbstract: { source: Source; candidate: Candidate }[] = [];
+  const enrichmentCounts = { feed: 0, openalex: 0, articlePage: 0, none: 0 };
+
+  if (candidates.length > 0) log(`obtaining abstracts for ${candidates.length} candidates …`);
+  for (const entry of candidates) {
+    const { source, candidate } = entry;
+    const result = await enrichCandidate(
+      {
+        title: candidate.item.title,
+        url: candidate.item.url,
+        // The untruncated feed text, not the published excerpt.
+        feedText: candidate.item.fullText || candidate.item.summaryOriginal,
+        doi: candidate.raw.doi,
+      },
+      source,
+      {
+        lookup: deps.openAlex,
+        fetchArticle: async (url) => {
+          // Several registry sources publish a Crawl-delay; it is per-host, so
+          // this waits only when the previous request went to the same site.
+          await articlePacer(url, () => Date.now());
+          const article = await fetchArticleText(url, source.officialDomains, deps.io);
+          return article.text;
+        },
+      },
+    );
+
+    enriched.set(candidate.item.id, result);
+    enrichmentCounts[result.via === 'article-page' ? 'articlePage' : result.via] += 1;
+
+    const outcome = byOutcome.get(source.id);
+    if (result.abstract === null) {
+      if (outcome) {
+        outcome.rejectCounts = mergeCounts(outcome.rejectCounts, { 'no-abstract': 1 });
+        outcome.itemsRejected += 1;
+        outcome.rejectDetails = [
+          ...outcome.rejectDetails,
+          {
+            reason: 'no-abstract',
+            title: candidate.item.title.slice(0, 200),
+            url: candidate.item.url,
+            rawDate: candidate.raw.publishedAtRaw,
+          },
+        ];
+      }
+      continue;
+    }
+    withAbstract.push(entry);
+  }
+  log(`  abstracts: ${JSON.stringify(enrichmentCounts)}`);
 
   // --- relevance: judged by model, and by nothing else ---
   //
@@ -336,13 +406,15 @@ export async function runWeek(options: RunOptions): Promise<RunReport> {
 
   // `always` sources are not sent: their whole feed is on topic by registration,
   // and asking about them would spend calls to be told yes.
-  const needsJudgement = candidates.filter(
+  const needsJudgement = withAbstract.filter(
     (entry) => entry.source.relevanceMode !== 'always',
   );
   const classifyInputs: ClassifyInput[] = needsJudgement.map(({ candidate }) => ({
     id: candidate.item.id,
     title: candidate.raw.title,
-    excerpt: candidate.item.summaryOriginal,
+    // The abstract the enrichment stage obtained — the whole reason that stage
+    // runs before this one.
+    excerpt: enriched.get(candidate.item.id)?.abstract ?? candidate.item.summaryOriginal,
     // Free when the feed shipped it; no page is fetched for this.
     body: candidate.item.fullText,
     sourceName: sourceNameById.get(candidate.item.sourceId) ?? candidate.item.sourceId,
@@ -381,10 +453,11 @@ export async function runWeek(options: RunOptions): Promise<RunReport> {
 
   // Apply verdicts and the per-source cap, source by source.
   const items: IngestedItem[] = [];
-  const byOutcome = new Map(outcomes.map((outcome) => [outcome.sourceId, outcome]));
 
   for (const source of sources) {
-    const mine = candidates.filter((entry) => entry.source.id === source.id).map((e) => e.candidate);
+    const mine = withAbstract
+      .filter((entry) => entry.source.id === source.id)
+      .map((entry) => entry.candidate);
     if (mine.length === 0) continue;
 
     const accepted = acceptCandidates(
@@ -428,47 +501,12 @@ export async function runWeek(options: RunOptions): Promise<RunReport> {
       outcome.rejectDetails = [...outcome.rejectDetails, ...accepted.rejected];
     }
   }
-  log(`accepted ${items.length} of ${candidates.length} candidates`);
+  log(`accepted ${items.length} of ${withAbstract.length} candidates with abstracts`);
 
-  // --- article text: only for what the feed did not already carry ---
-  //
-  // Most publishers put the whole post in content:encoded. Fetching their
-  // article page anyway would be asking their servers for something they
-  // already handed over. This only runs for the ones that ship a teaser.
-  const sourceById = new Map(sources.map((source) => [source.id, source]));
-  const articleText = new Map<string, string>();
-  let articleFetches = 0;
-  let articleFailures = 0;
-
-  const needsArticle = items.filter((item) => item.fullText.length === 0);
-  if (needsArticle.length > 0) {
-    log(`fetching ${needsArticle.length} article pages the feeds did not carry …`);
-  }
-  const pace = createHostPacer(ARTICLE_FETCH_DELAY_MS, deps.sleep);
-  for (const item of needsArticle) {
-    const source = sourceById.get(item.sourceId);
-    if (!source) continue;
-    // Several registry sources publish a Crawl-delay. It is a per-host rule, so
-    // this waits only when the previous request went to the same site.
-    await pace(item.url, () => Date.now());
-
-    const article = await fetchArticleText(item.url, source.officialDomains, deps.io);
-    articleFetches += 1;
-    if (article.text === null) {
-      articleFailures += 1;
-      log(`  ${item.sourceId}: ${article.error}`);
-      continue;
-    }
-    articleText.set(item.id, article.text);
-  }
-  if (articleFetches > 0) {
-    log(`  fetched ${articleFetches - articleFailures} of ${articleFetches} article pages`);
-    if (articleFailures > 0) {
-      warnings.push(
-        `${articleFailures} of ${articleFetches} article pages could not be read; those stories were summarized from the feed excerpt`,
-      );
-    }
-  }
+  // The article-text stage that used to sit here is gone: the enrichment stage
+  // above already obtained the text the summarizer needs, from whichever rung
+  // of the ladder the publisher allows, and asking twice would be rude as well
+  // as slow.
 
   // --- summarization (best effort) ---
   const summaryById = new Map<string, { titleZhTW: string; summaryZhTW: string }>();
@@ -488,7 +526,9 @@ export async function runWeek(options: RunOptions): Promise<RunReport> {
     const inputs: SummaryInput[] = items.map((item) => ({
       id: item.id,
       title: item.title,
-      summary: item.fullText || articleText.get(item.id) || item.summaryOriginal,
+      // The abstract the enrichment stage obtained. Transient: it is read by
+      // the model and never written to stories.json.
+      summary: enriched.get(item.id)?.abstract ?? item.summaryOriginal,
       sourceName: sourceNames.get(item.sourceId) ?? item.sourceId,
     }));
 
@@ -578,6 +618,7 @@ export async function runWeek(options: RunOptions): Promise<RunReport> {
     storiesAdded: newStories.length,
     storiesTotal: merged.length,
     durationMs: Math.round(deps.monotonicNow() - startedAt),
+    enrichment: enrichmentCounts,
     warnings,
   };
 
@@ -589,6 +630,7 @@ export async function runWeek(options: RunOptions): Promise<RunReport> {
       title: candidate.item.title,
       url: candidate.item.url,
       verdict: acceptedIds.has(candidate.item.id) ? 'accepted' : 'rejected',
+      abstractVia: enriched.get(candidate.item.id)?.via,
     }));
   }
 
@@ -625,6 +667,7 @@ async function main(): Promise<void> {
       classify: classifyAll,
       summarize: summarizeAll,
       providers,
+      openAlex: openAlexLookup,
       now: () => new Date(),
       monotonicNow: () => performance.now(),
       sleep: delay,

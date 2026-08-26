@@ -72,6 +72,25 @@ describe('every source reconciles in the report', () => {
     expect(outcome.itemsSeen).toBe(outcome.itemsAccepted + sumCounts(outcome.rejectCounts));
   });
 
+  // The enrichment stage is a third place items are dropped. A new stage that
+  // falls out of the sum is exactly what this invariant exists to catch.
+  it('counts the no-abstract stage too', async () => {
+    const run = await makeRun({
+      sources: { s1: { abstractStrategy: 'openalex', dateStrategy: 'dcdate' } },
+      feeds: {
+        s1: [
+          { title: 'No abstract anywhere', link: 'https://example.org/a', dcDate: '2026-08-20', summary: 'Volume 42' },
+        ],
+      },
+      openAlex: { found: false, abstract: null },
+      verdicts: { relevant: true, topics: ['cognition'] },
+    });
+    const report = await run.execute();
+    const outcome = report.sources[0]!;
+    expect(outcome.rejectCounts['no-abstract']).toBe(1);
+    expect(outcome.itemsSeen).toBe(outcome.itemsAccepted + sumCounts(outcome.rejectCounts));
+  });
+
   it('keeps the URL of a rare rejection so it can be checked after the feed moves on', async () => {
     const run = await makeRun({
       sources: { s1: { dateStrategy: 'dcdate' } },

@@ -107,6 +107,23 @@ function pickRicher(candidate: string, teaser: string): string {
   return body;
 }
 
+/**
+ * The untruncated version of whatever the feed shipped, for the model to read.
+ *
+ * `summary` is capped at 400 characters because that is what gets PUBLISHED.
+ * But most journal feeds put the whole abstract in exactly that field, and the
+ * relevance gate needs the whole thing — capped, a 2,600-character JMIR
+ * abstract arrives as a paragraph that stops mid-sentence, and an abstract of
+ * 392 characters is indistinguishable from a citation line.
+ *
+ * Same lifetime rule as a full article body: read by the model, never written
+ * to stories.json, never rendered. tests/unit/guards.test.ts enforces that.
+ */
+function untruncatedTeaser(teaser: string): string {
+  const text = toPlainText(teaser);
+  return text.length > 400 ? text : '';
+}
+
 function firstNonEmpty(...values: unknown[]): string {
   for (const value of values) {
     const text = textOf(value);
@@ -141,7 +158,7 @@ function parseRssItems(channel: Record<string, unknown>): RawFeedItem[] {
         title: toPlainText(textOf(item['title'])),
         link: textOf(item['link']).trim(),
         summary: truncateSummary(toPlainText(teaser)),
-        fullText: body,
+        fullText: body || untruncatedTeaser(teaser),
         publishedAt: normalizeDate(
           firstNonEmpty(item['pubDate'], item['dc:date'], item['date']),
         ),
@@ -179,7 +196,7 @@ function parseAtomEntries(feed: Record<string, unknown>): RawFeedItem[] {
         title: toPlainText(textOf(entry['title'])),
         link: atomLink(entry),
         summary: truncateSummary(toPlainText(summary || content)),
-        fullText: pickRicher(content, summary),
+        fullText: pickRicher(content, summary) || untruncatedTeaser(summary || content),
         publishedAt: normalizeDate(firstNonEmpty(entry['published'], entry['updated'])),
         publishedAtRaw: firstNonEmpty(entry['published'], entry['updated']),
         doi: readDoi(textOf(entry['id']), textOf(entry['dc:identifier']), atomLink(entry)),

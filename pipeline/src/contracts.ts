@@ -113,6 +113,8 @@ export interface RunDecision {
   title: string;
   url: string;
   verdict: 'accepted' | 'rejected';
+  /** Which rung of the ladder supplied the abstract. */
+  abstractVia?: 'feed' | 'openalex' | 'article-page' | 'none';
 }
 
 export interface RunReport {
@@ -127,6 +129,12 @@ export interface RunReport {
   storiesTotal: number;
   /** Wall-clock time for the whole run, measured on a monotonic clock. */
   durationMs: number;
+  /**
+   * How each candidate's abstract was obtained. The only way to tell whether
+   * the OpenAlex rung is earning its place, or whether a publisher quietly
+   * started shipping abstracts.
+   */
+  enrichment: { feed: number; openalex: number; articlePage: number; none: number };
   /**
    * Every candidate and what happened to it. **Dry runs only.**
    *
