@@ -1,0 +1,240 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import { formatCategory, formatRegion, formatTier, countText } from '../domain/format';
+import { SOURCE_CATEGORIES } from '../domain/source';
+import { t } from '../domain/i18n';
+import { sitePath } from '../lib/paths';
+import type { Locale } from '../domain/story';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+
+const entries = await getCollection('sources');
+const sources = entries.map((entry) => entry.data);
+
+// Grouped by category so the page reads as an editorial statement — this is
+// what the site watches — rather than an undifferentiated URL dump.
+const groups = SOURCE_CATEGORIES.map((category) => ({
+  category,
+  label: formatCategory(locale, category),
+  sources: sources
+    .filter((source) => source.category === category)
+    // Active sources first: those are the ones actually feeding the site.
+    // Inactive entries stay visible below as an honest record of what is
+    // being watched but cannot be collected.
+    .sort((left, right) => {
+      if (left.active !== right.active) return left.active ? -1 : 1;
+      return left.name.localeCompare(right.name, 'en');
+    }),
+})).filter((group) => group.sources.length > 0);
+---
+
+<BaseLayout
+  locale={locale}
+  title={`${t(locale, 'sourcesTitle')} · ${t(locale, 'siteTitle')}`}
+  description={t(locale, 'sourcesIntro')}
+>
+  <SiteHeader
+    locale={locale}
+    languageHref={sitePath(locale === 'en' ? 'zh-tw' : 'en', '/sources/')}
+  />
+  <main id="main-content" class="page-shell sources">
+    <h1>{t(locale, 'sourcesTitle')}</h1>
+    <p class="sources__intro">{t(locale, 'sourcesIntro')}</p>
+    <p class="sources__count">
+      {countText(locale, 'sourcesCountTemplate', sources.length)}
+    </p>
+
+    {groups.map((group) => (
+      <section class="sources__group">
+        <h2>{group.label}</h2>
+        <ul class="sources__list">
+          {group.sources.map((source) => (
+            <li class:list={['source', { 'source--inactive': !source.active }]}>
+              <p class="source__meta">
+                <span>{formatTier(locale, source.tier)}</span>
+                <span>{formatRegion(locale, source.region)}</span>
+                <span>{source.language}</span>
+                {!source.active && <span class="source__flag">{t(locale, 'sourcesInactive')}</span>}
+              </p>
+
+              <h3 class="source__name">{source.name}</h3>
+
+              <p class="source__links">
+                <a href={source.homepage} rel="noopener noreferrer" target="_blank">
+                  {t(locale, 'sourcesHomepageLabel')}
+                </a>
+                {source.feedUrl ? (
+                  <a href={source.feedUrl} rel="noopener noreferrer" target="_blank">
+                    {t(locale, 'sourcesFeedLabel')} ({source.feedFormat})
+                  </a>
+                ) : (
+                  <span class="source__nofeed">{t(locale, 'sourcesNoFeed')}</span>
+                )}
+              </p>
+
+              {source.notes && <p class="source__notes">{source.notes}</p>}
+
+              <dl class="source__fields">
+                <div>
+                  <dt>{t(locale, 'sourcesLicenseLabel')}</dt>
+                  <dd>{source.licenseNote}</dd>
+                </div>
+                <div>
+                  <dt>{t(locale, 'sourcesVerifiedLabel')}</dt>
+                  <dd>{source.lastVerified}</dd>
+                </div>
+              </dl>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))}
+  </main>
+  <SiteFooter locale={locale} />
+</BaseLayout>
+
+<style>
+  .sources {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding-block: var(--space-6);
+  }
+
+  .sources h1 {
+    margin: 0;
+    font-size: clamp(1.5rem, 3.5vw, 2rem);
+    line-height: 1.2;
+  }
+
+  .sources__intro {
+    margin: 0;
+    max-inline-size: var(--reading-width);
+    color: var(--color-ink-soft);
+  }
+
+  .sources__count {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--color-muted);
+  }
+
+  .sources__group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding-block-start: var(--space-4);
+  }
+
+  .sources__group h2 {
+    margin: 0;
+    font-size: 1.125rem;
+    line-height: 1.3;
+  }
+
+  .sources__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .source {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding-block: var(--space-4);
+    border-block-start: 1px solid var(--color-rule);
+  }
+
+  .source--inactive {
+    color: var(--color-muted);
+  }
+
+  .source__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-3);
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-muted);
+  }
+
+  .source__flag {
+    padding-inline: var(--space-2);
+    background: var(--color-notice-soft);
+    color: var(--color-ink);
+    border-radius: 2px;
+  }
+
+  .source__name {
+    margin: 0;
+    font-size: 1.0625rem;
+    line-height: 1.3;
+  }
+
+  .source__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    margin: 0;
+  }
+
+  .source__links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--color-accent);
+    word-break: break-word;
+  }
+
+  .source__nofeed {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--color-muted);
+    font-size: 0.875rem;
+  }
+
+  .source__notes {
+    margin: 0;
+    max-inline-size: var(--reading-width);
+    color: var(--color-ink-soft);
+    font-size: 0.9375rem;
+  }
+
+  .source__fields {
+    display: grid;
+    gap: var(--space-1);
+    margin: 0;
+    font-size: 0.8125rem;
+  }
+
+  .source__fields > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .source__fields dt {
+    margin: 0;
+    color: var(--color-muted);
+  }
+
+  .source__fields dd {
+    margin: 0;
+    max-inline-size: var(--reading-width);
+    color: var(--color-ink-soft);
+  }
+</style>

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://geomingical.github.io/ai-education-weekly/sitemap.xml

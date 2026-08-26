@@ -1,0 +1,45 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import { t } from '../domain/i18n';
+import { sitePath } from '../lib/paths';
+import type { Locale } from '../domain/story';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+
+const sections = [
+  { heading: 'methodPipelineHeading', body: 'methodPipelineBody' },
+  { heading: 'methodMachineHeading', body: 'methodMachineBody' },
+  { heading: 'methodSourcesHeading', body: 'methodSourcesBody' },
+  { heading: 'methodLimitsHeading', body: 'methodLimitsBody' },
+] as const;
+---
+
+<BaseLayout
+  locale={locale}
+  title={`${t(locale, 'methodTitle')} · ${t(locale, 'siteTitle')}`}
+  description={t(locale, 'methodPipelineBody')}
+>
+  <SiteHeader
+    locale={locale}
+    languageHref={sitePath(locale === 'en' ? 'zh-tw' : 'en', '/method/')}
+  />
+  <main id="main-content" class="page-shell subpage">
+    <h1>{t(locale, 'methodTitle')}</h1>
+    {sections.map((section) => (
+      <>
+        <h2>{t(locale, section.heading)}</h2>
+        <p>{t(locale, section.body)}</p>
+      </>
+    ))}
+    <p>
+      <a href={sitePath(locale, '/sources/')}>{t(locale, 'sourcesTitle')}</a>
+    </p>
+  </main>
+  <SiteFooter locale={locale} />
+</BaseLayout>

@@ -1,0 +1,118 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import { buildRows, issueLabels, rowsForIssue } from '../domain/rows';
+import { issueDateRange } from '../domain/issue';
+import { countText } from '../domain/format';
+import { t } from '../domain/i18n';
+import { sitePath } from '../lib/paths';
+import type { Locale } from '../domain/story';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+
+const [storyEntries, sourceEntries] = await Promise.all([
+  getCollection('stories'),
+  getCollection('sources'),
+]);
+const rows = buildRows(
+  storyEntries.map((entry) => entry.data),
+  sourceEntries.map((entry) => entry.data),
+);
+const issues = issueLabels(rows).map((label) => ({
+  label,
+  range: issueDateRange(label),
+  count: rowsForIssue(rows, label).length,
+}));
+---
+
+<BaseLayout
+  locale={locale}
+  title={`${t(locale, 'archiveTitle')} · ${t(locale, 'siteTitle')}`}
+  description={t(locale, 'archiveIntro')}
+>
+  <SiteHeader
+    locale={locale}
+    languageHref={sitePath(locale === 'en' ? 'zh-tw' : 'en', '/archive/')}
+  />
+  <main id="main-content" class="page-shell archive">
+    <h1>{t(locale, 'archiveTitle')}</h1>
+    <p class="archive__intro">{t(locale, 'archiveIntro')}</p>
+
+    {issues.length === 0 ? (
+      <p class="archive__empty">{t(locale, 'issueEmpty')}</p>
+    ) : (
+      <ul class="archive__list">
+        {issues.map((entry) => (
+          <li class="archive__item">
+            <a href={sitePath(locale, `/weekly/${entry.label}/`)}>{entry.label}</a>
+            <span class="archive__range">{entry.range}</span>
+            <span class="archive__count">
+              {countText(locale, 'archiveStoryCount', entry.count)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    )}
+  </main>
+  <SiteFooter locale={locale} />
+</BaseLayout>
+
+<style>
+  .archive {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding-block: var(--space-6);
+  }
+
+  .archive h1 {
+    margin: 0;
+    font-size: clamp(1.5rem, 3.5vw, 2rem);
+    line-height: 1.2;
+  }
+
+  .archive__intro {
+    margin: 0;
+    max-inline-size: var(--reading-width);
+    color: var(--color-ink-soft);
+  }
+
+  .archive__empty {
+    margin: 0;
+    color: var(--color-ink-soft);
+  }
+
+  .archive__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .archive__item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-2) var(--space-4);
+    padding-block: var(--space-3);
+    border-block-start: 1px solid var(--color-rule);
+  }
+
+  .archive__item a {
+    min-inline-size: 8ch;
+    color: var(--color-accent);
+    font-weight: 600;
+  }
+
+  .archive__range,
+  .archive__count {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--color-muted);
+  }
+</style>

@@ -1,0 +1,178 @@
+---
+import { t } from '../domain/i18n';
+import {
+  formatPublishedDate,
+  formatRegion,
+  formatTier,
+  formatTopic,
+  primaryHeadline,
+  showsTranslatedHeadline,
+  summaryView,
+} from '../domain/format';
+import type { StoryRow } from '../domain/filters';
+import type { Locale } from '../domain/story';
+
+interface Props {
+  row: StoryRow;
+  locale: Locale;
+}
+
+const { row, locale } = Astro.props;
+const { story } = row;
+
+const headline = primaryHeadline(locale, story);
+const showOriginal = showsTranslatedHeadline(locale, story);
+const summary = summaryView(locale, story);
+const meta = `${row.sourceName} · ${formatTier(locale, row.sourceTier)} · ${formatRegion(locale, story.region)}`;
+---
+
+<article class="story" data-story-id={story.id} data-topics={story.topics.join(' ')}>
+  <p class="story__meta">
+    <span>{meta}</span>
+    <time datetime={story.publishedAt}>{formatPublishedDate(story.publishedAt)}</time>
+  </p>
+
+  <h3 class="story__title">
+    <a href={story.url} rel="noopener noreferrer nofollow" target="_blank">{headline}</a>
+  </h3>
+
+  {showOriginal && (
+    <p class="story__original">
+      <span class="story__original-label">{t(locale, 'storyOriginalTitleLabel')}</span><span
+        lang={story.language === 'zh-tw' || story.language === 'zh-cn' ? undefined : 'en'}
+      >{story.title}</span>
+    </p>
+  )}
+
+  {summary ? (
+    <p class="story__summary">
+      <span
+        class:list={['story__badge', { 'story__badge--machine': summary.isMachine }]}
+      >{t(locale, summary.badgeKey!)}</span>{summary.text}
+    </p>
+  ) : (
+    <p class="story__summary story__summary--empty">{t(locale, 'storyNoSummary')}</p>
+  )}
+
+  <ul class="story__topics">
+    {story.topics.map((topic) => (
+      <li class="story__topic">{formatTopic(locale, topic)}</li>
+    ))}
+  </ul>
+</article>
+
+<style>
+  .story {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding-block: var(--space-4);
+    border-block-start: 1px solid var(--color-rule);
+  }
+
+  /* The scoped display:flex above outweighs the UA's [hidden]{display:none};
+     restate it so the controller's row.hidden = true actually hides the row. */
+  .story[hidden] {
+    display: none;
+  }
+
+  .story__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-3);
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--color-muted);
+  }
+
+  .story__title {
+    margin: 0;
+    font-size: 1.125rem;
+    line-height: 1.35;
+    font-weight: 700;
+    max-inline-size: var(--reading-width);
+  }
+
+  .story__title a {
+    color: var(--color-ink);
+    text-decoration: none;
+  }
+
+  .story__title a:hover,
+  .story__title a:focus-visible {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+  }
+
+  /* The original headline is the reader's check on the machine translation, so
+     it stays visible — but subordinate. A flex row put the label on its own
+     line whenever the title was long, which read as a broken layout rather
+     than a caption; an inline label keeps it to one compact block. */
+  .story__original {
+    margin: 0;
+    max-inline-size: var(--reading-width);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--color-muted);
+  }
+
+  .story__original-label {
+    margin-inline-end: var(--space-2);
+    color: var(--color-muted);
+    opacity: 0.8;
+  }
+
+  .story__summary {
+    margin: 0;
+    max-inline-size: var(--reading-width);
+    color: var(--color-ink-soft);
+  }
+
+  .story__summary--empty {
+    color: var(--color-muted);
+    font-size: 0.875rem;
+  }
+
+  /* Every machine-written line is labelled. Nothing on this site reviewed a
+     summary before it went live, so the page has to say which words are the
+     model's and which are the source's. The badge sits inline at the start of
+     the paragraph so the summary keeps a full-width reading measure. */
+  .story__badge {
+    display: inline-block;
+    margin-inline-end: var(--space-2);
+    padding: 0 var(--space-2);
+    border-radius: 2px;
+    background: var(--color-surface-strong);
+    color: var(--color-ink-soft);
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    line-height: 1.6;
+    white-space: nowrap;
+  }
+
+  .story__badge--machine {
+    background: var(--color-machine-soft);
+    color: var(--color-ink);
+  }
+
+  .story__topics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .story__topic {
+    padding: 0 var(--space-2);
+    border: 1px solid var(--color-rule);
+    border-radius: 2px;
+    font-size: 0.75rem;
+    line-height: 1.6;
+    color: var(--color-ink-soft);
+  }
+</style>

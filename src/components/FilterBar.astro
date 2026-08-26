@@ -1,0 +1,114 @@
+---
+import { t } from '../domain/i18n';
+import { formatCategory, formatRegion, formatTopic } from '../domain/format';
+import { REGION_FILTER_OPTIONS, type FilterState } from '../domain/filters';
+import { SOURCE_CATEGORIES } from '../domain/source';
+import { TOPICS, type Locale } from '../domain/story';
+
+interface Props {
+  locale: Locale;
+  state: FilterState;
+}
+
+const { locale, state } = Astro.props;
+---
+
+<form class="filters" data-filter-form>
+  <div class="filters__field filters__field--search">
+    <label for="story-query">{t(locale, 'filterSearchLabel')}</label>
+    <input
+      type="search"
+      data-filter-input
+      name="query"
+      id="story-query"
+      placeholder={t(locale, 'filterSearchPlaceholder')}
+      value={state.query}
+    />
+  </div>
+
+  <div class="filters__field">
+    <label for="story-topic">{t(locale, 'filterTopicLabel')}</label>
+    <select data-filter-input name="topic" id="story-topic">
+      <option value="all" selected={state.topic === 'all'}>{t(locale, 'filterAll')}</option>
+      {TOPICS.map((topic) => (
+        <option value={topic} selected={state.topic === topic}>{formatTopic(locale, topic)}</option>
+      ))}
+    </select>
+  </div>
+
+  <div class="filters__field">
+    <label for="story-category">{t(locale, 'filterCategoryLabel')}</label>
+    <select data-filter-input name="category" id="story-category">
+      <option value="all" selected={state.category === 'all'}>{t(locale, 'filterAll')}</option>
+      {SOURCE_CATEGORIES.map((category) => (
+        <option value={category} selected={state.category === category}>
+          {formatCategory(locale, category)}
+        </option>
+      ))}
+    </select>
+  </div>
+
+  <div class="filters__field">
+    <label for="story-region">{t(locale, 'filterRegionLabel')}</label>
+    <select data-filter-input name="region" id="story-region">
+      {REGION_FILTER_OPTIONS.map((region) => (
+        <option value={region} selected={state.region === region}>
+          {region === 'all' ? t(locale, 'filterAll') : formatRegion(locale, region)}
+        </option>
+      ))}
+    </select>
+  </div>
+</form>
+
+<style>
+  .filters {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-3);
+  }
+
+  .filters__field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    min-inline-size: 0;
+  }
+
+  .filters__field > label {
+    font-size: 0.8125rem;
+    color: var(--color-ink-soft);
+  }
+
+  .filters__field input,
+  .filters__field select {
+    min-block-size: 2.75rem;
+    border: 1px solid var(--color-rule);
+    border-radius: 2px;
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    padding-inline: var(--space-3);
+    font-family: inherit;
+    font-size: 1rem;
+  }
+
+  @media (min-width: 40rem) {
+    .filters {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .filters__field--search {
+      grid-column: 1 / -1;
+    }
+  }
+
+  @media (min-width: 60rem) {
+    .filters {
+      grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr));
+      align-items: end;
+    }
+
+    .filters__field--search {
+      grid-column: auto;
+    }
+  }
+</style>

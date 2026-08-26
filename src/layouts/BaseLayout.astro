@@ -1,0 +1,88 @@
+---
+import '../styles/global.css';
+import type { Locale } from '../domain/story';
+import { t } from '../domain/i18n';
+import { stripBase, withBase } from '../lib/paths';
+import { counterpartPath } from '../domain/locale';
+
+interface Props {
+  locale: Locale;
+  title: string;
+  description: string;
+  // Error documents (404) must not advertise themselves to crawlers: noindex
+  // suppresses canonical/hreflang/og:url and emits a robots noindex directive.
+  noindex?: boolean;
+}
+
+const { locale, title, description, noindex = false } = Astro.props;
+
+// Astro gives the deployed path, which already carries the base. The locale
+// helpers reason about site-root-relative paths, so strip it, compute, re-add.
+const pathname = Astro.url.pathname;
+const sitePathname = stripBase(pathname);
+const isEnglishPath = sitePathname === '/en' || sitePathname.startsWith('/en/');
+const other = counterpartPath(sitePathname);
+const zhPath = withBase(isEnglishPath ? other : sitePathname);
+const enPath = withBase(isEnglishPath ? sitePathname : other);
+
+const siteOrigin = Astro.site ? Astro.site.origin : '';
+const canonicalUrl = `${siteOrigin}${pathname}`;
+
+const htmlLang = locale === 'en' ? 'en' : 'zh-Hant';
+const ogLocale = locale === 'en' ? 'en_US' : 'zh_TW';
+const siteName = t(locale, 'siteTitle');
+---
+
+<!doctype html>
+<html lang={htmlLang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link
+      rel="alternate"
+      type="application/rss+xml"
+      title={siteName}
+      href={`${siteOrigin}${withBase("/rss.xml")}`}
+    />
+    {noindex ? (
+      <meta name="robots" content="noindex" />
+    ) : (
+      <>
+        <link rel="canonical" href={canonicalUrl} />
+        <link rel="alternate" hreflang="zh-Hant" href={`${siteOrigin}${zhPath}`} />
+        <link rel="alternate" hreflang="en" href={`${siteOrigin}${enPath}`} />
+        <link rel="alternate" hreflang="x-default" href={`${siteOrigin}${zhPath}`} />
+        <meta property="og:url" content={canonicalUrl} />
+      </>
+    )}
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content={ogLocale} />
+    <meta property="og:site_name" content={siteName} />
+    <meta name="twitter:card" content="summary" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">{t(locale, 'skipToContent')}</a>
+    <slot />
+  </body>
+</html>
+
+<style>
+  .skip-link {
+    position: absolute;
+    inset-block-start: var(--space-2);
+    inset-inline-start: var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    background: var(--color-paper);
+    border: 1px solid var(--color-accent);
+    color: var(--color-ink);
+    transform: translateY(-200%);
+  }
+
+  .skip-link:focus-visible {
+    transform: none;
+  }
+</style>

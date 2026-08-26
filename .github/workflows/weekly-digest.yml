@@ -1,0 +1,125 @@
+# Weekly collection and publish.
+#
+# ACTIVE since 2026-08-19. Runs every Monday at 09:00 Taipei time and publishes
+# to https://geomingical.github.io/ai-education-weekly/ without a human reading
+# each item first — which is the design Ming chose, with the source registry as
+# the editorial control. It was switched on only after one manual run proved the
+# whole loop on CI: tests, collection, summarization, build, commit, deploy.
+#
+# To pause it, comment the two `schedule:` lines out again. Nothing else needs
+# to change, and workflow_dispatch keeps working for manual runs.
+#
+# What a run does, in order:
+#   1. fetches every ACTIVE feed in src/data/sources.json (and nothing else),
+#   2. keeps only items that pass the ingest gate,
+#   3. asks the model for Chinese headlines and summaries (best effort),
+#   4. commits the updated src/data/stories.json to main,
+#   5. rebuilds and deploys the site.
+#
+# Step 3 is the only step that can silently degrade, and it degrades in stages:
+# NVIDIA first, DeepSeek if NVIDIA produces nothing, and the source's own
+# summary if neither does. The run report names which provider served the run.
+
+name: Weekly digest
+
+on:
+  schedule:
+    - cron: '0 1 * * 1'   # 09:00 Taipei every Monday
+  workflow_dispatch:
+    inputs:
+      since_days:
+        description: 'How many days back to collect (8 = a normal week; use a larger number once to backfill the archive)'
+        required: false
+        default: '8'
+
+concurrency:
+  group: weekly-digest
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # The suite runs BEFORE anything is fetched or written. A broken ingest
+      # gate or a broken model-reply validator is exactly the situation where
+      # publishing automatically does damage, so a red suite stops the run
+      # before it can put anything on the site.
+      - name: Run the test suite
+        run: npm test
+
+      # run.ts prints exactly one JSON document — the run report — to stdout.
+      # Every human-readable line goes to stderr, so redirecting stdout captures
+      # the report cleanly.
+      - name: Collect and summarize
+        env:
+          AI_EDU_API_KEY: ${{ secrets.AI_EDU_API_KEY }}
+          # Second vendor, tried only when the first produces nothing. A
+          # provider outage should cost a week's Chinese summaries, and this is
+          # what stops it doing so.
+          AI_EDU_FALLBACK_API_KEY: ${{ secrets.AI_EDU_FALLBACK_API_KEY }}
+        run: |
+          npx tsx pipeline/src/run.ts --since "${{ inputs.since_days || '8' }}" \
+            > "$RUNNER_TEMP/report.json"
+          echo "### Weekly digest run" >> "$GITHUB_STEP_SUMMARY"
+          jq -r '"outcome: \(.outcome)  ·  stories added: \(.storiesAdded)  ·  total: \(.storiesTotal)"' \
+            "$RUNNER_TEMP/report.json" >> "$GITHUB_STEP_SUMMARY"
+          echo '```json' >> "$GITHUB_STEP_SUMMARY"
+          jq '{summaries, warnings, sources: [.sources[] | {sourceId, status, itemsAccepted, rejectCounts}]}' \
+            "$RUNNER_TEMP/report.json" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "added=$(jq -r '.storiesAdded' "$RUNNER_TEMP/report.json")" >> "$GITHUB_OUTPUT"
+        id: pipeline
+
+      # The build is the last gate: src/data/stories.json is validated by Zod at
+      # build time, so anything the ingest gate let through that the schema still
+      # rejects fails here — before it is committed, not after.
+      - name: Verify the site builds with the new data
+        if: steps.pipeline.outputs.added != '0'
+        run: npm run build
+
+      - name: Commit the week's stories
+        if: steps.pipeline.outputs.added != '0'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/data/stories.json
+          git commit -m "chore: weekly digest — ${{ steps.pipeline.outputs.added }} new stories"
+          git push origin HEAD:main
+
+  # Runs only after a successful collect, and only when the site actually needs
+  # rebuilding. Deployment is a separate job so a failed publish never leaves a
+  # commit half-applied.
+  deploy:
+    needs: collect
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+      contents: read
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - uses: withastro/action@v6
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v5

@@ -1,0 +1,21 @@
+---
+import { getCollection } from 'astro:content';
+import IssuePage from '../../components/IssuePage.astro';
+import { buildRows, issueLabels } from '../../domain/rows';
+
+export async function getStaticPaths() {
+  const [storyEntries, sourceEntries] = await Promise.all([
+    getCollection('stories'),
+    getCollection('sources'),
+  ]);
+  const rows = buildRows(
+    storyEntries.map((entry) => entry.data),
+    sourceEntries.map((entry) => entry.data),
+  );
+  return issueLabels(rows).map((issue) => ({ params: { issue } }));
+}
+
+const { issue } = Astro.params;
+---
+
+<IssuePage locale="zh-tw" issue={issue!} />

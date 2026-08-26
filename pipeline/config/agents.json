@@ -1,0 +1,23 @@
+{
+  "summarizer": {
+    "maxInputChars": 24000,
+    "maxOutputTokens": 2000,
+    "providers": [
+      {
+        "id": "nvidia",
+        "baseUrl": "https://integrate.api.nvidia.com/v1",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "apiKeyEnv": ["AI_EDU_API_KEY", "NVIDIA_API_KEY"],
+        "reasoningEffort": "none",
+        "jsonMode": "json-schema"
+      },
+      {
+        "id": "deepseek",
+        "baseUrl": "https://api.deepseek.com",
+        "model": "deepseek-v4-flash",
+        "apiKeyEnv": ["AI_EDU_FALLBACK_API_KEY", "DEEPSEEK_API_KEY"],
+        "jsonMode": "json-object"
+      }
+    ]
+  }
+}

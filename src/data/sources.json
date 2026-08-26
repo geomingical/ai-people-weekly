@@ -1,0 +1,22 @@
+[
+  {
+    "id": "chb-artificial-humans",
+    "name": "Computers in Human Behavior: Artificial Humans",
+    "homepage": "https://www.sciencedirect.com/journal/computers-in-human-behavior-artificial-humans",
+    "feedUrl": "https://rss.sciencedirect.com/publication/science/29498821",
+    "feedFormat": "rss",
+    "category": "research",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": ["sciencedirect.com"],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": ["research"],
+    "maxPerRun": 10,
+    "active": true,
+    "licenseNote": "Feed carries only date, journal name and authors — no abstract. www.sciencedirect.com returns 403 on robots.txt and asserts tdm-reservation, so its article pages are never fetched; only rss.sciencedirect.com is read.",
+    "lastVerified": "2026-08-25",
+    "notes": "Seeded in Task 1 so the registry is never empty — an empty registry makes every per-source guard pass vacuously. Task 4 writes the full list and replaces the education-era category and topic values.",
+    "urlPattern": null
+  }
+]

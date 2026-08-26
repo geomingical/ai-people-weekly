@@ -1,0 +1,74 @@
+---
+import StoryRow from './StoryRow.astro';
+import { t } from '../domain/i18n';
+import { countText } from '../domain/format';
+import type { StoryRow as StoryRowData } from '../domain/filters';
+import type { Locale } from '../domain/story';
+
+interface Props {
+  locale: Locale;
+  rows: StoryRowData[];
+}
+
+const { locale, rows } = Astro.props;
+---
+
+<section class="results" aria-labelledby="results-title">
+  <header class="results__head">
+    <h2 id="results-title" class="results__heading">{t(locale, 'introHeadline')}</h2>
+    <span class="results__sort">{t(locale, 'resultsSortLabel')}</span>
+  </header>
+
+  <p class="results__count" aria-live="polite" data-result-count>
+    {countText(locale, 'resultsCountTemplate', rows.length)}
+  </p>
+
+  <div class="results__list" data-results-list>
+    {rows.map((row) => <StoryRow row={row} locale={locale} />)}
+  </div>
+
+  <p class="results__empty" data-empty-state hidden={rows.length !== 0}>
+    {t(locale, 'resultsEmpty')}
+  </p>
+</section>
+
+<style>
+  .results {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .results__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding-block-end: var(--space-2);
+    border-block-end: 1px solid var(--color-rule);
+  }
+
+  .results__heading {
+    margin: 0;
+    font-size: 1.25rem;
+    line-height: 1.3;
+  }
+
+  .results__sort {
+    flex-shrink: 0;
+    font-size: 0.8125rem;
+    color: var(--color-muted);
+  }
+
+  .results__count {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--color-muted);
+  }
+
+  .results__empty {
+    margin: 0;
+    padding-block: var(--space-5);
+    color: var(--color-ink-soft);
+  }
+</style>

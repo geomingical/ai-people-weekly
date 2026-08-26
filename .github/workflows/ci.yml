@@ -1,0 +1,27 @@
+# Pull-request checks. Never publishes and never deploys.
+#
+# INACTIVE BY DESIGN, like every workflow in this repository: the pull_request
+# trigger is commented out until Ming pushes this to GitHub and decides to turn
+# CI on.
+
+name: CI
+
+on:
+  # pull_request:
+  #   branches: [main]
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run verify

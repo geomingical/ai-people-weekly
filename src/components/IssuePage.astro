@@ -1,0 +1,156 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import FilterBar from '../components/FilterBar.astro';
+import StoryList from '../components/StoryList.astro';
+import { defaultFilterState, applyFilters } from '../domain/filters';
+import { buildRows, issueLabels, rowsForIssue } from '../domain/rows';
+import { issueDateRange } from '../domain/issue';
+import { t } from '../domain/i18n';
+import { sitePath } from '../lib/paths';
+import type { Locale } from '../domain/story';
+
+interface Props {
+  locale: Locale;
+  // null = "the newest issue that exists", used by the home page.
+  issue: string | null;
+}
+
+const { locale, issue } = Astro.props;
+
+const [storyEntries, sourceEntries] = await Promise.all([
+  getCollection('stories'),
+  getCollection('sources'),
+]);
+
+const allRows = buildRows(
+  storyEntries.map((entry) => entry.data),
+  sourceEntries.map((entry) => entry.data),
+);
+const labels = issueLabels(allRows);
+const currentIssue = issue ?? labels[0] ?? null;
+
+const rows = currentIssue
+  ? applyFilters(rowsForIssue(allRows, currentIssue), defaultFilterState)
+  : [];
+
+const currentIndex = currentIssue ? labels.indexOf(currentIssue) : -1;
+// labels is newest-first, so the NEXT issue sits at a LOWER index.
+const newerIssue = currentIndex > 0 ? labels[currentIndex - 1] : null;
+const olderIssue =
+  currentIndex >= 0 && currentIndex < labels.length - 1 ? labels[currentIndex + 1] : null;
+
+const heading = currentIssue
+  ? `${t(locale, 'issueLabel')} ${currentIssue}`
+  : t(locale, 'introHeadline');
+const title = `${heading} · ${t(locale, 'siteTitle')}`;
+const languageHref = sitePath(
+  locale === 'en' ? 'zh-tw' : 'en',
+  issue ? `/weekly/${issue}/` : '/',
+);
+---
+
+<BaseLayout locale={locale} title={title} description={t(locale, 'introBody')}>
+  <SiteHeader locale={locale} languageHref={languageHref} />
+  <main id="main-content" class="issue page-shell" data-issue-root data-locale={locale}>
+    <section class="issue__intro">
+      <h1>{heading}</h1>
+      {currentIssue && (
+        <p class="issue__range">
+          {t(locale, 'issueDateRange')}：{issueDateRange(currentIssue)}
+        </p>
+      )}
+      <p class="issue__body">{t(locale, 'introBody')}</p>
+    </section>
+
+    <FilterBar locale={locale} state={defaultFilterState} />
+
+    {currentIssue ? (
+      <StoryList locale={locale} rows={rows} />
+    ) : (
+      <p class="issue__empty">{t(locale, 'issueEmpty')}</p>
+    )}
+
+    <nav class="issue__nav" aria-label={t(locale, 'archiveTitle')}>
+      {olderIssue ? (
+        <a href={sitePath(locale, `/weekly/${olderIssue}/`)}>
+          ← {t(locale, 'issuePrevious')} {olderIssue}
+        </a>
+      ) : <span />}
+      {newerIssue ? (
+        <a href={sitePath(locale, `/weekly/${newerIssue}/`)}>
+          {t(locale, 'issueNext')} {newerIssue} →
+        </a>
+      ) : <span />}
+    </nav>
+
+    <script
+      id="story-data"
+      type="application/json"
+      set:html={JSON.stringify(rows).replaceAll('<', '\\u003c')}
+    />
+    <script>
+      import '../scripts/issue-controller';
+    </script>
+  </main>
+  <SiteFooter locale={locale} />
+</BaseLayout>
+
+<style>
+  .issue {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+    padding-block: var(--space-6);
+  }
+
+  .issue__intro {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .issue__intro h1 {
+    margin: 0;
+    font-size: clamp(1.5rem, 3.5vw, 2.25rem);
+    line-height: 1.2;
+  }
+
+  .issue__range {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--color-muted);
+  }
+
+  .issue__body {
+    margin: 0;
+    max-inline-size: var(--reading-width);
+    color: var(--color-ink-soft);
+  }
+
+  .issue__empty {
+    margin: 0;
+    padding: var(--space-5);
+    border: 1px solid var(--color-rule);
+    border-radius: 2px;
+    color: var(--color-ink-soft);
+  }
+
+  .issue__nav {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding-block-start: var(--space-4);
+    border-block-start: 1px solid var(--color-rule);
+  }
+
+  .issue__nav a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--color-accent);
+  }
+</style>
