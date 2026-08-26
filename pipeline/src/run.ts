@@ -35,7 +35,8 @@ import { classifyAll, type ClassifyInput } from './classify-agent';
 import { isEducationRelevant, resolveTopics } from './classify';
 import { summarizeAll, type SummaryInput } from './summarize/summarizer';
 import { buildProviders, type SummarizerConfig } from './summarize/providers';
-import type { RawFeedItem, RunReport, SourceOutcome } from './contracts';
+import type { ProviderConfig } from './summarize/summarizer';
+import type { RawFeedItem, RunDecision, RunReport, SourceOutcome } from './contracts';
 import { loadSources, type Source } from '../../src/domain/source';
 import { issueLabelFromIso } from '../../src/domain/issue';
 import type { Story, Topic } from '../../src/domain/story';
@@ -63,6 +64,58 @@ export function parseWindowDays(argv: readonly string[]): number {
  *  Crawl-delay of 10 seconds; this stays on the polite side of all of them. */
 const ARTICLE_FETCH_DELAY_MS = 10_000;
 
+/**
+ * Everything this run reaches outside its own process.
+ *
+ * Only these may be replaced in a test. Screening, enrichment, acceptance, the
+ * report aggregation and every write run for real — otherwise a green test
+ * would only prove the test's own copy of the pipeline works.
+ *
+ * The network seam is `io`, BELOW safeFetch, not above it. Seaming above would
+ * mean the allowlist, the redirect chain and the private-address check never
+ * run in a test — exactly the things most worth proving still work. Here the
+ * real safeFetch runs and only the socket is fake.
+ *
+ * Note what is NOT here: SummaryInput assembly, the choice between feed body
+ * and excerpt, and the attempt accounting. Those stay in runWeek, where a test
+ * can see them.
+ */
+export interface RunDeps {
+  io: FetchIO;
+  classify: typeof classifyAll;
+  summarize: typeof summarizeAll;
+  /**
+   * The model providers this run may use.
+   *
+   * In the seam because the pipeline gates on `providers.length > 0` before it
+   * calls either function. Without it a test would silently take the
+   * no-provider branch and never reach the fakes at all.
+   */
+  providers: readonly ProviderConfig[];
+  /** Wall clock, for the dates that end up in records. */
+  now: () => Date;
+  /**
+   * Milliseconds from an arbitrary origin, for durations only. Separate from
+   * `now` because a wall clock can be moved by NTP mid-run, and a duration
+   * measured from Date is not testable without freezing real time.
+   */
+  monotonicNow: () => number;
+  /** Injected so the article-page pacer does not make a test wait ten seconds. */
+  sleep: (ms: number) => Promise<void>;
+}
+
+export interface RunPaths {
+  sourcesPath: string;
+  storiesPath: string;
+}
+
+export interface RunOptions {
+  dryRun: boolean;
+  windowDays: number;
+  paths: RunPaths;
+  deps: RunDeps;
+}
+
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -86,9 +139,9 @@ async function readJson(path: string): Promise<unknown> {
   return JSON.parse(await readFile(path, 'utf8'));
 }
 
-async function readExistingStories(): Promise<Story[]> {
+async function readExistingStories(storiesPath: string): Promise<Story[]> {
   try {
-    const parsed = await readJson(STORIES_PATH);
+    const parsed = await readJson(storiesPath);
     return Array.isArray(parsed) ? (parsed as Story[]) : [];
   } catch {
     // First run: no file yet.
@@ -123,10 +176,11 @@ async function collect(
   window: { start: Date; end: Date },
   windowDays: number,
   seenIds: Set<string>,
+  deps: RunDeps,
 ): Promise<{ candidates: { source: Source; candidate: Candidate }[]; outcomes: SourceOutcome[] }> {
   // Sitemap sources read article pages during collection, so they need the same
   // per-host politeness the article stage uses.
-  const sitemapPacer = createHostPacer(ARTICLE_FETCH_DELAY_MS, delay);
+  const sitemapPacer = createHostPacer(ARTICLE_FETCH_DELAY_MS, deps.sleep);
   const candidates: { source: Source; candidate: Candidate }[] = [];
   const outcomes: SourceOutcome[] = [];
 
@@ -134,7 +188,7 @@ async function collect(
     if (!source.active || source.feedUrl === null) continue;
 
     log(`fetching ${source.id} …`);
-    const fetched = await safeFetch(source.feedUrl, source.officialDomains, io);
+    const fetched = await safeFetch(source.feedUrl, source.officialDomains, deps.io);
 
     const outcome: SourceOutcome = {
       sourceId: source.id,
@@ -176,7 +230,7 @@ async function collect(
       const read = await itemsFromSitemap(
         selected,
         source.officialDomains,
-        io,
+        deps.io,
         (url) => sitemapPacer(url, () => Date.now()),
       );
       if (read.pagesFailed > 0) {
@@ -211,21 +265,27 @@ async function collect(
   return { candidates, outcomes };
 }
 
-async function main(): Promise<void> {
-  const dryRun = process.argv.includes('--dry-run');
-  const windowDays = parseWindowDays(process.argv);
-  const now = new Date();
+/**
+ * One weekly run, start to finish, returning the report rather than printing it.
+ *
+ * This is the seam every later task tests against. main() below does nothing
+ * but read argv, build the real dependencies, print, and set an exit code.
+ */
+export async function runWeek(options: RunOptions): Promise<RunReport> {
+  const { dryRun, windowDays, paths, deps } = options;
+  const startedAt = deps.monotonicNow();
+  const now = deps.now();
   const window = {
     start: new Date(now.getTime() - windowDays * 86_400_000),
     end: now,
   };
   log(`window: ${windowDays} days back from ${now.toISOString()}`);
 
-  const sources = loadSources(await readJson(SOURCES_PATH));
-  const existing = await readExistingStories();
+  const sources = loadSources(await readJson(paths.sourcesPath));
+  const existing = await readExistingStories(paths.storiesPath);
   const seenIds = new Set(existing.map((story) => story.id));
 
-  const { candidates, outcomes } = await collect(sources, window, windowDays, seenIds);
+  const { candidates, outcomes } = await collect(sources, window, windowDays, seenIds, deps);
   const warnings: string[] = outcomes
     .filter((outcome) => outcome.fetchError !== null || outcome.parseError !== null)
     .map(
@@ -239,14 +299,7 @@ async function main(): Promise<void> {
   // is a handful of batched calls. Doing it here rather than inside screening
   // is what lets the per-source cap count stories worth publishing instead of
   // stories that happened to be checked first.
-  const agents = (await readJson(AGENTS_PATH)) as { summarizer: SummarizerConfig };
-  const { providers, skipped: providersWithoutKeys } = buildProviders(
-    agents.summarizer,
-    process.env,
-  );
-  if (providersWithoutKeys.length > 0) {
-    log(`no key for: ${providersWithoutKeys.join(', ')} — those providers are unavailable`);
-  }
+  const providers = deps.providers;
 
   const sourceNameById = new Map(sources.map((source) => [source.id, source.name]));
 
@@ -269,7 +322,7 @@ async function main(): Promise<void> {
 
   if (classifyInputs.length > 0 && providers.length > 0) {
     log(`judging relevance of ${classifyInputs.length} candidates via ${providers.map((p) => p.id).join(' → ')} …`);
-    const result = await classifyAll(classifyInputs, providers, { sleep: delay });
+    const result = await deps.classify(classifyInputs, providers, { sleep: deps.sleep });
     classified = new Map(
       [...result.decisions].map(([id, decision]) => [
         id,
@@ -350,7 +403,7 @@ async function main(): Promise<void> {
   if (needsArticle.length > 0) {
     log(`fetching ${needsArticle.length} article pages the feeds did not carry …`);
   }
-  const pace = createHostPacer(ARTICLE_FETCH_DELAY_MS, delay);
+  const pace = createHostPacer(ARTICLE_FETCH_DELAY_MS, deps.sleep);
   for (const item of needsArticle) {
     const source = sourceById.get(item.sourceId);
     if (!source) continue;
@@ -358,7 +411,7 @@ async function main(): Promise<void> {
     // this waits only when the previous request went to the same site.
     await pace(item.url, () => Date.now());
 
-    const article = await fetchArticleText(item.url, source.officialDomains, io);
+    const article = await fetchArticleText(item.url, source.officialDomains, deps.io);
     articleFetches += 1;
     if (article.text === null) {
       articleFailures += 1;
@@ -399,7 +452,7 @@ async function main(): Promise<void> {
     }));
 
     log(`summarizing ${inputs.length} stories via ${providers.map((p) => p.id).join(' → ')} …`);
-    const result = await summarizeAll(inputs, providers);
+    const result = await deps.summarize(inputs, providers);
 
     for (const attempt of result.attempts) {
       log(
@@ -483,15 +536,59 @@ async function main(): Promise<void> {
     summaries,
     storiesAdded: newStories.length,
     storiesTotal: merged.length,
+    durationMs: Math.round(deps.monotonicNow() - startedAt),
     warnings,
   };
 
-  if (!dryRun) {
-    await writeFile(STORIES_PATH, `${JSON.stringify(merged, null, 2)}\n`, 'utf8');
-    log(`wrote ${merged.length} stories to src/data/stories.json`);
-  } else {
-    log('dry run: src/data/stories.json not written');
+  // Dry runs carry the gate's reasoning; a weekly run does not. See RunReport.
+  if (dryRun) {
+    const acceptedIds = new Set(items.map((item) => item.id));
+    report.decisions = candidates.map(({ source, candidate }): RunDecision => ({
+      sourceId: source.id,
+      title: candidate.item.title,
+      url: candidate.item.url,
+      verdict: acceptedIds.has(candidate.item.id) ? 'accepted' : 'rejected',
+    }));
   }
+
+  if (!dryRun) {
+    await writeFile(paths.storiesPath, `${JSON.stringify(merged, null, 2)}\n`, 'utf8');
+    log(`wrote ${merged.length} stories to ${paths.storiesPath}`);
+  } else {
+    log('dry run: stories file not written');
+  }
+
+  return report;
+}
+
+/**
+ * The CLI. Reads argv, builds the real dependencies, prints, sets the exit
+ * code. Everything else lives in runWeek so it can be tested.
+ */
+async function main(): Promise<void> {
+  const agents = (await readJson(AGENTS_PATH)) as { summarizer: SummarizerConfig };
+  const { providers, skipped: providersWithoutKeys } = buildProviders(
+    agents.summarizer,
+    process.env,
+  );
+  if (providersWithoutKeys.length > 0) {
+    log(`no key for: ${providersWithoutKeys.join(', ')} — those providers are unavailable`);
+  }
+
+  const report = await runWeek({
+    dryRun: process.argv.includes('--dry-run'),
+    windowDays: parseWindowDays(process.argv),
+    paths: { sourcesPath: SOURCES_PATH, storiesPath: STORIES_PATH },
+    deps: {
+      io,
+      classify: classifyAll,
+      summarize: summarizeAll,
+      providers,
+      now: () => new Date(),
+      monotonicNow: () => performance.now(),
+      sleep: delay,
+    },
+  });
 
   process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
   process.exitCode = report.outcome === 'failed' ? 1 : 0;

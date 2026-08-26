@@ -58,6 +58,18 @@ export interface SummaryOutcome {
   skippedReason: string | null;
 }
 
+/**
+ * One candidate and what happened to it.
+ *
+ * `abstractVia` is added when the enrichment ladder exists.
+ */
+export interface RunDecision {
+  sourceId: string;
+  title: string;
+  url: string;
+  verdict: 'accepted' | 'rejected';
+}
+
 export interface RunReport {
   runAt: string;
   issue: string;
@@ -68,6 +80,16 @@ export interface RunReport {
   summaries: SummaryOutcome;
   storiesAdded: number;
   storiesTotal: number;
+  /** Wall-clock time for the whole run, measured on a monotonic clock. */
+  durationMs: number;
+  /**
+   * Every candidate and what happened to it. **Dry runs only.**
+   *
+   * A weekly report must not carry hundreds of rows nobody reads; a one-off
+   * human review of the gate's judgement needs exactly those rows. Absent —
+   * not empty — on a normal run.
+   */
+  decisions?: RunDecision[];
   warnings: string[];
 }
 
