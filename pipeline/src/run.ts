@@ -36,7 +36,13 @@ import { resolveTopics } from './classify';
 import { summarizeAll, type SummaryInput } from './summarize/summarizer';
 import { buildProviders, type SummarizerConfig } from './summarize/providers';
 import type { ProviderConfig } from './summarize/summarizer';
-import type { RawFeedItem, RunDecision, RunReport, SourceOutcome } from './contracts';
+import type {
+  ModelUsage,
+  RawFeedItem,
+  RunDecision,
+  RunReport,
+  SourceOutcome,
+} from './contracts';
 import { enrichCandidate, type Enriched } from './enrich';
 import { lookup as openAlexLookup, type OpenAlexResult } from './openalex';
 import { loadSources, type Source } from '../../src/domain/source';
@@ -172,6 +178,59 @@ function mergeCounts(
     merged[reason] = (merged[reason] ?? 0) + count;
   }
   return merged;
+}
+
+/**
+ * Turns a provider-attempt chronology into the report's usage block.
+ *
+ * A retry and a failover are different events: a second request to the same
+ * provider for one batch is a retry, a request to a different provider for
+ * that batch is a failover. Counting them together would hide which of the two
+ * is happening, and they mean different things.
+ */
+export function summarizeAttempts(
+  attempts: readonly { provider: string; batch: number; outcome: string; completionTokens?: number }[],
+  isFailure: (outcome: string) => boolean,
+): ModelUsage {
+  const usage: ModelUsage = {
+    calls: attempts.length,
+    retries: 0,
+    failovers: 0,
+    failures: 0,
+    completionTokens: 0,
+    tokensUnreported: 0,
+    byProvider: {},
+  };
+
+  const seenPerBatch = new Map<number, { providers: Set<string>; perProvider: Map<string, number> }>();
+
+  for (const attempt of attempts) {
+    const failed = isFailure(attempt.outcome);
+    if (failed) usage.failures += 1;
+
+    if (typeof attempt.completionTokens === 'number') {
+      usage.completionTokens += attempt.completionTokens;
+    } else {
+      usage.tokensUnreported += 1;
+    }
+
+    const bucket = (usage.byProvider[attempt.provider] ??= { served: 0, failed: 0 });
+    if (failed) bucket.failed += 1;
+    else bucket.served += 1;
+
+    const batch = seenPerBatch.get(attempt.batch) ?? {
+      providers: new Set<string>(),
+      perProvider: new Map<string, number>(),
+    };
+    const already = batch.perProvider.get(attempt.provider) ?? 0;
+    if (already > 0) usage.retries += 1;
+    else if (batch.providers.size > 0) usage.failovers += 1;
+    batch.perProvider.set(attempt.provider, already + 1);
+    batch.providers.add(attempt.provider);
+    seenPerBatch.set(attempt.batch, batch);
+  }
+
+  return usage;
 }
 
 function sumCounts(counts: Record<string, number>): number {
@@ -422,6 +481,10 @@ export async function runWeek(options: RunOptions): Promise<RunReport> {
 
   let classified = new Map<string, { relevant: boolean; topics: readonly string[] }>();
   let undecided = new Set<string>(classifyInputs.map((entry) => entry.id));
+  let classifierUsage: ModelUsage = {
+    calls: 0, retries: 0, failovers: 0, failures: 0,
+    completionTokens: 0, tokensUnreported: 0, byProvider: {},
+  };
 
   if (classifyInputs.length > 0 && providers.length > 0) {
     log(`judging relevance of ${classifyInputs.length} candidates via ${providers.map((p) => p.id).join(' → ')} …`);
@@ -433,6 +496,7 @@ export async function runWeek(options: RunOptions): Promise<RunReport> {
       ]),
     );
     undecided = new Set(result.undecided);
+    classifierUsage = summarizeAttempts(result.attempts, (outcome) => outcome !== 'accepted');
     for (const attempt of result.attempts) {
       log(
         `  [${attempt.provider}] classify batch ${attempt.batch + 1} (${attempt.size}): ${attempt.outcome}` +
@@ -619,6 +683,7 @@ export async function runWeek(options: RunOptions): Promise<RunReport> {
     storiesTotal: merged.length,
     durationMs: Math.round(deps.monotonicNow() - startedAt),
     enrichment: enrichmentCounts,
+    classifier: classifierUsage,
     warnings,
   };
 

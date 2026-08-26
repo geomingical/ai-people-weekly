@@ -96,6 +96,30 @@ export interface SourceOutcome {
   rejectDetails: RejectDetail[];
 }
 
+/**
+ * What a model cost this run.
+ *
+ * Counting conventions, defined once and shared by every model stage:
+ *   call      — one HTTP request to a provider, retries and failovers included.
+ *   retry     — a second or later request to the SAME provider for one batch.
+ *   failover  — a batch moving to a different provider. Distinct from a retry:
+ *               one says the provider is flaky, the other says it is unusable.
+ *   failures  — attempts that returned nothing usable.
+ *   tokens    — completionTokens summed. Attempts that report no count are
+ *               tallied separately rather than counted as zero: NVIDIA returns
+ *               no token count with a 503, and treating those as zero would
+ *               make the run look cheaper than it was.
+ */
+export interface ModelUsage {
+  calls: number;
+  retries: number;
+  failovers: number;
+  failures: number;
+  completionTokens: number;
+  tokensUnreported: number;
+  byProvider: Record<string, { served: number; failed: number }>;
+}
+
 export interface SummaryOutcome {
   requested: number;
   succeeded: number;
@@ -135,6 +159,8 @@ export interface RunReport {
    * started shipping abstracts.
    */
   enrichment: { feed: number; openalex: number; articlePage: number; none: number };
+  /** What the relevance gate cost. See ModelUsage for the counting rules. */
+  classifier: ModelUsage;
   /**
    * Every candidate and what happened to it. **Dry runs only.**
    *
