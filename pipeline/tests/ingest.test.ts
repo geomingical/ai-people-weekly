@@ -219,3 +219,18 @@ describe('reject details', () => {
     expect(result.rejected.filter((r) => r.reason === 'outside-window')).toHaveLength(0);
   });
 });
+
+
+// The arXiv category feeds link to the bare abstract page; the query API
+// appends a version. Same paper, two ids, two rows on the site.
+describe('arXiv version suffixes', () => {
+  it('treats a version suffix as the same paper', () => {
+    expect(canonicalUrl('https://arxiv.org/abs/2608.23937v1')).toBe(
+      canonicalUrl('https://arxiv.org/abs/2608.23937'),
+    );
+  });
+
+  it('does not strip a version-looking suffix from other hosts', () => {
+    expect(canonicalUrl('https://example.org/report/v1')).toBe('https://example.org/report/v1');
+  });
+});

@@ -234,3 +234,28 @@ describe('obtained abstracts do not reach the published data', () => {
     expect(report.enrichment.feed).toBe(1);
   });
 });
+
+
+// Found on the first live run with keys: three papers were published twice
+// because arXiv categories overlap. Screening happens for every source before
+// acceptance runs for any of them, so a cross-source duplicate cannot be caught
+// there — it has to be caught where the story is admitted.
+describe('the same paper reaching two sources', () => {
+  it('publishes it once when both feeds carry the identical URL', async () => {
+    const run = await makeRun({
+      feeds: {
+        hc: [{ title: 'When LLMs Slow Down', link: 'https://example.org/2608.23968', publishedAt: '2026-08-20T00:00:00Z' }],
+        cy: [{ title: 'When LLMs Slow Down', link: 'https://example.org/2608.23968', publishedAt: '2026-08-20T00:00:00Z' }],
+      },
+      verdicts: { relevant: true, topics: ['cognition'] },
+    });
+    const report = await run.execute();
+    expect(await run.readStories()).toHaveLength(1);
+    expect(report.storiesAdded).toBe(1);
+    const duplicates = report.sources.reduce(
+      (total, source) => total + (source.rejectCounts.duplicate ?? 0),
+      0,
+    );
+    expect(duplicates).toBe(1);
+  });
+});

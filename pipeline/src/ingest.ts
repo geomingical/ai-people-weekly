@@ -88,6 +88,13 @@ export function canonicalUrl(rawUrl: string): string {
   } catch {
     return rawUrl.trim();
   }
+  // arXiv's category feeds link to the bare abstract page while its query API
+  // appends a version: /abs/2608.23937 and /abs/2608.23937v1 are one paper.
+  // Scoped to arxiv.org, because a trailing "v1" is a real path segment
+  // elsewhere.
+  if (parsed.hostname.toLowerCase().endsWith('arxiv.org')) {
+    parsed.pathname = parsed.pathname.replace(/^(\/abs\/.+?)v\d+$/, '$1');
+  }
   for (const param of TRACKING_PARAMS) parsed.searchParams.delete(param);
   parsed.hash = '';
   parsed.hostname = parsed.hostname.toLowerCase();
@@ -303,6 +310,14 @@ export function acceptCandidates(
   };
 
   for (const candidate of candidates) {
+    // Screening runs for every source before acceptance runs for any of them,
+    // so a paper carried by two sources reaches this point twice. Checked here
+    // because this is where a story is admitted, and arXiv's categories
+    // overlap constantly.
+    if (seenIds.has(candidate.item.id)) {
+      reject('duplicate', candidate);
+      continue;
+    }
     const verdict = verdictFor(candidate);
     if (verdict.undecided === true) {
       reject('undecided', candidate);
