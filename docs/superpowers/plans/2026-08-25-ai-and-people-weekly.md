@@ -447,6 +447,15 @@ export interface RunDeps {
   providers: readonly ProviderConfig[];
   /** Injected so a fixture dates do not rot as the calendar moves. */
   now: () => Date;
+  /**
+   * Milliseconds from an arbitrary origin, for durations only.
+   *
+   * Separate from `now` on purpose. A wall clock can be adjusted mid-run by
+   * NTP, which would make durationMs negative or absurd; and a duration
+   * measured from Date is not testable without freezing real time.
+   * Production passes `performance.now`.
+   */
+  monotonicNow: () => number;
 }
 
 export interface RunPaths {
@@ -479,6 +488,7 @@ async function main(): Promise<void> {
       summarize: summarizeAll,
       providers: buildProviders(agents.summarizer, process.env).providers,
       now: () => new Date(),
+      monotonicNow: () => performance.now(),
     },
   });
   process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
@@ -537,6 +547,8 @@ export interface HarnessOptions {
   dryRun?: boolean;
   windowDays?: number;
   now?: string;
+  /** Injectable monotonic clock, so durationMs can be asserted exactly. */
+  monotonicNow?: () => number;
   /**
    * Reuse a previous run temp directory, so the second run really does start
    * from the first run state files. Anything else would be simulating
@@ -673,6 +685,7 @@ export async function makeRun(options: HarnessOptions = {}) {
                   jsonMode: 'json-object', transport: async () => ({ content: null,
                     meta: { status: 200, durationMs: 0 }, error: null }) }],
     now: () => new Date(options.now ?? '2026-08-25T00:00:00.000Z'),
+    monotonicNow: options.monotonicNow ?? (() => performance.now()),
   };
 
   return {
@@ -749,10 +762,17 @@ it('carries no decision list on a normal run', async () => {
   expect(report.decisions).toBeUndefined();
 });
 
-it('reports how long the run took', async () => {
-  const run = await makeRun({ feeds: { s1: [] } });
+// `>= 0` would pass with a hardcoded zero, with a single timestamp, or with no
+// measurement at all — and Task 14 reads this field to judge run cost. The
+// clock is injected so the assertion can be exact.
+it('measures the run with the monotonic clock it was given', async () => {
+  let tick = 1000;
+  const run = await makeRun({
+    feeds: { s1: [] },
+    monotonicNow: () => { tick += 250; return tick; },   // 1250, 1500, …
+  });
   const report = await run.execute();
-  expect(report.durationMs).toBeGreaterThanOrEqual(0);
+  expect(report.durationMs).toBe(250);
 });
 ```
 
@@ -2984,7 +3004,8 @@ Task 14 要用這些數字對照規格第 11 節的成本預估。**`classifyAll
 | 詞 | 定義 |
 |---|---|
 | call | 一次送往供應商的 HTTP 請求，**包含重試**。同一批重試三次就是三次 call。 |
-| retry | 同一批的第二次以後的 attempt。 |
+| retry | **同一批、同一供應商**的第二次以後請求。 |
+| failover | 同一批換到**另一個供應商**。與 retry 分開計，因為兩者的意義不同：retry 說「這家不穩」，failover 說「這家不能用了」。 |
 | failure | 沒有回傳可用內容的 attempt：連線錯誤、非 2xx、或回覆解析不出來。 |
 | tokens | 各 attempt 回報的 `completionTokens` 加總。**沒有回報的不算 0，另計 `tokensUnreported`** —— NVIDIA 回 503 時不會回報 token，把它當 0 會讓成本看起來比實際低。 |
 
@@ -2992,9 +3013,12 @@ Task 14 要用這些數字對照規格第 11 節的成本預估。**`classifyAll
 
 ```ts
 export interface ModelUsage {
-  /** HTTP requests sent, retries included. */
+  /** HTTP requests sent, retries and failovers included. */
   calls: number;
+  /** Second and later requests to the SAME provider for the same batch. */
   retries: number;
+  /** Times a batch moved to a different provider. */
+  failovers: number;
   failures: number;
   completionTokens: number;
   /** Attempts that returned no token count — usually the ones that failed. */
@@ -3025,8 +3049,10 @@ it('counts classifier calls, retries and tokens from the attempts', async () => 
     ],
   });
   const report = await run.execute();
+  // Three requests to the same provider for batch 0: two of them are retries,
+  // and no provider change happened.
   expect(report.classifier).toMatchObject({
-    calls: 3, retries: 2, failures: 2,
+    calls: 3, retries: 2, failovers: 0, failures: 2,
     completionTokens: 240, tokensUnreported: 2,
     byProvider: { nvidia: { served: 1, failed: 2 } },
   });
@@ -3064,6 +3090,7 @@ itself."
 - Modify: `pipeline/src/contracts.ts`（`SummaryOutcome` 併入 `ModelUsage`）
 - Modify: `pipeline/src/run.ts`（聚合 `summarizeAll` 的 attempts）
 - Modify: `pipeline/tests/summarizer.test.ts`、`pipeline/tests/run-metrics.test.ts`
+- Create: `pipeline/tests/summarizer-failover.test.ts`
 - Modify: `pipeline/tests/harness.ts`（`summarizeAttempts`；**跨任務共用，必須一起提交**）
 - Create: `.env.example`
 
@@ -3192,7 +3219,7 @@ export interface SummaryOutcome extends ModelUsage {
 加進 `pipeline/tests/run-metrics.test.ts`：
 
 ```ts
-it('counts summarizer calls and shows which provider served the run', async () => {
+it('aggregates summarizer attempts into the report', async () => {
   const run = await makeRun({
     feeds: { s1: [{ title: 'A study', link: 'https://example.org/a',
                     publishedAt: '2026-08-20T00:00:00Z', summary: 'x'.repeat(600) }] },
@@ -3203,23 +3230,91 @@ it('counts summarizer calls and shows which provider served the run', async () =
     ],
   });
   const report = await run.execute();
+  // One request each to two providers for the same batch: a failover, not a retry.
   expect(report.summaries).toMatchObject({
-    calls: 2, retries: 0, failures: 1, completionTokens: 310, tokensUnreported: 1,
+    calls: 2, retries: 0, failovers: 1, failures: 1,
+    completionTokens: 310, tokensUnreported: 1,
     byProvider: { nvidia: { served: 0, failed: 1 }, groq: { served: 1, failed: 0 } },
   });
 });
 ```
 
-**這個測試同時是 Task 10 供應商切換的驗收**：它證明 NVIDIA 掛掉時 Groq 真的接手，
-而且報告看得出來是誰接的 —— 那正是第 11.5 節「備援必須是真的能用的備援」要的證據。
+**這個測試證明的是聚合，不是切換。** harness 的假 `summarize` 取代了整個
+`summarizeAll`，所以供應商選擇、503 之後換手、第二個 transport 都沒有執行 ——
+就算正式的 summarizer 在 NVIDIA 回 503 之後直接放棄，這個測試一樣會綠。
+把它當成備援的驗收，會讓**最貴的那條降級路徑**壞掉而沒人知道。
 
-- [ ] **Step 9: 跑測試與提交**
+真正的驗收在下一步。
+
+- [ ] **Step 9: 用兩個假 transport 驗證備援真的會接手**
+
+這一層在 `summarizeAll` 內部，harness 碰不到。`buildProviders` 產出的
+`ProviderConfig` 帶著自己的 `transport`，把它換掉就能觀察整條切換路徑：
+
+```ts
+// pipeline/tests/summarizer-failover.test.ts
+import { describe, expect, it } from 'vitest';
+import { summarizeAll } from '../src/summarize/summarizer';
+
+const input = [{ id: 'a', title: 'A study', summary: 'x'.repeat(500), sourceName: 's' }];
+
+describe('the fallback provider actually takes over', () => {
+  it('moves to the second provider after the first returns 503, and uses its output', async () => {
+    const calls: string[] = [];
+    const nvidia = {
+      id: 'nvidia', model: 'm', maxOutputTokens: 512, jsonMode: 'json-schema' as const,
+      transport: async () => {
+        calls.push('nvidia');
+        return { content: null, meta: { status: 503, durationMs: 5 },
+                 error: { kind: 'http' as const, message: 'overloaded' } };
+      },
+    };
+    const groq = {
+      id: 'groq', model: 'm', maxOutputTokens: 512, jsonMode: 'json-schema' as const,
+      transport: async () => {
+        calls.push('groq');
+        return {
+          content: JSON.stringify({ items: [{ index: 0, titleZhTW: '測試', summaryZhTW: '測試摘要。' }] }),
+          meta: { status: 200, durationMs: 12, completionTokens: 90 }, error: null,
+        };
+      },
+    };
+
+    const result = await summarizeAll(input, [nvidia, groq], { baseDelayMs: 0, maxAttempts: 1 });
+
+    // Order matters: the primary must be tried first, and the fallback must run.
+    expect(calls).toEqual(['nvidia', 'groq']);
+    expect(result.outputs).toHaveLength(1);
+    expect(result.outputs[0].titleZhTW).toBe('測試');
+    // The attempts come from a real run through the provider loop, not injection.
+    expect(result.attempts.map((a) => a.provider)).toEqual(['nvidia', 'groq']);
+  });
+
+  it('reports a failure rather than inventing a summary when both providers fail', async () => {
+    const dead = (id: string) => ({
+      id, model: 'm', maxOutputTokens: 512, jsonMode: 'json-schema' as const,
+      transport: async () => ({ content: null, meta: { status: 503, durationMs: 1 },
+                                error: { kind: 'http' as const, message: 'overloaded' } }),
+    });
+    const result = await summarizeAll(input, [dead('nvidia'), dead('groq')], { baseDelayMs: 0, maxAttempts: 1 });
+    expect(result.outputs).toHaveLength(0);
+    expect(result.failures).toBe(1);
+  });
+});
+```
+
+**實測依據**：端到端驗證時 NVIDIA 每一批都先回兩次 503 才成功（規格第 12.3 節）。
+備援不是保險，是每週都會用到的東西 —— 它必須有自己的測試。
+
+- [ ] **Step 10: 跑測試與提交**
 
 ```bash
-npx vitest run pipeline/tests/summarizer.test.ts pipeline/tests/run-metrics.test.ts
+npx vitest run pipeline/tests/summarizer.test.ts pipeline/tests/run-metrics.test.ts \
+              pipeline/tests/summarizer-failover.test.ts
 git add pipeline/config/agents.json pipeline/src/summarize/summarizer.ts \
         pipeline/src/contracts.ts pipeline/src/run.ts \
         pipeline/tests/summarizer.test.ts pipeline/tests/run-metrics.test.ts \
+        pipeline/tests/summarizer-failover.test.ts \
         pipeline/tests/harness.ts .env.example
 git diff --cached --name-only | grep -E 'run-metrics|harness'   # both must ship
 git commit -m "feat: cap summary length in the schema and put Groq behind NVIDIA
@@ -3843,7 +3938,7 @@ npx tsx pipeline/src/run.ts --dry-run --since 7 > /tmp/dryrun.json
 | 守門模型呼叫次數與 token | `report.classifier`（Task 9 Step 6） |
 | 摘要模型呼叫次數與 token、各供應商失敗與重試次數 | `report.summaries`（Task 10 Step 8） |
 | 補摘要四條管道的命中數 | `report.enrichment`（Task 8 Step 8） |
-| 整體耗時 | `report.durationMs`（Task 2 Step 8） |
+| 整體耗時 | `report.durationMs`（Task 2 Step 8，單調時鐘，不受系統時間校正影響） |
 
 **每一項都對應一個實際的實作步驟與測試，不只是責任歸屬。** 計數口徑統一定義在
 Task 9 Step 6，Task 10 沿用同一套。
