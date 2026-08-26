@@ -13,12 +13,12 @@ const topicKeys: Record<Topic, MessageKey> = {
 };
 
 const categoryKeys: Record<Source['category'], MessageKey> = {
-  'vendor-education': 'categoryVendorEducation',
-  policy: 'categoryPolicy',
-  research: 'categoryResearch',
-  'edtech-news': 'categoryEdtechNews',
-  practitioner: 'categoryPractitioner',
-  'taiwan-local': 'categoryTaiwanLocal',
+  'journal-hci': 'categoryJournalHci',
+  'journal-psych': 'categoryJournalPsych',
+  'journal-medical': 'categoryJournalMedical',
+  'journal-general': 'categoryJournalGeneral',
+  preprint: 'categoryPreprint',
+  institution: 'categoryInstitution',
 };
 
 const tierKeys: Record<Source['tier'], MessageKey> = {

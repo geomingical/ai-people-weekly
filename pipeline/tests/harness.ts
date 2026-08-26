@@ -61,14 +61,13 @@ interface Verdict {
  * The Source contract AS IT EXISTS AT THIS TASK.
  *
  * sourceSchema is .strict(), so one field from a later task makes loadSources
- * throw and no test reaches the run seam at all. `category` and `defaultTopics`
- * are the vocabulary the skeleton still carries; the tasks that change the
- * contract update this fixture and stage this file.
+ * throw and no test reaches the run seam at all. Every task that changes the
+ * contract updates this fixture and stages this file.
  */
 const DEFAULT_SOURCE = {
   name: 'Test Source',
   feedFormat: 'rss',
-  category: 'research',
+  category: 'journal-hci',
   language: 'en',
   region: 'GLOBAL',
   tier: 'research',
@@ -80,6 +79,12 @@ const DEFAULT_SOURCE = {
   lastVerified: '2026-08-25',
   notes: 'test fixture',
   urlPattern: null,
+  // Added by the task that extended the Source contract. sourceSchema is
+  // .strict(), so this fixture has to track it exactly.
+  dateStrategy: 'rss',
+  abstractStrategy: 'feed',
+  articlePageAllowed: false,
+  accessDefault: null,
 };
 
 function feedXml(items: readonly FakeItem[]): string {

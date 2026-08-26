@@ -5,7 +5,7 @@
     "homepage": "https://www.sciencedirect.com/journal/computers-in-human-behavior-artificial-humans",
     "feedUrl": "https://rss.sciencedirect.com/publication/science/29498821",
     "feedFormat": "rss",
-    "category": "research",
+    "category": "journal-hci",
     "language": "en",
     "region": "GLOBAL",
     "officialDomains": [
@@ -14,13 +14,1081 @@
     "tier": "research",
     "relevanceMode": "keyword",
     "defaultTopics": [
-      "relationships"
+      "cognition"
     ],
     "maxPerRun": 10,
     "active": true,
-    "licenseNote": "Feed carries only date, journal name and authors — no abstract. www.sciencedirect.com returns 403 on robots.txt and asserts tdm-reservation, so its article pages are never fetched; only rss.sciencedirect.com is read.",
+    "licenseNote": "Feed carries date, journal name and authors only — no abstract; abstracts come from OpenAlex. www.sciencedirect.com returns 403 on robots.txt and asserts tdm-reservation, so its article pages are never fetched. Only the feed host is read.",
     "lastVerified": "2026-08-25",
-    "notes": "Seeded in Task 1 so the registry is never empty — an empty registry makes every per-source guard pass vacuously. Task 4 writes the full list and replaces the education-era category and topic values.",
-    "urlPattern": null
+    "notes": "ISSN 2949-8821. The single closest journal to this site's subject. Verified 2026-08-25: 98 items in the feed, 10 within seven days. Open access confirmed 2026-08-26: 25 of 25 recent articles gold.",
+    "urlPattern": null,
+    "dateStrategy": "prose",
+    "abstractStrategy": "openalex",
+    "articlePageAllowed": false,
+    "accessDefault": "open"
+  },
+  {
+    "id": "chb",
+    "name": "Computers in Human Behavior",
+    "homepage": "https://www.sciencedirect.com/journal/computers-in-human-behavior",
+    "feedUrl": "https://rss.sciencedirect.com/publication/science/07475632",
+    "feedFormat": "rss",
+    "category": "journal-psych",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "sciencedirect.com"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 8,
+    "active": true,
+    "licenseNote": "Feed carries date, journal name and authors only — no abstract; abstracts come from OpenAlex. www.sciencedirect.com returns 403 on robots.txt and asserts tdm-reservation, so its article pages are never fetched. Only the feed host is read.",
+    "lastVerified": "2026-08-25",
+    "notes": "ISSN 0747-5632. Hybrid: 11 of 25 recent articles free, so access is looked up per article.",
+    "urlPattern": null,
+    "dateStrategy": "prose",
+    "abstractStrategy": "openalex",
+    "articlePageAllowed": false,
+    "accessDefault": null
+  },
+  {
+    "id": "chb-reports",
+    "name": "Computers in Human Behavior Reports",
+    "homepage": "https://www.sciencedirect.com/journal/computers-in-human-behavior-reports",
+    "feedUrl": "https://rss.sciencedirect.com/publication/science/24519588",
+    "feedFormat": "rss",
+    "category": "journal-psych",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "sciencedirect.com"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 8,
+    "active": true,
+    "licenseNote": "Feed carries date, journal name and authors only — no abstract; abstracts come from OpenAlex. www.sciencedirect.com returns 403 on robots.txt and asserts tdm-reservation, so its article pages are never fetched. Only the feed host is read.",
+    "lastVerified": "2026-08-25",
+    "notes": "ISSN 2451-9588. Open access confirmed 2026-08-26: 5 of 5 recent articles gold.",
+    "urlPattern": null,
+    "dateStrategy": "prose",
+    "abstractStrategy": "openalex",
+    "articlePageAllowed": false,
+    "accessDefault": "open"
+  },
+  {
+    "id": "ijhcs",
+    "name": "International Journal of Human-Computer Studies",
+    "homepage": "https://www.sciencedirect.com/journal/international-journal-of-human-computer-studies",
+    "feedUrl": "https://rss.sciencedirect.com/publication/science/10715819",
+    "feedFormat": "rss",
+    "category": "journal-hci",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "sciencedirect.com"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 6,
+    "active": true,
+    "licenseNote": "Feed carries date, journal name and authors only — no abstract; abstracts come from OpenAlex. www.sciencedirect.com returns 403 on robots.txt and asserts tdm-reservation, so its article pages are never fetched. Only the feed host is read.",
+    "lastVerified": "2026-08-25",
+    "notes": "ISSN 1071-5819. Hybrid: 19 of 25 recent articles free, mostly via author deposits, so access is looked up per article.",
+    "urlPattern": null,
+    "dateStrategy": "prose",
+    "abstractStrategy": "openalex",
+    "articlePageAllowed": false,
+    "accessDefault": null
+  },
+  {
+    "id": "telematics-informatics",
+    "name": "Telematics and Informatics",
+    "homepage": "https://www.sciencedirect.com/journal/telematics-and-informatics",
+    "feedUrl": "https://rss.sciencedirect.com/publication/science/07365853",
+    "feedFormat": "rss",
+    "category": "journal-psych",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "sciencedirect.com"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 6,
+    "active": true,
+    "licenseNote": "Feed carries date, journal name and authors only — no abstract; abstracts come from OpenAlex. www.sciencedirect.com returns 403 on robots.txt and asserts tdm-reservation, so its article pages are never fetched. Only the feed host is read.",
+    "lastVerified": "2026-08-25",
+    "notes": "ISSN 0736-5853. Hybrid; access looked up per article.",
+    "urlPattern": null,
+    "dateStrategy": "prose",
+    "abstractStrategy": "openalex",
+    "articlePageAllowed": false,
+    "accessDefault": null
+  },
+  {
+    "id": "behaviour-info-tech",
+    "name": "Behaviour & Information Technology",
+    "homepage": "https://www.tandfonline.com/journals/tbit20",
+    "feedUrl": "https://www.tandfonline.com/feed/rss/tbit20",
+    "feedFormat": "rss",
+    "category": "journal-hci",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "tandfonline.com"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 8,
+    "active": true,
+    "licenseNote": "Feed carries a citation line, not an abstract; abstracts come from OpenAlex. The site keeps a short excerpt and links out — no full text is republished.",
+    "lastVerified": "2026-08-25",
+    "notes": "ISSN 0144-929X. Feed ships 52 characters of volume and page numbers. Verified 2026-08-25.",
+    "urlPattern": null,
+    "dateStrategy": "dcdate",
+    "abstractStrategy": "openalex",
+    "articlePageAllowed": false,
+    "accessDefault": null
+  },
+  {
+    "id": "ijhci",
+    "name": "International Journal of Human-Computer Interaction",
+    "homepage": "https://www.tandfonline.com/journals/hihc20",
+    "feedUrl": "https://www.tandfonline.com/feed/rss/hihc20",
+    "feedFormat": "rss",
+    "category": "journal-hci",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "tandfonline.com"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 10,
+    "active": true,
+    "licenseNote": "Feed carries a citation line, not an abstract; abstracts come from OpenAlex. The site keeps a short excerpt and links out — no full text is republished.",
+    "lastVerified": "2026-08-25",
+    "notes": "ISSN 1044-7318. Highest-volume journal in the registry: 17 items within seven days. Mostly paywalled — 6 of 25 recent articles free.",
+    "urlPattern": null,
+    "dateStrategy": "dcdate",
+    "abstractStrategy": "openalex",
+    "articlePageAllowed": false,
+    "accessDefault": null
+  },
+  {
+    "id": "hci-journal",
+    "name": "Human-Computer Interaction",
+    "homepage": "https://www.tandfonline.com/journals/hhci20",
+    "feedUrl": "https://www.tandfonline.com/feed/rss/hhci20",
+    "feedFormat": "rss",
+    "category": "journal-hci",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "tandfonline.com"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 6,
+    "active": true,
+    "licenseNote": "Feed carries a citation line, not an abstract; abstracts come from OpenAlex. The site keeps a short excerpt and links out — no full text is republished.",
+    "lastVerified": "2026-08-25",
+    "notes": "ISSN 0737-0024. Quarterly; low volume.",
+    "urlPattern": null,
+    "dateStrategy": "dcdate",
+    "abstractStrategy": "openalex",
+    "articlePageAllowed": false,
+    "accessDefault": null
+  },
+  {
+    "id": "media-psychology",
+    "name": "Media Psychology",
+    "homepage": "https://www.tandfonline.com/journals/hmep20",
+    "feedUrl": "https://www.tandfonline.com/feed/rss/hmep20",
+    "feedFormat": "rss",
+    "category": "journal-psych",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "tandfonline.com"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 6,
+    "active": true,
+    "licenseNote": "Feed carries a citation line, not an abstract; abstracts come from OpenAlex. The site keeps a short excerpt and links out — no full text is republished.",
+    "lastVerified": "2026-08-25",
+    "notes": "ISSN 1521-3269. Directly relevant to parasocial and companionship work.",
+    "urlPattern": null,
+    "dateStrategy": "dcdate",
+    "abstractStrategy": "openalex",
+    "articlePageAllowed": false,
+    "accessDefault": null
+  },
+  {
+    "id": "info-comm-society",
+    "name": "Information, Communication & Society",
+    "homepage": "https://www.tandfonline.com/journals/rics20",
+    "feedUrl": "https://www.tandfonline.com/feed/rss/rics20",
+    "feedFormat": "rss",
+    "category": "journal-psych",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "tandfonline.com"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 8,
+    "active": true,
+    "licenseNote": "Feed carries a citation line, not an abstract; abstracts come from OpenAlex. The site keeps a short excerpt and links out — no full text is republished.",
+    "lastVerified": "2026-08-25",
+    "notes": "ISSN 1369-118X. Broad; the gate does most of the work here.",
+    "urlPattern": null,
+    "dateStrategy": "dcdate",
+    "abstractStrategy": "openalex",
+    "articlePageAllowed": false,
+    "accessDefault": null
+  },
+  {
+    "id": "new-media-society",
+    "name": "New Media & Society",
+    "homepage": "https://journals.sagepub.com/home/nms",
+    "feedUrl": "https://journals.sagepub.com/action/showFeed?ui=0&mi=ehikzz&ai=2b4&jc=nms&type=etoc&feed=rss",
+    "feedFormat": "rss",
+    "category": "journal-psych",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "sagepub.com"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 8,
+    "active": true,
+    "licenseNote": "Feed carries a citation line, not an abstract; abstracts come from OpenAlex. The site keeps a short excerpt and links out — no full text is republished.",
+    "lastVerified": "2026-08-25",
+    "notes": "ISSN 1461-4448. SAGE ships a citation line plus a fragment of the first sentence — 326 characters, not an abstract.",
+    "urlPattern": null,
+    "dateStrategy": "dcdate",
+    "abstractStrategy": "openalex",
+    "articlePageAllowed": false,
+    "accessDefault": null
+  },
+  {
+    "id": "big-data-society",
+    "name": "Big Data & Society",
+    "homepage": "https://journals.sagepub.com/home/bds",
+    "feedUrl": "https://journals.sagepub.com/action/showFeed?ui=0&mi=ehikzz&ai=2b4&jc=bds&type=etoc&feed=rss",
+    "feedFormat": "rss",
+    "category": "journal-psych",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "sagepub.com"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 6,
+    "active": true,
+    "licenseNote": "Feed carries a citation line, not an abstract; abstracts come from OpenAlex. The site keeps a short excerpt and links out — no full text is republished.",
+    "lastVerified": "2026-08-25",
+    "notes": "ISSN 2053-9517. Open access confirmed 2026-08-26: 5 of 5 recent articles gold.",
+    "urlPattern": null,
+    "dateStrategy": "dcdate",
+    "abstractStrategy": "openalex",
+    "articlePageAllowed": false,
+    "accessDefault": "open"
+  },
+  {
+    "id": "social-sci-comp-review",
+    "name": "Social Science Computer Review",
+    "homepage": "https://journals.sagepub.com/home/ssc",
+    "feedUrl": "https://journals.sagepub.com/action/showFeed?ui=0&mi=ehikzz&ai=2b4&jc=ssc&type=etoc&feed=rss",
+    "feedFormat": "rss",
+    "category": "journal-psych",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "sagepub.com"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 6,
+    "active": true,
+    "licenseNote": "Feed carries a citation line, not an abstract; abstracts come from OpenAlex. The site keeps a short excerpt and links out — no full text is republished.",
+    "lastVerified": "2026-08-25",
+    "notes": "ISSN 0894-4393. Quantitative social science on technology use.",
+    "urlPattern": null,
+    "dateStrategy": "dcdate",
+    "abstractStrategy": "openalex",
+    "articlePageAllowed": false,
+    "accessDefault": null
+  },
+  {
+    "id": "communication-research",
+    "name": "Communication Research",
+    "homepage": "https://journals.sagepub.com/home/crx",
+    "feedUrl": "https://journals.sagepub.com/action/showFeed?ui=0&mi=ehikzz&ai=2b4&jc=crx&type=etoc&feed=rss",
+    "feedFormat": "rss",
+    "category": "journal-psych",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "sagepub.com"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 6,
+    "active": true,
+    "licenseNote": "Feed carries a citation line, not an abstract; abstracts come from OpenAlex. The site keeps a short excerpt and links out — no full text is republished.",
+    "lastVerified": "2026-08-25",
+    "notes": "ISSN 0093-6502. Low volume; strong on persuasion and attitude change.",
+    "urlPattern": null,
+    "dateStrategy": "dcdate",
+    "abstractStrategy": "openalex",
+    "articlePageAllowed": false,
+    "accessDefault": null
+  },
+  {
+    "id": "psychological-science",
+    "name": "Psychological Science",
+    "homepage": "https://journals.sagepub.com/home/pss",
+    "feedUrl": "https://journals.sagepub.com/action/showFeed?ui=0&mi=ehikzz&ai=2b4&jc=pss&type=etoc&feed=rss",
+    "feedFormat": "rss",
+    "category": "journal-psych",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "sagepub.com"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 6,
+    "active": true,
+    "licenseNote": "Feed carries a citation line, not an abstract; abstracts come from OpenAlex. The site keeps a short excerpt and links out — no full text is republished.",
+    "lastVerified": "2026-08-25",
+    "notes": "ISSN 0956-7976. Rarely on topic, but when it is, it matters.",
+    "urlPattern": null,
+    "dateStrategy": "dcdate",
+    "abstractStrategy": "openalex",
+    "articlePageAllowed": false,
+    "accessDefault": null
+  },
+  {
+    "id": "tochi",
+    "name": "ACM Transactions on Computer-Human Interaction",
+    "homepage": "https://dl.acm.org/journal/tochi",
+    "feedUrl": "https://dl.acm.org/action/showFeed?ui=0&mi=&ai=&jc=tochi&type=etoc&feed=rss",
+    "feedFormat": "rss",
+    "category": "journal-hci",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "acm.org"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 6,
+    "active": true,
+    "licenseNote": "Feed carries a citation line, not an abstract; abstracts come from OpenAlex. The site keeps a short excerpt and links out — no full text is republished.",
+    "lastVerified": "2026-08-25",
+    "notes": "ISSN 1073-0516. Feed ships 91 characters of citation. Mostly paywalled: 9 of 25 recent articles free.",
+    "urlPattern": null,
+    "dateStrategy": "dcdate",
+    "abstractStrategy": "openalex",
+    "articlePageAllowed": false,
+    "accessDefault": null
+  },
+  {
+    "id": "pacm-hci",
+    "name": "Proceedings of the ACM on Human-Computer Interaction",
+    "homepage": "https://dl.acm.org/journal/pacmhci",
+    "feedUrl": "https://dl.acm.org/action/showFeed?ui=0&mi=&ai=&jc=pacmhci&type=etoc&feed=rss",
+    "feedFormat": "rss",
+    "category": "journal-hci",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "acm.org"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 10,
+    "active": true,
+    "licenseNote": "Feed carries a citation line, not an abstract; abstracts come from OpenAlex. The site keeps a short excerpt and links out — no full text is republished.",
+    "lastVerified": "2026-08-25",
+    "notes": "ISSN 2573-0142. Carries the CHI and CSCW proceedings. Bursty: nothing for weeks, then a conference.",
+    "urlPattern": null,
+    "dateStrategy": "dcdate",
+    "abstractStrategy": "openalex",
+    "articlePageAllowed": false,
+    "accessDefault": null
+  },
+  {
+    "id": "cyberpsychology-journal",
+    "name": "Cyberpsychology: Journal of Psychosocial Research on Cyberspace",
+    "homepage": "https://cyberpsychology.eu/",
+    "feedUrl": "https://cyberpsychology.eu/gateway/plugin/WebFeedGatewayPlugin/rss2",
+    "feedFormat": "rss",
+    "category": "journal-psych",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "cyberpsychology.eu"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 6,
+    "active": true,
+    "licenseNote": "Feed carries the abstract. The site keeps a short excerpt and links to the original.",
+    "lastVerified": "2026-08-25",
+    "notes": "ISSN 1802-7962. Diamond open access — no fee to read or publish. Confirmed 2026-08-26: 5 of 5 recent articles diamond. Feed carries full abstracts.",
+    "urlPattern": null,
+    "dateStrategy": "dcdate",
+    "abstractStrategy": "feed",
+    "articlePageAllowed": false,
+    "accessDefault": "open"
+  },
+  {
+    "id": "jmir-mental-health",
+    "name": "JMIR Mental Health",
+    "homepage": "https://mental.jmir.org/",
+    "feedUrl": "https://mental.jmir.org/feed/atom",
+    "feedFormat": "atom",
+    "category": "journal-medical",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "jmir.org"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 8,
+    "active": true,
+    "licenseNote": "Feed carries the abstract. The site keeps a short excerpt and links to the original.",
+    "lastVerified": "2026-08-25",
+    "notes": "ISSN 2368-7959. Open access confirmed 2026-08-26: 5 of 5 recent articles gold. Feed carries abstracts of 2,000-2,600 characters.",
+    "urlPattern": null,
+    "dateStrategy": "atom",
+    "abstractStrategy": "feed",
+    "articlePageAllowed": false,
+    "accessDefault": "open"
+  },
+  {
+    "id": "jmir",
+    "name": "Journal of Medical Internet Research",
+    "homepage": "https://www.jmir.org/",
+    "feedUrl": "https://www.jmir.org/feed/atom",
+    "feedFormat": "atom",
+    "category": "journal-medical",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "jmir.org"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 8,
+    "active": true,
+    "licenseNote": "Feed carries the abstract. The site keeps a short excerpt and links to the original.",
+    "lastVerified": "2026-08-25",
+    "notes": "ISSN 1438-8871. Open access confirmed 2026-08-26: 5 of 5 recent articles gold.",
+    "urlPattern": null,
+    "dateStrategy": "atom",
+    "abstractStrategy": "feed",
+    "articlePageAllowed": false,
+    "accessDefault": "open"
+  },
+  {
+    "id": "nature-human-behaviour",
+    "name": "Nature Human Behaviour",
+    "homepage": "https://www.nature.com/nathumbehav/",
+    "feedUrl": "https://www.nature.com/nathumbehav.rss",
+    "feedFormat": "rss",
+    "category": "journal-psych",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "nature.com"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 6,
+    "active": true,
+    "licenseNote": "robots.txt permits /articles/. The abstract is read to summarize and then discarded; the site stores a short excerpt and the link. OpenAlex covers only 35-50% of this publisher's abstracts even months after publication, which is why the page is read.",
+    "lastVerified": "2026-08-25",
+    "notes": "ISSN 2397-3374. RSS 1.0/RDF. Feed holds only 8 items, all recent — it may turn over faster than a weekly run, which the rotation warning exists to catch.",
+    "urlPattern": null,
+    "dateStrategy": "dcdate",
+    "abstractStrategy": "article-page",
+    "articlePageAllowed": true,
+    "accessDefault": null
+  },
+  {
+    "id": "nature-machine-intelligence",
+    "name": "Nature Machine Intelligence",
+    "homepage": "https://www.nature.com/natmachintell/",
+    "feedUrl": "https://www.nature.com/natmachintell.rss",
+    "feedFormat": "rss",
+    "category": "journal-general",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "nature.com"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 6,
+    "active": true,
+    "licenseNote": "robots.txt permits /articles/. The abstract is read to summarize and then discarded; the site stores a short excerpt and the link. OpenAlex covers only 35-50% of this publisher's abstracts even months after publication, which is why the page is read.",
+    "lastVerified": "2026-08-25",
+    "notes": "ISSN 2522-5839. Mostly model research; the gate does most of the work here.",
+    "urlPattern": null,
+    "dateStrategy": "dcdate",
+    "abstractStrategy": "article-page",
+    "articlePageAllowed": true,
+    "accessDefault": null
+  },
+  {
+    "id": "nature-mental-health",
+    "name": "Nature Mental Health",
+    "homepage": "https://www.nature.com/natmentalhealth/",
+    "feedUrl": "https://www.nature.com/natmentalhealth.rss",
+    "feedFormat": "rss",
+    "category": "journal-medical",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "nature.com"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 6,
+    "active": true,
+    "licenseNote": "robots.txt permits /articles/. The abstract is read to summarize and then discarded; the site stores a short excerpt and the link. OpenAlex covers only 35-50% of this publisher's abstracts even months after publication, which is why the page is read.",
+    "lastVerified": "2026-08-25",
+    "notes": "ISSN 2731-6076. New journal, low volume.",
+    "urlPattern": null,
+    "dateStrategy": "dcdate",
+    "abstractStrategy": "article-page",
+    "articlePageAllowed": true,
+    "accessDefault": null
+  },
+  {
+    "id": "nature-reviews-psychology",
+    "name": "Nature Reviews Psychology",
+    "homepage": "https://www.nature.com/nrpsychol/",
+    "feedUrl": "https://www.nature.com/nrpsychol.rss",
+    "feedFormat": "rss",
+    "category": "journal-psych",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "nature.com"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 6,
+    "active": true,
+    "licenseNote": "robots.txt permits /articles/. The abstract is read to summarize and then discarded; the site stores a short excerpt and the link. OpenAlex covers only 35-50% of this publisher's abstracts even months after publication, which is why the page is read.",
+    "lastVerified": "2026-08-25",
+    "notes": "ISSN 2731-0574. Reviews rather than primary studies, so most items fail the human-subjects rule. Kept for the occasional empirical piece.",
+    "urlPattern": null,
+    "dateStrategy": "dcdate",
+    "abstractStrategy": "article-page",
+    "articlePageAllowed": true,
+    "accessDefault": null
+  },
+  {
+    "id": "npj-digital-medicine",
+    "name": "npj Digital Medicine",
+    "homepage": "https://www.nature.com/npjdigitalmed/",
+    "feedUrl": "https://www.nature.com/npjdigitalmed.rss",
+    "feedFormat": "rss",
+    "category": "journal-medical",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "nature.com"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 6,
+    "active": true,
+    "licenseNote": "robots.txt permits /articles/. The abstract is read to summarize and then discarded; the site stores a short excerpt and the link. OpenAlex covers only 35-50% of this publisher's abstracts even months after publication, which is why the page is read.",
+    "lastVerified": "2026-08-25",
+    "notes": "ISSN 2398-6352. Open access confirmed 2026-08-26: 5 of 5 recent articles gold.",
+    "urlPattern": null,
+    "dateStrategy": "dcdate",
+    "abstractStrategy": "article-page",
+    "articlePageAllowed": true,
+    "accessDefault": "open"
+  },
+  {
+    "id": "trends-cognitive-sciences",
+    "name": "Trends in Cognitive Sciences",
+    "homepage": "https://www.cell.com/trends/cognitive-sciences/home",
+    "feedUrl": "https://www.cell.com/trends/cognitive-sciences/current.rss",
+    "feedFormat": "rss",
+    "category": "journal-psych",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "cell.com"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 6,
+    "active": true,
+    "licenseNote": "Feed carries the abstract. The site keeps a short excerpt and links to the original.",
+    "lastVerified": "2026-08-25",
+    "notes": "ISSN 1364-6613. Feed carries abstracts. Its issue front matter carries month-only dates, which the imprecise-date rule rejects rather than guessing.",
+    "urlPattern": null,
+    "dateStrategy": "dcdate",
+    "abstractStrategy": "feed",
+    "articlePageAllowed": false,
+    "accessDefault": null
+  },
+  {
+    "id": "patterns",
+    "name": "Patterns",
+    "homepage": "https://www.cell.com/patterns/home",
+    "feedUrl": "https://www.cell.com/patterns/current.rss",
+    "feedFormat": "rss",
+    "category": "journal-general",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "cell.com"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 6,
+    "active": true,
+    "licenseNote": "Feed carries the abstract. The site keeps a short excerpt and links to the original.",
+    "lastVerified": "2026-08-25",
+    "notes": "ISSN 2666-3899. Open access confirmed 2026-08-26: 5 of 5 recent articles gold.",
+    "urlPattern": null,
+    "dateStrategy": "dcdate",
+    "abstractStrategy": "feed",
+    "articlePageAllowed": false,
+    "accessDefault": "open"
+  },
+  {
+    "id": "lancet-digital-health",
+    "name": "The Lancet Digital Health",
+    "homepage": "https://www.thelancet.com/journals/landig/home",
+    "feedUrl": "https://www.thelancet.com/rssfeed/landig_current.xml",
+    "feedFormat": "rss",
+    "category": "journal-medical",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "thelancet.com"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 6,
+    "active": true,
+    "licenseNote": "Feed carries the abstract. The site keeps a short excerpt and links to the original.",
+    "lastVerified": "2026-08-25",
+    "notes": "ISSN 2589-7500. Feed carries abstracts of about 550 characters.",
+    "urlPattern": null,
+    "dateStrategy": "dcdate",
+    "abstractStrategy": "feed",
+    "articlePageAllowed": false,
+    "accessDefault": null
+  },
+  {
+    "id": "arxiv-cs-hc",
+    "name": "arXiv — Human-Computer Interaction (cs.HC)",
+    "homepage": "https://arxiv.org/list/cs.HC/recent",
+    "feedUrl": "https://rss.arxiv.org/rss/cs.HC",
+    "feedFormat": "rss",
+    "category": "preprint",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "arxiv.org"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 12,
+    "active": true,
+    "licenseNote": "arXiv abstracts are free to read and the site links to the arXiv page. No full text is republished.",
+    "lastVerified": "2026-08-25",
+    "notes": "Whole-category subscription rather than keyword pre-filtering: the NVIDIA account is rate-limited, not quota-limited, so the keyword blind spot is removed rather than estimated. About 60 items a day.",
+    "urlPattern": null,
+    "dateStrategy": "rss",
+    "abstractStrategy": "feed",
+    "articlePageAllowed": false,
+    "accessDefault": "open"
+  },
+  {
+    "id": "arxiv-cs-cy",
+    "name": "arXiv — Computers and Society (cs.CY)",
+    "homepage": "https://arxiv.org/list/cs.CY/recent",
+    "feedUrl": "https://rss.arxiv.org/rss/cs.CY",
+    "feedFormat": "rss",
+    "category": "preprint",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "arxiv.org"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 12,
+    "active": true,
+    "licenseNote": "arXiv abstracts are free to read and the site links to the arXiv page. No full text is republished.",
+    "lastVerified": "2026-08-25",
+    "notes": "About 47 items a day. Much of the AI-and-people work outside cs.HC lands here.",
+    "urlPattern": null,
+    "dateStrategy": "rss",
+    "abstractStrategy": "feed",
+    "articlePageAllowed": false,
+    "accessDefault": "open"
+  },
+  {
+    "id": "arxiv-human-impact-query",
+    "name": "arXiv — human-impact query",
+    "homepage": "https://arxiv.org/",
+    "feedUrl": "https://export.arxiv.org/api/query?search_query=abs:%22sycophancy%22+OR+abs:%22parasocial%22+OR+abs:%22AI+companion%22+OR+abs:%22self-disclosure%22+OR+abs:%22AI+advice%22+OR+abs:%22overreliance%22+OR+abs:%22cognitive+offloading%22+OR+abs:%22companionship%22&start=0&max_results=60&sortBy=submittedDate&sortOrder=descending",
+    "feedFormat": "atom",
+    "category": "preprint",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "arxiv.org"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 10,
+    "active": true,
+    "licenseNote": "arXiv abstracts are free to read and the site links to the arXiv page. No full text is republished.",
+    "lastVerified": "2026-08-25",
+    "notes": "A safety net for relevant papers filed outside cs.HC and cs.CY — cs.AI, cs.CL, econ, q-bio. Keyword coverage was measured on 2026-08-25 and the terms recorded in docs/research; it is not the primary filter.",
+    "urlPattern": null,
+    "dateStrategy": "atom",
+    "abstractStrategy": "feed",
+    "articlePageAllowed": false,
+    "accessDefault": "open"
+  },
+  {
+    "id": "pew-internet",
+    "name": "Pew Research Center — Internet & Technology",
+    "homepage": "https://www.pewresearch.org/topic/internet-technology/",
+    "feedUrl": "https://www.pewresearch.org/topic/internet-technology/feed/",
+    "feedFormat": "rss",
+    "category": "institution",
+    "language": "en",
+    "region": "US",
+    "officialDomains": [
+      "pewresearch.org"
+    ],
+    "tier": "institution",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "social"
+    ],
+    "maxPerRun": 5,
+    "active": true,
+    "licenseNote": "Pew publishes every report free to read. The site keeps the feed's own teaser and links out.",
+    "lastVerified": "2026-08-25",
+    "notes": "The only source here that runs nationally representative surveys — the one place a question like 'how many people actually treat an AI as a friend' can be answered.",
+    "urlPattern": null,
+    "dateStrategy": "rss",
+    "abstractStrategy": "feed",
+    "articlePageAllowed": false,
+    "accessDefault": "open"
+  },
+  {
+    "id": "ai-society",
+    "name": "AI & Society",
+    "homepage": "https://link.springer.com/journal/146",
+    "feedUrl": null,
+    "feedFormat": "none",
+    "category": "journal-psych",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "springer.com"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 6,
+    "active": false,
+    "licenseNote": "Not fetched. Listed so the reading list is honest about what this site cannot reach automatically.",
+    "lastVerified": "2026-08-25",
+    "notes": "ISSN 0951-5666. Springer serves a bot-challenge page instead of a feed, so there is no machine-readable index to read. Listed as a reading-list entry. Do not work around the publisher's block.",
+    "urlPattern": null,
+    "dateStrategy": "dcdate",
+    "abstractStrategy": "openalex",
+    "articlePageAllowed": false,
+    "accessDefault": null
+  },
+  {
+    "id": "minds-and-machines",
+    "name": "Minds and Machines",
+    "homepage": "https://link.springer.com/journal/11023",
+    "feedUrl": null,
+    "feedFormat": "none",
+    "category": "journal-psych",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "springer.com"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 6,
+    "active": false,
+    "licenseNote": "Not fetched. Listed so the reading list is honest about what this site cannot reach automatically.",
+    "lastVerified": "2026-08-25",
+    "notes": "ISSN 0924-6495. Same Springer bot challenge as AI & Society. Reading-list entry only. Do not work around the publisher's block.",
+    "urlPattern": null,
+    "dateStrategy": "dcdate",
+    "abstractStrategy": "openalex",
+    "articlePageAllowed": false,
+    "accessDefault": null
+  },
+  {
+    "id": "ethics-information-technology",
+    "name": "Ethics and Information Technology",
+    "homepage": "https://link.springer.com/journal/10676",
+    "feedUrl": null,
+    "feedFormat": "none",
+    "category": "journal-psych",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "springer.com"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 6,
+    "active": false,
+    "licenseNote": "Not fetched. Listed so the reading list is honest about what this site cannot reach automatically.",
+    "lastVerified": "2026-08-25",
+    "notes": "ISSN 1388-1957. Same Springer bot challenge. Reading-list entry only. Do not work around the publisher's block.",
+    "urlPattern": null,
+    "dateStrategy": "dcdate",
+    "abstractStrategy": "openalex",
+    "articlePageAllowed": false,
+    "accessDefault": null
+  },
+  {
+    "id": "human-behavior-emerging-tech",
+    "name": "Human Behavior and Emerging Technologies",
+    "homepage": "https://onlinelibrary.wiley.com/journal/25781863",
+    "feedUrl": null,
+    "feedFormat": "none",
+    "category": "journal-psych",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "wiley.com"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 6,
+    "active": false,
+    "licenseNote": "Not fetched. Listed so the reading list is honest about what this site cannot reach automatically.",
+    "lastVerified": "2026-08-25",
+    "notes": "ISSN 2578-1863. Directly on topic, but every Wiley RSS address tried returned 404 on 2026-08-25. Reading-list entry until one is found. Do not work around the publisher's block.",
+    "urlPattern": null,
+    "dateStrategy": "dcdate",
+    "abstractStrategy": "openalex",
+    "articlePageAllowed": false,
+    "accessDefault": null
+  },
+  {
+    "id": "cyberpsychology-bsn",
+    "name": "Cyberpsychology, Behavior, and Social Networking",
+    "homepage": "https://www.liebertpub.com/loi/cyber",
+    "feedUrl": null,
+    "feedFormat": "none",
+    "category": "journal-psych",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "liebertpub.com"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 6,
+    "active": false,
+    "licenseNote": "Not fetched. Listed so the reading list is honest about what this site cannot reach automatically.",
+    "lastVerified": "2026-08-25",
+    "notes": "ISSN 2152-2715. Liebert's RSS address returned 404 on 2026-08-25. Reading-list entry. Do not work around the publisher's block.",
+    "urlPattern": null,
+    "dateStrategy": "dcdate",
+    "abstractStrategy": "openalex",
+    "articlePageAllowed": false,
+    "accessDefault": null
+  },
+  {
+    "id": "technology-mind-behavior",
+    "name": "Technology, Mind, and Behavior",
+    "homepage": "https://tmb.apaopen.org/",
+    "feedUrl": null,
+    "feedFormat": "none",
+    "category": "journal-psych",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "apaopen.org"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 6,
+    "active": false,
+    "licenseNote": "Not fetched. Listed so the reading list is honest about what this site cannot reach automatically.",
+    "lastVerified": "2026-08-25",
+    "notes": "ISSN 2689-0208. APA's PubPub instance returned 403 to the feed request on 2026-08-25. Reading-list entry. Do not work around the publisher's block.",
+    "urlPattern": null,
+    "dateStrategy": "dcdate",
+    "abstractStrategy": "openalex",
+    "articlePageAllowed": false,
+    "accessDefault": null
+  },
+  {
+    "id": "jcmc",
+    "name": "Journal of Computer-Mediated Communication",
+    "homepage": "https://academic.oup.com/jcmc",
+    "feedUrl": null,
+    "feedFormat": "none",
+    "category": "journal-psych",
+    "language": "en",
+    "region": "GLOBAL",
+    "officialDomains": [
+      "oup.com"
+    ],
+    "tier": "research",
+    "relevanceMode": "keyword",
+    "defaultTopics": [
+      "cognition"
+    ],
+    "maxPerRun": 6,
+    "active": false,
+    "licenseNote": "Not fetched. Listed so the reading list is honest about what this site cannot reach automatically.",
+    "lastVerified": "2026-08-25",
+    "notes": "ISSN 1083-6101. Oxford's RSS address returned 404 on 2026-08-25. Reading-list entry. Do not work around the publisher's block.",
+    "urlPattern": null,
+    "dateStrategy": "dcdate",
+    "abstractStrategy": "openalex",
+    "articlePageAllowed": false,
+    "accessDefault": null
   }
 ]

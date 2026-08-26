@@ -60,12 +60,12 @@ export const messages = {
   topicCognition: { 'zh-tw': '認知與思考', en: 'Cognition' },
   topicSocial: { 'zh-tw': '社會行為', en: 'Social behaviour' },
 
-  categoryVendorEducation: { 'zh-tw': '業者教育方案', en: 'Vendor education' },
-  categoryPolicy: { 'zh-tw': '政府與國際組織', en: 'Government and IGOs' },
-  categoryResearch: { 'zh-tw': '研究機構', en: 'Research' },
-  categoryEdtechNews: { 'zh-tw': '教育媒體', en: 'Education media' },
-  categoryPractitioner: { 'zh-tw': '教學現場', en: 'Practitioners' },
-  categoryTaiwanLocal: { 'zh-tw': '台灣在地', en: 'Taiwan' },
+  categoryJournalHci: { 'zh-tw': '人機互動期刊', en: 'HCI journals' },
+  categoryJournalPsych: { 'zh-tw': '心理與社會科學期刊', en: 'Psychology and social science' },
+  categoryJournalMedical: { 'zh-tw': '醫學與心理健康期刊', en: 'Medicine and mental health' },
+  categoryJournalGeneral: { 'zh-tw': '綜合科學期刊', en: 'Multidisciplinary journals' },
+  categoryPreprint: { 'zh-tw': '預印本', en: 'Preprints' },
+  categoryInstitution: { 'zh-tw': '調查機構', en: 'Survey organisations' },
 
   tierFirstParty: { 'zh-tw': '第一手', en: 'First-party' },
   tierInstitution: { 'zh-tw': '機構', en: 'Institution' },

@@ -277,9 +277,19 @@ Codex 對抗式審查（2026-08-25 第二輪）指出這個方法學錯誤，**�
    直接採用，不查詢。
    - 確定可直接標的：arXiv、PLOS、Frontiers、JMIR 系列、Big Data & Society、
      Cyberpsychology（Masaryk）。
-   - **每一本都要在實作時逐一確認才能寫死**。實測發現 Computers in Human
-     Behavior: Artificial Humans 的文章在 OpenAlex 上是 `closed`，
-     不能因為它是新期刊就假設它免費。沒確認的一律走查詢。
+   - **每一本都要在實作時逐一確認才能寫死。**
+
+     **2026-08-26 更正**：本節原本舉 Computers in Human Behavior: Artificial
+     Humans 為反例，說它的文章在 OpenAlex 上是 `closed`。那個判斷來自一筆沒有
+     DOI 的殘缺記錄。實作時以 ISSN 取樣 25 篇近期文章重查，**25 篇全部是 gold**，
+     它是真正的完全開放取用期刊。原本的警告本身就是一個「憑單一筆資料下結論」
+     的例子 —— 這正是為什麼要逐一確認：不只是怕漏掉付費期刊，也怕誤判開放期刊。
+
+     實作時逐本查證的結果（每本取樣 25 篇）：完全免費的有 CHB: Artificial
+     Humans、CHB Reports、Big Data & Society、Cyberpsychology(CZ)、JMIR、
+     JMIR Mental Health、npj Digital Medicine、Patterns；混合制需逐篇查詢的有
+     CHB 本刊 11/25、IJHCS 19/25、IJHCI 6/25、New Media & Society 21/25、
+     ACM TOCHI 9/25、Nature Human Behaviour 15/25。
 2. **有 DOI**：`GET https://api.openalex.org/works?filter=doi:<doi>`
    （Nature、SAGE、T&F、ACM、Cell 都有帶 DOI）
 3. **沒 DOI**：`filter=title.search:<正規化標題>`，且**只接受正規化後完全相符**

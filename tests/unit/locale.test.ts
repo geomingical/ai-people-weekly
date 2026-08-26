@@ -46,8 +46,8 @@ describe('label formatting', () => {
   it('renders every topic, category, and tier in both languages', () => {
     expect(formatTopic('zh-tw', 'wellbeing')).toBe('心理健康');
     expect(formatTopic('en', 'wellbeing')).toBe('Wellbeing');
-    expect(formatCategory('zh-tw', 'vendor-education')).toBe('業者教育方案');
-    expect(formatCategory('en', 'taiwan-local')).toBe('Taiwan');
+    expect(formatCategory('zh-tw', 'journal-hci')).toBe('人機互動期刊');
+    expect(formatCategory('en', 'preprint')).toBe('Preprints');
     expect(formatTier('zh-tw', 'first-party')).toBe('第一手');
     expect(formatTier('en', 'community')).toBe('Community');
   });

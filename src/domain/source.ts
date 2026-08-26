@@ -8,12 +8,12 @@ import { TOPICS } from './story';
 // allowlist (see pipeline/src/fetcher.ts).
 
 export const SOURCE_CATEGORIES = [
-  'vendor-education', // OpenAI / Google / Anthropic / Microsoft education programmes
-  'policy',           // UNESCO, OECD, EU, national ministries
-  'research',         // arXiv, journals, university labs
-  'edtech-news',      // EdSurge, EdWeek, Inside Higher Ed, THE
-  'practitioner',     // teacher blogs and practitioner communities
-  'taiwan-local',     // Taiwanese / Chinese-language sources
+  'journal-hci',     // HCI and human-computer interaction journals
+  'journal-psych',   // psychology, communication, social science journals
+  'journal-medical', // medicine and mental health journals
+  'journal-general', // multidisciplinary journals
+  'preprint',        // arXiv and other preprint servers
+  'institution',     // survey organisations such as Pew
 ] as const;
 
 export const FEED_FORMATS = ['rss', 'atom', 'json', 'sitemap', 'none'] as const;
@@ -130,6 +130,50 @@ export const sourceSchema = z
     licenseNote: z.string(),
     lastVerified: z.string().date(),
     notes: z.string(),
+
+    /**
+     * Where this publisher writes its publication date.
+     *
+     * Every one of them puts it somewhere different, and the weekly issue is
+     * assigned from it, so a wrong strategy files a story in the wrong week or
+     * drops it entirely.
+     *
+     *   `prose`   — ScienceDirect: "Publication date: Available online 22
+     *               August 2026", inside the description text.
+     *   `dcdate`  — Nature (RDF), SAGE, Taylor & Francis, ACM, Cell: <dc:date>.
+     *   `atom`    — JMIR, arXiv query API: Atom <published>, then <updated>.
+     *   `rss`     — arXiv category RSS: RFC 822 <pubDate>.
+     */
+    dateStrategy: z.enum(['prose', 'dcdate', 'atom', 'rss']),
+
+    /**
+     * Where this source's abstract comes from.
+     *
+     * The relevance gate must read an abstract — "was a person measured, or a
+     * model" cannot be decided from a title — and 17 of the 28 journals ship
+     * feeds without one. Taylor & Francis sends seven characters of volume and
+     * page numbers.
+     */
+    abstractStrategy: z.enum(['feed', 'openalex', 'article-page']),
+
+    /**
+     * True only where the publisher's robots.txt permits reading article pages.
+     *
+     * ScienceDirect must stay false: its robots.txt returns 403 to an ordinary
+     * client and its responses carry a tdm-reservation opt-out. Its feed host
+     * is a different machine and is fine to read.
+     */
+    articlePageAllowed: z.boolean(),
+
+    /**
+     * 'open' for venues where every article is free to read, so no per-article
+     * lookup is needed and the badge never says "unverified" about a journal
+     * that is always free. null means look each article up.
+     *
+     * Never set from memory. Computers in Human Behavior: Artificial Humans
+     * looks like a new open-access journal and its articles come back `closed`.
+     */
+    accessDefault: z.enum(['open']).nullable().default(null),
   })
   .strict()
   .superRefine((source, ctx) => {
@@ -166,6 +210,14 @@ export const sourceSchema = z
         code: 'custom',
         message: `source "${source.id}" is active but has no feed to fetch; set active: false to keep it as a reading-list entry`,
         path: ['active'],
+      });
+    }
+
+    if (source.abstractStrategy === 'article-page' && !source.articlePageAllowed) {
+      ctx.addIssue({
+        code: 'custom',
+        message: `source "${source.id}" would fetch article pages its publisher does not permit`,
+        path: ['abstractStrategy'],
       });
     }
 

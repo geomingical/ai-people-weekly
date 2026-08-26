@@ -32,7 +32,19 @@ export interface FetchIO {
 export const FETCH_LIMITS = {
   maxRedirects: 3,
   timeoutMs: 15_000,
-  maxBytes: 2 * 1024 * 1024,
+  /**
+   * Raised from 2 MB when the journal registry landed.
+   *
+   * The point of this cap is to bound an unbounded download, not to be exactly
+   * 2 MB, and WHO may send that much is already bounded by the source
+   * allowlist. 2 MB suited news feeds; a journal's table of contents is
+   * legitimately larger — the International Journal of Human-Computer
+   * Interaction measures 2.3 MB across 889 items, and was the only source of
+   * 32 that failed the first live run, with `too-large` on a 200 response.
+   *
+   * 4 MB still cuts a runaway response. Raise it again only with a measurement.
+   */
+  maxBytes: 4 * 1024 * 1024,
 } as const;
 
 const REDIRECT_STATUSES: ReadonlySet<number> = new Set([301, 302, 303, 307, 308]);
