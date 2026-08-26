@@ -28,8 +28,11 @@
 - **不得加入廣告、聯盟連結、評分、排名、引用數、影響因子、讀者帳號或分析追蹤。**
 - **不得把 Ming 的 email 送給任何外部服務**（OpenAlex 的 `mailto` 參數也不行）。
 - **git 一律指定明確路徑。** 不得 `git add .` 或 `git add -A`。
-- **`pipeline/tests/harness.ts` 是跨任務共用的檔案**（Task 2 建立，Task 8 加
-  `openAlex`，Task 13 加 `watermarksPath` 與 `readWatermarks`）。**任何修改它的任務
+- **`pipeline/tests/harness.ts` 是跨任務共用的檔案。** Task 2 建立；Task 3 換掉
+  `defaultTopics`；Task 4 補齊 `Source` 的四個新欄位；Task 5 加 `dcDate`；
+  Task 8 加 `openAlex`；Task 13 加 `watermarksPath` 與 `readWatermarks`。
+  **它的 `DEFAULT_SOURCE` 永遠是「當下這個任務的 Source 契約」** —— `sourceSchema`
+  是 `.strict()`，多一個未來欄位就會讓 `loadSources` 拋錯，測試連 run 接縫都到不了。**任何修改它的任務
   都必須把它列進自己的 Files 與 `git add` 清單。** 漏掉的話，工作樹裡 `npm run verify`
   會過，但乾淨 checkout 少了那個擴充 —— 所有經由 `makeRun` 的測試會編不過。
 - **驗證要對「暫存後的快照」跑，不是對工作樹跑。** 每個任務提交前：
@@ -202,6 +205,8 @@ replaced task by task from here."
   - `interface RunDeps { fetchFeed; fetchArticle; classify; summarize; now }`
   - `interface RunPaths { sourcesPath; storiesPath }`
   - 測試工具 `makeRun(overrides)`，回傳暫存目錄與斷言用的讀檔函式
+  - `RunReport.durationMs`，以及**只在乾跑時**填入的 `RunReport.decisions`
+    （Task 14 的人工複核需要它；正式執行不得帶著它，見 Task 14 Step 3）
 - **這個任務只抽取骨架「現在就有」的依賴。** `openAlex` 由 Task 8 加進 `RunDeps`，
   `watermarksPath` 由 Task 13 加進 `RunPaths`，各自帶著自己的測試。
   Task 2 不得引用它們 —— 否則這個任務在自己的位置上不可能通過。
@@ -240,7 +245,7 @@ describe('the harness exercises the real pipeline, not a copy of it', () => {
   it('drops an out-of-window item through the real screening code', async () => {
     const run = await makeRun({
       feeds: { s1: [{ title: 'Old study', link: 'https://example.org/old',
-                      dcDate: '2020-01-01', summary: 'x'.repeat(600) }] },
+                      publishedAt: '2020-01-01T00:00:00Z', summary: 'x'.repeat(600) }] },
     });
     const report = await run.execute();
     expect(await run.readStories()).toHaveLength(0);
@@ -250,7 +255,7 @@ describe('the harness exercises the real pipeline, not a copy of it', () => {
   it('writes what the report claims it wrote', async () => {
     const run = await makeRun({
       feeds: { s1: [{ title: 'A companion chatbot study', link: 'https://example.org/a',
-                      dcDate: '2026-08-20', summary: 'x'.repeat(600) }] },
+                      publishedAt: '2026-08-20T00:00:00Z', summary: 'x'.repeat(600) }] },
       verdicts: { relevant: true, topics: ['relationships'] },
     });
     const report = await run.execute();
@@ -263,7 +268,7 @@ describe('the harness exercises the real pipeline, not a copy of it', () => {
     const run = await makeRun({
       dryRun: true,
       feeds: { s1: [{ title: 'A study', link: 'https://example.org/a',
-                      dcDate: '2026-08-20', summary: 'x'.repeat(600) }] },
+                      publishedAt: '2026-08-20T00:00:00Z', summary: 'x'.repeat(600) }] },
       verdicts: { relevant: true, topics: ['trust'] },
     });
     const report = await run.execute();
@@ -278,7 +283,7 @@ describe('the harness exercises the real pipeline, not a copy of it', () => {
       sources: { s1: { maxPerRun: 2 } },
       feeds: { s1: [1, 2, 3, 4].map((n) => ({
         title: `Study ${n}`, link: `https://example.org/${n}`,
-        dcDate: '2026-08-20', summary: 'x'.repeat(600) })) },
+        publishedAt: '2026-08-20T00:00:00Z', summary: 'x'.repeat(600) })) },
       verdicts: { relevant: true, topics: ['trust'] },
     });
     const report = await run.execute();
@@ -295,15 +300,17 @@ describe('the seam does not weaken the SSRF boundary', () => {
     const seen: { url: string; allowed: readonly string[] }[] = [];
     const run = await makeRun({
       sources: {
-        alpha: { officialDomains: ['alpha.example'], abstractStrategy: 'article-page',
-                 articlePageAllowed: true },
+        alpha: { officialDomains: ['alpha.example'] },
         beta: { officialDomains: ['beta.example'] },
       },
       feeds: {
+        // No contentEncoded, so fullText is empty and the existing pipeline
+        // fetches the article page. No future-task field is needed to trigger it.
         alpha: [{ title: 'Needs its page read', link: 'https://alpha.example/a',
-                  dcDate: '2026-08-20', summary: 'Volume 42, Issue 16' }],
-        beta: [{ title: 'Has an abstract', link: 'https://beta.example/b',
-                 dcDate: '2026-08-20', summary: 'x'.repeat(600) }],
+                  publishedAt: '2026-08-20T00:00:00Z', summary: 'short teaser' }],
+        beta: [{ title: 'Has a body', link: 'https://beta.example/b',
+                 publishedAt: '2026-08-20T00:00:00Z', summary: 'teaser',
+                 contentEncoded: 'THE FULL BODY '.repeat(60) }],
       },
       verdicts: { relevant: true, topics: ['trust'] },
       onFetch: (url, allowed) => seen.push({ url, allowed }),
@@ -326,7 +333,7 @@ describe('the seam does not weaken the SSRF boundary', () => {
     const run = await makeRun({
       sources: { s1: { officialDomains: ['example.org'] } },
       feeds: { s1: [{ title: 'Off domain', link: 'https://evil.example.net/a',
-                      dcDate: '2026-08-20', summary: 'x'.repeat(600) }] },
+                      publishedAt: '2026-08-20T00:00:00Z', summary: 'x'.repeat(600) }] },
       verdicts: { relevant: true, topics: ['trust'] },
     });
     const report = await run.execute();
@@ -342,7 +349,7 @@ describe('summarization stays orchestrated by runWeek', () => {
     const captured: { summary: string }[] = [];
     const run = await makeRun({
       feeds: { s1: [{ title: 'A study', link: 'https://example.org/a',
-                      dcDate: '2026-08-20', summary: 'short excerpt',
+                      publishedAt: '2026-08-20T00:00:00Z', summary: 'short excerpt',
                       contentEncoded: 'THE FULL BODY '.repeat(60) }] },
       verdicts: { relevant: true, topics: ['trust'] },
       onSummarize: (inputs) => captured.push(...inputs),
@@ -351,10 +358,25 @@ describe('summarization stays orchestrated by runWeek', () => {
     expect(captured[0].summary).toContain('THE FULL BODY');
   });
 
+  // Without providers in the seam this passes vacuously: the pipeline skips
+  // the model entirely and the fake is never called.
+  it('calls the fake model even though no API key exists', async () => {
+    let called = false;
+    const run = await makeRun({
+      feeds: { s1: [{ title: 'A study', link: 'https://example.org/a',
+                      publishedAt: '2026-08-20T00:00:00Z', summary: 'x'.repeat(600) }] },
+      verdicts: { relevant: true, topics: ['research'] },
+      onSummarize: () => { called = true; },
+    });
+    const report = await run.execute();
+    expect(called).toBe(true);
+    expect(report.summaries.skippedReason).toBeNull();
+  });
+
   it('carries the summarizer failure count into the report', async () => {
     const run = await makeRun({
       feeds: { s1: [{ title: 'A study', link: 'https://example.org/a',
-                      dcDate: '2026-08-20', summary: 'x'.repeat(600) }] },
+                      publishedAt: '2026-08-20T00:00:00Z', summary: 'x'.repeat(600) }] },
       verdicts: { relevant: true, topics: ['trust'] },
       summarizeFails: true,
     });
@@ -413,6 +435,16 @@ export interface RunDeps {
   fetchArticle: (url: string, allowedDomains: readonly string[]) => Promise<ArticleResult>;
   classify: typeof classifyAll;
   summarize: typeof summarizeAll;
+  /**
+   * The model providers this run may use.
+   *
+   * This is in the seam, not just the two functions, because the existing
+   * pipeline gates on `providers.length > 0` before it calls either of them.
+   * Task 1 excludes `.env`, so a clean checkout has no key — and a harness
+   * that injected only fake functions would silently take the no-provider
+   * branch and never call them. The fakes would look wired up and be dead.
+   */
+  providers: readonly ProviderConfig[];
   /** Injected so a fixture dates do not rot as the calendar moves. */
   now: () => Date;
 }
@@ -445,6 +477,7 @@ async function main(): Promise<void> {
       fetchArticle: (url, allowedDomains) => fetchArticleText(url, allowedDomains, realIo),
       classify: classifyAll,
       summarize: summarizeAll,
+      providers: buildProviders(agents.summarizer, process.env).providers,
       now: () => new Date(),
     },
   });
@@ -492,7 +525,8 @@ import type { Story } from '../../src/domain/story';
 export interface FakeItem {
   title: string;
   link: string;
-  dcDate?: string;
+  /** Written into the feed as <pubDate>. Task 5 adds the dcDate variants. */
+  publishedAt?: string;
   summary?: string;
   /** Set to give the item a feed body, so source-text selection can be tested. */
   contentEncoded?: string;
@@ -525,14 +559,24 @@ export interface HarnessOptions {
   onSummarize?: (inputs: readonly SummaryInput[]) => void;
 }
 
+/**
+ * The Source contract AS IT EXISTS AT THIS TASK.
+ *
+ * sourceSchema is .strict(), so a single field from a later task makes
+ * loadSources throw and the tests never reach the run seam at all. `category`
+ * and `defaultTopics` here are the education vocabulary the skeleton still
+ * carries; Task 3 swaps the topics and Task 4 adds dateStrategy,
+ * abstractStrategy, articlePageAllowed and accessDefault. **Each of those
+ * tasks updates this fixture and stages this file** — see the global
+ * constraint on harness.ts.
+ */
 const DEFAULT_SOURCE = {
   name: 'Test Source', homepage: 'https://example.org/',
   feedUrl: 'https://example.org/feed', feedFormat: 'rss',
-  category: 'journal-hci', language: 'en', region: 'GLOBAL',
+  category: 'research', language: 'en', region: 'GLOBAL',
   officialDomains: ['example.org'], tier: 'research',
-  relevanceMode: 'keyword', defaultTopics: ['trust'], maxPerRun: 10,
-  active: true, dateStrategy: 'dcdate', abstractStrategy: 'feed',
-  articlePageAllowed: false, accessDefault: null,
+  relevanceMode: 'keyword', defaultTopics: ['research'], maxPerRun: 10,
+  active: true,
   licenseNote: 'test', lastVerified: '2026-08-25', notes: 'test fixture',
   urlPattern: null,
 };
@@ -541,7 +585,7 @@ function feedXml(items: readonly FakeItem[]): string {
   const entries = items.map((item) => `<item>
       <title>${item.title}</title>
       <link>${item.link}</link>
-      <dc:date>${item.dcDate ?? '2026-08-20'}</dc:date>
+      <pubDate>${item.publishedAt ?? '2026-08-20T00:00:00Z'}</pubDate>
       <description>${item.summary ?? 'x'.repeat(600)}</description>
       ${item.contentEncoded ? `<content:encoded>${item.contentEncoded}</content:encoded>` : ''}
       ${item.doi ? `<dc:identifier>${item.doi}</dc:identifier>` : ''}
@@ -560,11 +604,18 @@ export async function makeRun(options: HarnessOptions = {}) {
 
   const feeds = options.feeds ?? {};
   const ids = Object.keys(feeds).length > 0 ? Object.keys(feeds) : ['s1'];
-  await writeFile(paths.sourcesPath, JSON.stringify(ids.map((id) => ({
-    ...DEFAULT_SOURCE, id,
-    feedUrl: `https://example.org/${id}/feed`,
-    ...(options.sources?.[id] ?? {}),
-  })), null, 2));
+  await writeFile(paths.sourcesPath, JSON.stringify(ids.map((id) => {
+    const override = options.sources?.[id] ?? {};
+    // sourceSchema refuses a homepage or feedUrl outside officialDomains, so
+    // an override of the allowlist has to carry its URLs with it.
+    const domain = (override.officialDomains as string[] | undefined)?.[0] ?? 'example.org';
+    return {
+      ...DEFAULT_SOURCE, id,
+      homepage: `https://${domain}/`,
+      feedUrl: `https://${domain}/${id}/feed`,
+      ...override,
+    };
+  }), null, 2));
   // Only seed stories.json on a fresh directory: a reused one carries the
   // previous run output, which is the point of reusing it.
   if (!options.dir) await writeFile(paths.storiesPath, '[]');
@@ -616,6 +667,11 @@ export async function makeRun(options: HarnessOptions = {}) {
         failures: 0, errors: [], attempts: [], retriesUsed: 0,
       };
     },
+    // One fake provider, because the pipeline refuses to call the model at all
+    // when this list is empty — and a clean checkout has no API key.
+    providers: [{ id: 'fake', model: 'fake', maxOutputTokens: 512,
+                  jsonMode: 'json-object', transport: async () => ({ content: null,
+                    meta: { status: 200, durationMs: 0 }, error: null }) }],
     now: () => new Date(options.now ?? '2026-08-25T00:00:00.000Z'),
   };
 
@@ -671,6 +727,8 @@ still applies to the fake model verdicts."
 - Modify: `src/domain/story.ts:16-25`、`src/domain/i18n.ts`、`src/domain/format.ts`
 - Create: `pipeline/src/classify.ts`（整檔重寫）、`pipeline/tests/classify.test.ts`
 - Modify: `pipeline/src/run.ts:35,319-323`、`pipeline/src/ingest.ts:10,299-305`（移除關鍵字退路）
+- Modify: `pipeline/tests/harness.ts`（`DEFAULT_SOURCE.defaultTopics` 換成新標籤；
+  **跨任務共用，必須一起提交**）
 - Create: `tests/fixtures/stories.ts`
 
 **Interfaces:**
@@ -890,12 +948,15 @@ describe('fail-closed relevance', () => {
   const source = {
     id: 's', officialDomains: ['example.org'], region: 'GLOBAL', language: 'en' as const,
     relevanceMode: 'keyword' as const, defaultTopics: ['trust' as const],
-    maxPerRun: 10, dateStrategy: 'dcdate' as const,
+    maxPerRun: 10,
   };
+  // The contract as it exists at this task: screenSourceItems still reads
+  // publishedAt. publishedAtRaw, doi and dateStrategy arrive in Task 5, and
+  // that task rewrites these fixtures.
   const item = {
     title: 'A study of companion chatbots', link: 'https://example.org/a',
-    summary: 'x'.repeat(500), fullText: '', publishedAt: null,
-    publishedAtRaw: '2026-08-20', doi: null, guid: null,
+    summary: 'x'.repeat(500), fullText: '',
+    publishedAt: '2026-08-20T00:00:00.000Z', guid: null,
   };
   const window = { start: new Date('2026-08-18'), end: new Date('2026-08-25') };
 
@@ -1038,9 +1099,9 @@ describe('a model outage reports itself honestly', () => {
       sources: { always: { relevanceMode: 'always' }, gated: { relevanceMode: 'keyword' } },
       feeds: {
         always: [{ title: 'From an always source', link: 'https://example.org/a',
-                   dcDate: '2026-08-20' }],
+                   publishedAt: '2026-08-20T00:00:00Z' }],
         gated: [{ title: 'Needs a verdict', link: 'https://example.org/b',
-                  dcDate: '2026-08-20' }],
+                  publishedAt: '2026-08-20T00:00:00Z' }],
       },
       undecided: ['*'],   // the model answers for nothing
     });
@@ -1060,7 +1121,7 @@ describe('a model outage reports itself honestly', () => {
     const run = await makeRun({
       sources: { gated: { relevanceMode: 'keyword' } },
       feeds: { gated: [{ title: 'Needs a verdict', link: 'https://example.org/b',
-                         dcDate: '2026-08-20' }] },
+                         publishedAt: '2026-08-20T00:00:00Z' }] },
       undecided: ['*'],
     });
     const report = await run.execute();
@@ -1073,7 +1134,7 @@ describe('a model outage reports itself honestly', () => {
     const run = await makeRun({
       sources: { gated: { relevanceMode: 'keyword' } },
       feeds: { gated: [{ title: 'Needs a verdict', link: 'https://example.org/b',
-                         dcDate: '2026-08-20' }] },
+                         publishedAt: '2026-08-20T00:00:00Z' }] },
       undecided: ['*'],
     });
     const report = await run.execute();
@@ -1199,8 +1260,8 @@ git add src/domain/story.ts src/domain/i18n.ts src/domain/format.ts \
         pipeline/src/classify.ts pipeline/tests/classify.test.ts \
         pipeline/src/ingest.ts pipeline/src/run.ts pipeline/src/classify-agent.ts \
         pipeline/tests/ingest.test.ts pipeline/tests/run-outage.test.ts \
-        tests/fixtures/stories.ts
-git diff --cached --name-only | grep run-outage   # the regression test must ship
+        pipeline/tests/harness.ts tests/fixtures/stories.ts
+git diff --cached --name-only | grep -E 'run-outage|harness'   # both must ship
 git commit -m "feat: seven human-impact tags, and a gate that fails closed
 
 Relevance no longer lives in classify.ts at all. The editorial line is
@@ -1228,6 +1289,8 @@ was published at all."
 - Modify: `src/domain/source.ts`（`SOURCE_CATEGORIES`、新增三個欄位）
 - Modify: `src/data/sources.json`（全新清單）
 - Modify: `tests/unit/schema.test.ts`（重建，測新欄位）
+- Modify: `pipeline/tests/harness.ts`（`DEFAULT_SOURCE` 補四個新欄位與新 category；
+  **跨任務共用，必須一起提交**）
 
 **Interfaces:**
 - Consumes: Task 3 的 `TOPICS`
@@ -1463,7 +1526,9 @@ Expected: PASS
 - [ ] **Step 7: 提交**
 
 ```bash
-git add src/domain/source.ts src/data/sources.json tests/unit/schema.test.ts
+git add src/domain/source.ts src/data/sources.json tests/unit/schema.test.ts \
+        pipeline/tests/harness.ts
+git diff --cached --name-only | grep harness   # the shared harness must ship
 git commit -m "feat: source registry for the journal, preprint, and survey tiers
 
 Adds three fields the education project did not need: where each
@@ -1479,6 +1544,7 @@ schema now refuses a source that would fetch pages it may not."
 **Files:**
 - Create: `pipeline/src/published-at.ts`、`pipeline/tests/published-at.test.ts`
 - Modify: `pipeline/src/contracts.ts`（`RawFeedItem` 新增 `publishedAtRaw`、`doi`）
+- Modify: `pipeline/tests/harness.ts`（`FakeItem` 加 `dcDate`；**跨任務共用，必須一起提交**）
 - Modify: `pipeline/src/feed-parser.ts`（**三個**建構子都要填：`parseRssItems`、
   `parseAtomEntries`、`parseJsonFeed:185`）
 - Modify: `pipeline/tests/feed-parser.test.ts`
@@ -1811,8 +1877,9 @@ Expected: PASS。`pipeline/tests/ingest.test.ts` 會因為 `IngestSource` 多了
 ```bash
 git add pipeline/src/published-at.ts pipeline/tests/published-at.test.ts \
         pipeline/src/contracts.ts pipeline/src/feed-parser.ts \
-        pipeline/tests/feed-parser.test.ts \
+        pipeline/tests/feed-parser.test.ts pipeline/tests/harness.ts \
         pipeline/src/ingest.ts pipeline/tests/ingest.test.ts
+git diff --cached --name-only | grep harness   # the shared harness must ship
 git commit -m "feat: resolve publication dates per publisher, and never invent a day
 
 new Date('2026-08') succeeds and silently means the first of the month.
@@ -3528,25 +3595,51 @@ npx tsx pipeline/src/run.ts --dry-run --since 7 > /tmp/dryrun.json
 
 - [ ] **Step 2: 從報告中抽出這些數字**
 
-- 每個來源看到、進窗、接受、拒絕的數量
-- 拒絕理由直方圖，以及日期與摘要類的逐則明細
-- 守門模型的呼叫次數與 token 用量
-- 摘要模型的呼叫次數與 token 用量
-- 每個供應商的失敗次數與重試次數（NVIDIA 的 503 比率）
-- 補摘要各管道的命中數（feed / openalex / article-page / none）
-- 整體耗時
+**這些欄位必須在前面的任務裡就被寫進 `RunReport`，否則這一步做不到。**
+初版計畫在這裡列了一串量測承諾，但沒有任何任務把它們放進報告 —— 乾跑跑完，
+`/tmp/dryrun.json` 裡根本沒有這些數字。各欄位的歸屬：
 
-- [ ] **Step 3: 對照規格第 11 節的預估**
+| 數字 | 由哪個任務加進 `RunReport` |
+|---|---|
+| 每來源的 seen / in-window / accepted / rejected | 骨架已有 |
+| 拒絕理由直方圖 + 日期與摘要類逐則明細 | Task 6 |
+| 守門模型呼叫次數與 token | Task 9（`classifyAll` 的 `attempts` 已帶 `completionTokens`，聚合進報告即可） |
+| 摘要模型呼叫次數與 token、各供應商失敗與重試次數 | Task 10（`summarizeAll` 的 `attempts` 同上） |
+| 補摘要四條管道的命中數（feed / openalex / article-page / none） | Task 8（`Enriched.via` 目前只存在單筆回傳值，要聚合） |
+| 整體耗時 | Task 2（`runWeek()` 起訖時間） |
+
+**若某一項在實作時發現代價太高，就在這裡把承諾縮掉，不要留一個做不到的步驟。**
+
+- [ ] **Step 3: 人工看一遍守門結果，只在乾跑時**
+
+Task 6 刻意不保留 `not-relevant` 的逐則明細 —— 每週好幾百篇，逐則記錄只會產生
+一份沒人讀的清單（Ming 決定，2026-08-25）。但這一步需要看到那些判斷。
+
+兩者不衝突：**乾跑額外輸出一份決策清單，正式執行不輸出。**
+
+```ts
+// Only on --dry-run. A weekly report must not carry hundreds of rows nobody
+// reads; a one-off review needs exactly those rows.
+if (dryRun) report.decisions = candidates.map((c) => ({
+  sourceId: c.source.id, title: c.candidate.item.title, url: c.candidate.item.url,
+  verdict: verdictFor(c.candidate), abstractVia: enriched.get(c.candidate.item.id)?.via,
+}));
+```
+
+這個欄位由 **Task 2** 加進 `runWeek()`（它已經知道 `dryRun`），並由 Task 2 的
+harness 測試釘住：**正式執行的報告不得含 `decisions`。**
+
+- [ ] **Step 4: 對照規格第 11 節的預估**
 
 規格預估路線 B 每次執行約 63–83 次呼叫、220k tokens。把實際數字寫進
 `docs/research/DRY_RUN_2026-08.md`，**預估錯了就說預估錯了**，並說明差在哪。
 
-- [ ] **Step 4: 人工看一遍守門結果**
+- [ ] **Step 5: 整理成給 Ming 看的表格**
 
-Ming 已表示這部分自己看。把被接受與被拒絕的清單整理成可讀的表格附在同一份文件裡，
-特別標出「測量對象是人還是模型」這條線附近的邊界案例。
+把乾跑輸出的 `decisions` 整理成可讀的表格附在同一份文件裡，特別標出
+「測量對象是人還是模型」這條線附近的邊界案例。Ming 已表示這部分自己看。
 
-- [ ] **Step 5: 提交**
+- [ ] **Step 6: 提交**
 
 ```bash
 git add docs/research/DRY_RUN_2026-08.md
