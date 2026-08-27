@@ -20,18 +20,23 @@ describe('workflow triggers', () => {
 
   // This site publishes automatically. An automatic trigger that arrives by
   // accident would start publishing to the public internet without anyone
-  // deciding to. Exactly ONE workflow is allowed a schedule, and only because
-  // Ming enabled it on 2026-08-19 after a manual CI run proved the whole loop.
-  const SCHEDULED_BY_DESIGN = 'weekly-digest.yml';
-
-  it.each(files)('%s has no unintended automatic trigger', (name) => {
+  // deciding to.
+  //
+  // NO workflow is allowed a schedule here. The education project granted that
+  // permission on 2026-08-19 after a manual run proved its loop, and copying
+  // the skeleton carried the permission across to a site that has never been
+  // deployed and for which Ming has approved nothing. An approval belongs to
+  // the site it was given for.
+  //
+  // When Ming approves publishing for THIS site, this test is what has to
+  // change first, deliberately, in its own commit.
+  it.each(files)('%s has no automatic trigger at all', (name) => {
     const lines = readFileSync(resolve(dir, name), 'utf8').split('\n');
-    const triggers = lines.filter((line) =>
-      /^\s*(schedule|push|pull_request|pull_request_target|release):/.test(line),
-    );
-    const allowed =
-      name === SCHEDULED_BY_DESIGN ? triggers.filter((line) => /^\s*schedule:/.test(line)) : [];
-    expect(triggers.filter((line) => !allowed.includes(line))).toEqual([]);
+    expect(
+      lines.filter((line) =>
+        /^\s*(schedule|push|pull_request|pull_request_target|release):/.test(line),
+      ),
+    ).toEqual([]);
   });
 
   // A push or pull_request trigger would publish on every commit, which is a
@@ -43,9 +48,12 @@ describe('workflow triggers', () => {
     ).toEqual([]);
   });
 
-  it('keeps the weekly digest on a weekly cron, not a more frequent one', () => {
-    const body = readFileSync(resolve(dir, SCHEDULED_BY_DESIGN), 'utf8');
-    const cron = /^\s*-\s*cron:\s*'([^']+)'/m.exec(body)?.[1];
+  // Kept for when the schedule is switched on: whatever cron is written then
+  // must still be weekly and on a named day.
+  it('has no active cron, and any commented one is weekly', () => {
+    const body = readFileSync(resolve(dir, 'weekly-digest.yml'), 'utf8');
+    expect(/^\s*-\s*cron:/m.test(body)).toBe(false);
+    const cron = /^\s*#\s*-\s*cron:\s*'([^']+)'/m.exec(body)?.[1];
     expect(cron).toBeDefined();
     // Five fields, and the day-of-week field must name a specific day.
     const fields = (cron ?? '').trim().split(/\s+/);

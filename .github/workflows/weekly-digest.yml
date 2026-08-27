@@ -17,14 +17,24 @@
 #   5. rebuilds and deploys the site.
 #
 # Step 3 is the only step that can silently degrade, and it degrades in stages:
-# NVIDIA first, DeepSeek if NVIDIA produces nothing, and the source's own
+# NVIDIA first, Groq if NVIDIA produces nothing, and the source's own
 # summary if neither does. The run report names which provider served the run.
 
 name: Weekly digest
 
 on:
-  schedule:
-    - cron: '0 1 * * 1'   # 09:00 Taipei every Monday
+  # DISABLED. This site has never been deployed and Ming has not approved
+  # automatic publishing for it. The schedule below was inherited verbatim when
+  # the skeleton was copied from AI_education, where he did approve it on
+  # 2026-08-19 after a manual run proved the loop — an approval for one site,
+  # carried into another by a file copy.
+  #
+  # Enabling this starts publishing to the public internet with nobody reading
+  # anything first. The design spec lists it as a checkpoint that needs Ming to
+  # say yes explicitly. Uncomment only then.
+  #
+  # schedule:
+  #   - cron: '0 1 * * 1'   # 09:00 Taipei every Monday
   workflow_dispatch:
     inputs:
       since_days:
@@ -68,11 +78,11 @@ jobs:
       # the report cleanly.
       - name: Collect and summarize
         env:
-          AI_EDU_API_KEY: ${{ secrets.AI_EDU_API_KEY }}
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
           # Second vendor, tried only when the first produces nothing. A
           # provider outage should cost a week's Chinese summaries, and this is
           # what stops it doing so.
-          AI_EDU_FALLBACK_API_KEY: ${{ secrets.AI_EDU_FALLBACK_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
           npx tsx pipeline/src/run.ts --since "${{ inputs.since_days || '8' }}" \
             > "$RUNNER_TEMP/report.json"

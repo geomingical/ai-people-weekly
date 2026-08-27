@@ -16,8 +16,8 @@
 // Exit code is 0 for a completed or degraded run and 1 only when the run could
 // not produce a usable result at all. A single failing feed is not a failure.
 
-import { readFile, rename, writeFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { lookup } from 'node:dns/promises';
 import { createHostPacer, fetchArticleText } from './article';
@@ -182,6 +182,11 @@ async function readExistingStories(storiesPath: string): Promise<Story[]> {
  * turn over", truncated does not — and this file exists to answer exactly that.
  */
 async function writeAtomic(path: string, contents: string): Promise<void> {
+  // pipeline/state/ is gitignored, so it does not exist in a fresh clone or on
+  // a CI runner. Without this the write throws ENOENT — after stories.json has
+  // already landed, so the run would die with the archive updated and no
+  // report printed.
+  await mkdir(dirname(path), { recursive: true });
   const temp = `${path}.${process.pid}.tmp`;
   await writeFile(temp, contents, 'utf8');
   await rename(temp, path);

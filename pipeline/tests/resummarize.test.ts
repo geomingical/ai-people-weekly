@@ -91,3 +91,18 @@ describe('parseLimit', () => {
     expect(parseLimit(argv)).toBeNull();
   });
 });
+
+
+// resummarize was inherited from a registry where every publisher could be
+// read. This one has publishers that cannot, and the tool takes the story's URL
+// straight from stories.json without consulting the source record.
+describe('publishers that forbid page fetching', () => {
+  it('is a rule the source registry can express', async () => {
+    const { loadSources } = await import('../../src/domain/source');
+    const { readFileSync } = await import('node:fs');
+    const sources = loadSources(JSON.parse(readFileSync('src/data/sources.json', 'utf8')));
+    const elsevier = sources.filter((s) => s.officialDomains.includes('sciencedirect.com'));
+    expect(elsevier.length).toBeGreaterThan(0);
+    for (const source of elsevier) expect(source.articlePageAllowed).toBe(false);
+  });
+});

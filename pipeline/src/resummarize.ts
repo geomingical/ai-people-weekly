@@ -125,12 +125,21 @@ async function main(): Promise<void> {
   const articleText = new Map<string, string>();
   let fetched = 0;
   let failed = 0;
+  let skippedByPolicy = 0;
 
   log(`fetching ${targets.length} article pages …`);
   const pace = createHostPacer(ARTICLE_FETCH_DELAY_MS, pause);
   for (const story of targets) {
     const source = sourceById.get(story.sourceId);
     if (!source) continue;
+    // Inherited from a registry where every publisher could be read. This one
+    // has publishers that cannot: ScienceDirect returns 403 on robots.txt and
+    // asserts a text-and-data-mining reservation, so its pages are never
+    // fetched. Those stories are summarized from their stored excerpt.
+    if (!source.articlePageAllowed) {
+      skippedByPolicy += 1;
+      continue;
+    }
     await pace(story.url, () => Date.now());
 
     const article = await fetchArticleText(story.url, source.officialDomains, io);
@@ -143,6 +152,9 @@ async function main(): Promise<void> {
     articleText.set(story.id, article.text);
   }
   log(`  read ${fetched - failed} of ${fetched} article pages`);
+  if (skippedByPolicy > 0) {
+    log(`  ${skippedByPolicy} not fetched: their publisher does not permit it`);
+  }
 
   const inputs: SummaryInput[] = targets.map((story) => ({
     id: story.id,
