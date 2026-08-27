@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   BATCH_SIZE,
+  MAX_SUMMARY_CHARS,
+  MAX_TITLE_CHARS,
   RETRY_POLICY,
   buildBatchPrompt,
   chunk,
@@ -718,14 +720,21 @@ describe('a summary that stops mid-sentence never ships', () => {
 });
 
 describe('the reply schema ceiling', () => {
-  // The ceiling must sit above the validation rail, which sits above the
-  // prompt's target. Collapsing any two of those turns a limit into scissors.
-  it('is a ceiling above the validation rail, not the target length', () => {
+  // The ceiling must sit STRICTLY above the validation rail, which sits above
+  // the prompt's target. Collapsing any two of those turns a limit into
+  // scissors.
+  //
+  // Equal to the rail is not enough: a reply cut exactly at the rail can land
+  // on a full stop, and then endsCompletely sees finished prose and passes a
+  // truncated summary. Strictly above, an over-long reply arrives whole and
+  // gets rejected on its merits.
+  it('is strictly above the validation rail, not equal to it', () => {
     const schema = replySchema(1) as {
       json_schema: { schema: { properties: { items: { items: { properties: {
-        summary: { maxLength: number } } } } } } };
+        summary: { maxLength: number }; title: { maxLength: number } } } } } } };
     };
-    expect(schema.json_schema.schema.properties.items.items.properties.summary.maxLength)
-      .toBeGreaterThanOrEqual(320);
+    const props = schema.json_schema.schema.properties.items.items.properties;
+    expect(props.summary.maxLength).toBeGreaterThan(MAX_SUMMARY_CHARS);
+    expect(props.title.maxLength).toBeGreaterThan(MAX_TITLE_CHARS);
   });
 });

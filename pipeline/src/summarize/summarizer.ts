@@ -237,11 +237,19 @@ export function replySchema(itemCount: number): unknown {
                 // from after generation to during it, where it also wastes the
                 // call.
                 //
-                // The target lives in the prompt; MAX_SUMMARY_CHARS is the
-                // validation rail; this is set above both so the decoder never
-                // stops mid-sentence for any summary worth keeping.
-                title: { type: 'string', maxLength: 120 },
-                summary: { type: 'string', maxLength: MAX_SUMMARY_CHARS },
+                // The target lives in the prompt, MAX_SUMMARY_CHARS is the
+                // validation rail, and this sits strictly ABOVE the rail.
+                //
+                // Setting it equal to the rail leaves a narrow hole: a reply
+                // that wanted to run past the rail gets cut there, and if the
+                // cut lands on a full stop — the end of a sentence, or an
+                // abbreviation — endsCompletely sees finished prose and lets a
+                // truncated summary through. Above the rail, an over-long
+                // reply arrives whole and local validation rejects it, which is
+                // a judgement we can make rather than an accident of where the
+                // decoder stopped.
+                title: { type: 'string', maxLength: MAX_TITLE_CHARS * 2 },
+                summary: { type: 'string', maxLength: MAX_SUMMARY_CHARS * 2 },
               },
               required: ['index', 'title', 'summary'],
               additionalProperties: false,
@@ -283,11 +291,11 @@ export const BATCH_SIZE = 1;
 // Generous enough that a legitimate headline carrying a product name
 // ("Microsoft 365 Copilot 推出 Study and Learn 功能") is not thrown away, tight
 // enough that a runaway reply still is.
-const MAX_TITLE_CHARS = 60;
+export const MAX_TITLE_CHARS = 60;
 // The prompt asks for 200. This is the rail that stops a runaway reply, not the
 // target — reading a whole article instead of a teaser made summaries genuinely
 // denser, and holding them to exactly the requested number threw away good ones.
-const MAX_SUMMARY_CHARS = 320;
+export const MAX_SUMMARY_CHARS = 320;
 const MAX_INPUT_TITLE_CHARS = 300;
 // A whole article, bounded. Bounded input is one of the injection defences:
 // the cap is provable, so a hostile page cannot choose the prompt size.
