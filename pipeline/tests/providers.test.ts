@@ -101,3 +101,24 @@ describe('the shipped agents.json', () => {
     });
   });
 });
+
+
+// A real run lost 13 summaries and 5 gate batches to Groq answering HTTP 400
+// json_validate_failed. The request was fine: the model spends its budget
+// reasoning before it writes, and when constrained decoding runs out mid-JSON
+// Groq calls that a validation failure. Both providers therefore have to say
+// how much reasoning they are allowed.
+describe('every provider bounds its reasoning', () => {
+  it('declares a reasoning effort, because the default overruns the budget', async () => {
+    const { readFileSync } = await import('node:fs');
+    const config = JSON.parse(readFileSync('pipeline/config/agents.json', 'utf8')) as {
+      summarizer: { maxOutputTokens: number; providers: { id: string; reasoningEffort?: string }[] };
+    };
+    for (const provider of config.summarizer.providers) {
+      expect(provider.reasoningEffort).toBeDefined();
+    }
+    // Measured: default effort reached 1,173 tokens. The cap has to clear that
+    // even if a provider's effort setting is ever removed.
+    expect(config.summarizer.maxOutputTokens).toBeGreaterThan(1200);
+  });
+});

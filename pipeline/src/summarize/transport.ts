@@ -86,6 +86,26 @@ export interface TransportOptions {
 const MAX_RETRY_AFTER_MS = 120_000;
 
 /**
+ * The provider's own error code and type, and nothing else.
+ *
+ * OpenAI-compatible APIs answer an error with { error: { code, type, message } }.
+ * `code` and `type` are enum-like values the server chose. `message` is free
+ * text that routinely quotes the offending part of the request back — and the
+ * request carries untrusted feed content, so it never enters a log.
+ */
+async function readErrorCode(response: Response): Promise<string | null> {
+  try {
+    const body = (await response.json()) as { error?: { code?: unknown; type?: unknown } };
+    const parts = [body.error?.type, body.error?.code]
+      .filter((value): value is string => typeof value === 'string' && value.length < 80)
+      .map((value) => value.replace(/[^\w.:-]/g, ''));
+    return parts.length > 0 ? [...new Set(parts)].join('/') : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Reads a `Retry-After` header in either accepted form — delta-seconds or an
  * HTTP date. Returns undefined for anything absent, unparseable, or negative,
  * so a malformed header can never produce a bogus sleep.
@@ -153,6 +173,15 @@ export function createHttpTransport(options: TransportOptions): ChatTransport {
         response.headers.get('nvcf-reqid') ?? response.headers.get('x-request-id') ?? undefined;
 
       if (!response.ok) {
+        // A 5xx is the provider's problem and the status says all there is to
+        // say. A 4xx means OUR request was wrong, and a bare status code makes
+        // that undiagnosable — fourteen of them went unexplained on a real run.
+        //
+        // Only the structured code and type are taken. Those are enum-like
+        // values the provider generates; the message field is free text that
+        // can quote the prompt back, and the prompt is untrusted feed content.
+        const detail = response.status < 500 ? await readErrorCode(response) : null;
+
         return {
           content: null,
           meta: { status: response.status, requestId, durationMs: elapsed() },
@@ -161,7 +190,7 @@ export function createHttpTransport(options: TransportOptions): ChatTransport {
             status: response.status,
             retryAfterMs: parseRetryAfter(response.headers.get('retry-after'), now()),
             requestId,
-            message: `model API returned HTTP ${response.status}`,
+            message: `model API returned HTTP ${response.status}${detail === null ? '' : ` (${detail})`}`,
           },
         };
       }
