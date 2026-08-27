@@ -229,13 +229,19 @@ export function replySchema(itemCount: number): unknown {
               type: 'object',
               properties: {
                 index: { type: 'integer', minimum: 0, maximum: Math.max(0, itemCount - 1) },
-                // Constrain the decoder rather than trim afterwards. A prose
-                // limit is advice the model may ignore, and it did: on a live
-                // feasibility run five of six summaries overshot 120
-                // characters and one reached 279. Trimming after the fact cuts
-                // mid-sentence, and the site publishes without review.
-                title: { type: 'string', maxLength: 40 },
-                summary: { type: 'string', maxLength: 140 },
+                // A CEILING, not the target. Constrained decoding does not
+                // make a model write shorter — it stops the decoder dead at
+                // the limit. Setting this to the target length (140) cut 40 of
+                // 65 summaries off mid-sentence: "…優點包含", "…構想生成階".
+                // That is the very failure the cap was meant to prevent, moved
+                // from after generation to during it, where it also wastes the
+                // call.
+                //
+                // The target lives in the prompt; MAX_SUMMARY_CHARS is the
+                // validation rail; this is set above both so the decoder never
+                // stops mid-sentence for any summary worth keeping.
+                title: { type: 'string', maxLength: 120 },
+                summary: { type: 'string', maxLength: MAX_SUMMARY_CHARS },
               },
               required: ['index', 'title', 'summary'],
               additionalProperties: false,
@@ -288,6 +294,18 @@ const MAX_INPUT_TITLE_CHARS = 300;
 const MAX_INPUT_SUMMARY_CHARS = 12_000;
 
 const ITEM_FRAME_LITERAL = /<\/?item/gi;
+
+/**
+ * Does this read as a finished sentence?
+ *
+ * Terminal punctuation in either script, optionally inside a closing bracket or
+ * quote. Rejecting a legitimate summary that forgot its full stop costs one
+ * story its machine summary; accepting a truncated one puts a fragment on the
+ * page. The first is recoverable and the second is what a reader sees.
+ */
+export function endsCompletely(text: string): boolean {
+  return /[。！？.!?][」』）)\]"']?$/.test(text.trim());
+}
 
 /**
  * Pulls the JSON envelope out of a reply that also contains other text.
@@ -422,6 +440,11 @@ export function validateBatchReply(
     // Content checks are per-item: skip this one, keep the rest.
     if (!isAcceptableField(entry['title'], MAX_TITLE_CHARS)) continue;
     if (!isAcceptableField(entry['summary'], MAX_SUMMARY_CHARS)) continue;
+    // A summary that stops mid-sentence reaches the reader as a fragment, and
+    // this site publishes without anyone reading it first. Whatever the cause —
+    // a decoder ceiling, a token budget, a model that simply stopped — the
+    // right answer is to keep the source's own words instead.
+    if (!endsCompletely(entry['summary'] as string)) continue;
 
     outputs.push({
       id: item.id,
