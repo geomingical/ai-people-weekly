@@ -1,7 +1,7 @@
 # Weekly collection and publish.
 #
-# ACTIVE since 2026-08-19. Runs every Monday at 09:00 Taipei time and publishes
-# to https://geomingical.github.io/ai-education-weekly/ without a human reading
+# SCHEDULED since 2026-08-28. Runs every Monday at 10:30 Taipei time and publishes
+# to https://geomingical.github.io/ai-people-weekly/ without a human reading
 # each item first — which is the design Ming chose, with the source registry as
 # the editorial control. It was switched on only after one manual run proved the
 # whole loop on CI: tests, collection, summarization, build, commit, deploy.
@@ -23,18 +23,8 @@
 name: Weekly digest
 
 on:
-  # DISABLED. This site has never been deployed and Ming has not approved
-  # automatic publishing for it. The schedule below was inherited verbatim when
-  # the skeleton was copied from AI_education, where he did approve it on
-  # 2026-08-19 after a manual run proved the loop — an approval for one site,
-  # carried into another by a file copy.
-  #
-  # Enabling this starts publishing to the public internet with nobody reading
-  # anything first. The design spec lists it as a checkpoint that needs Ming to
-  # say yes explicitly. Uncomment only then.
-  #
-  # schedule:
-  #   - cron: '0 1 * * 1'   # 09:00 Taipei every Monday
+  schedule:
+    - cron: '30 2 * * 1'   # 10:30 Taipei every Monday
   workflow_dispatch:
     inputs:
       since_days:
@@ -48,6 +38,8 @@ concurrency:
 
 jobs:
   collect:
+    outputs:
+      added: ${{ steps.pipeline.outputs.added }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -113,10 +105,12 @@ jobs:
           git push origin HEAD:main
 
   # Runs only after a successful collect, and only when the site actually needs
-  # rebuilding. Deployment is a separate job so a failed publish never leaves a
-  # commit half-applied.
+  # rebuilding. Separate jobs make the data-commit and publish states clear. If
+  # deployment fails, main may already contain new data while the site remains
+  # on its previous version.
   deploy:
     needs: collect
+    if: needs.collect.outputs.added != '0'
     runs-on: ubuntu-latest
     permissions:
       pages: write

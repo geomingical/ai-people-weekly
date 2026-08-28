@@ -14,29 +14,30 @@ describe('workflow triggers', () => {
   const dir = resolve(ROOT, '.github/workflows');
   const files = readdirSync(dir).filter((name) => name.endsWith('.yml'));
 
+  function triggerKeys(body: string): string[] {
+    const lines = body.split('\n');
+    const onLine = lines.findIndex((line) => line === 'on:');
+    if (onLine === -1) return [];
+
+    const keys: string[] = [];
+    for (const line of lines.slice(onLine + 1)) {
+      if (/^\S/.test(line)) break;
+      const key = /^  ([a-zA-Z_][\w-]*):/.exec(line)?.[1];
+      if (key !== undefined) keys.push(key);
+    }
+    return keys;
+  }
+
   it('finds the workflows', () => {
     expect(files.length).toBeGreaterThan(0);
   });
 
-  // This site publishes automatically. An automatic trigger that arrives by
-  // accident would start publishing to the public internet without anyone
-  // deciding to.
-  //
-  // NO workflow is allowed a schedule here. The education project granted that
-  // permission on 2026-08-19 after a manual run proved its loop, and copying
-  // the skeleton carried the permission across to a site that has never been
-  // deployed and for which Ming has approved nothing. An approval belongs to
-  // the site it was given for.
-  //
-  // When Ming approves publishing for THIS site, this test is what has to
-  // change first, deliberately, in its own commit.
-  it.each(files)('%s has no automatic trigger at all', (name) => {
-    const lines = readFileSync(resolve(dir, name), 'utf8').split('\n');
-    expect(
-      lines.filter((line) =>
-        /^\s*(schedule|push|pull_request|pull_request_target|release):/.test(line),
-      ),
-    ).toEqual([]);
+  it.each(files)('%s exposes exactly its approved triggers', (name) => {
+    const body = readFileSync(resolve(dir, name), 'utf8');
+    const approved = name === 'weekly-digest.yml'
+      ? ['schedule', 'workflow_dispatch']
+      : ['workflow_dispatch'];
+    expect(triggerKeys(body).sort()).toEqual(approved.sort());
   });
 
   // A push or pull_request trigger would publish on every commit, which is a
@@ -48,17 +49,38 @@ describe('workflow triggers', () => {
     ).toEqual([]);
   });
 
-  // Kept for when the schedule is switched on: whatever cron is written then
-  // must still be weekly and on a named day.
-  it('has no active cron, and any commented one is weekly', () => {
+  it('weekly digest runs only on its approved schedule or by manual dispatch', () => {
     const body = readFileSync(resolve(dir, 'weekly-digest.yml'), 'utf8');
-    expect(/^\s*-\s*cron:/m.test(body)).toBe(false);
-    const cron = /^\s*#\s*-\s*cron:\s*'([^']+)'/m.exec(body)?.[1];
-    expect(cron).toBeDefined();
-    // Five fields, and the day-of-week field must name a specific day.
-    const fields = (cron ?? '').trim().split(/\s+/);
-    expect(fields).toHaveLength(5);
-    expect(fields[4]).not.toBe('*');
+    const cronLines = body.split('\n').filter((line) => /^\s*-\s*cron:/.test(line));
+    expect(cronLines).toHaveLength(1);
+    expect(cronLines[0]).toMatch(/^\s*-\s*cron:\s*'30 2 \* \* 1'\s*(?:#.*)?$/);
+  });
+});
+
+describe('weekly workflow handoff', () => {
+  const body = readFileSync(resolve(ROOT, '.github/workflows/weekly-digest.yml'), 'utf8');
+
+  it('exposes the collected story count to downstream jobs', () => {
+    expect(body).toMatch(
+      /collect:\n\s{4}outputs:\n\s{6}added: \$\{\{ steps\.pipeline\.outputs\.added \}\}/,
+    );
+  });
+
+  it('deploys only after collect adds stories', () => {
+    const lines = body.split('\n');
+    const deployLine = lines.findIndex((line) => line === '  deploy:');
+    const deployJob = lines
+      .slice(deployLine + 1)
+      .findIndex((line) => /^  \S/.test(line));
+    const fields = lines
+      .slice(deployLine + 1, deployJob === -1 ? undefined : deployLine + 1 + deployJob)
+      .filter((line) => /^    (needs|if):/.test(line))
+      .map((line) => line.trim());
+    expect(deployLine).toBeGreaterThan(-1);
+    expect(fields).toEqual([
+      'needs: collect',
+      "if: needs.collect.outputs.added != '0'",
+    ]);
   });
 });
 
