@@ -1,5 +1,66 @@
 [
   {
+    "id": "39457198096ac96a",
+    "sourceId": "arxiv-cs-hc",
+    "title": "Exploring Normativity in Stable Diffusion: Insights for XAI in the Arts",
+    "summaryOriginal": "Generative text-to-image (T2I) systems are increasingly adopted in creative practice, yet their normative behaviors remain underexplored from the perspective of creative practitioners. In this workshop paper, we present a within-subject study with 14 creative practitioners using Stable Diffusion to create illustration from two tasks of differing specificity. We investigate whether and how…",
+    "titleZhTW": "探索 Stable Diffusion 的規範性：給 XAI 藝術應用的啟示",
+    "summaryZhTW": "研究邀請 14 位創意從業者進行組內實驗，使用 Stable Diffusion 完成兩項具體程度不同的插畫任務。結果顯示，參與者透過不變的輸出模式、刻板印象圖像、以及未經要求的細節增減，感知到系統的規範性行為，進而產生無力感並被迫妥協創作意圖。研究討論提示詞透明化與賦能創作者對 XAI 藝術應用的意涵。",
+    "summarySource": "machine",
+    "url": "https://arxiv.org/abs/2608.26980",
+    "publishedAt": "2026-08-27T11:27:03.000Z",
+    "fetchedAt": "2026-08-28T09:05:46.961Z",
+    "issue": "2026-W35",
+    "topics": [
+      "cognition"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "ab58714b1465d490",
+    "sourceId": "arxiv-human-impact-query",
+    "title": "Trusting AI in Competitive Markets",
+    "summaryOriginal": "Problem definition: People's trust in AI advice diverges as they use it, deepening for some and eroding for others. We study this divergence in oligopoly pricing, where advice cannot prove itself: rivals' responses decide whether it pays off. Methodology/results: In a laboratory experiment, 273 sellers compete across 91 three-seller markets over 30 rounds; we vary the presence of AI pricing…",
+    "titleZhTW": "競爭市場中對 AI 定價建議的信任：性別組成影響學習與獲利",
+    "summaryZhTW": "實驗招募 273 位賣家組成 91 個三人寡佔市場，進行 30 輪定價競爭，並操控是否提供 AI 定價建議與市場性別組成（純女性、純男性、混合）。結果顯示，純女性市場在獲得 AI 建議後，價格上漲 29%、獲利增加 39%；純男性與混合市場則無顯著變化。非齊次隱馬可可夫模型進一步揭示：純女性市場中獲利回合預測後續對 AI 依從度上升，其他組成則下降，符合學習信任與自我服務歸因模式，結果與既有性別與 AI 研究預期相反。",
+    "summarySource": "machine",
+    "url": "https://arxiv.org/abs/2608.26539",
+    "publishedAt": "2026-08-27T02:19:24.000Z",
+    "fetchedAt": "2026-08-28T09:05:46.961Z",
+    "issue": "2026-W35",
+    "topics": [
+      "trust"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "3e79c770cb5e68df",
+    "sourceId": "jmir",
+    "title": "Rethinking Pediatric Asthma Education Through Large Language Model Generation and Simplification: Randomized Double-Blind Study",
+    "summaryOriginal": "Background: Large language models (LLMs) are increasingly used to generate health education materials, yet questions remain about whether LLM-generated content can balance professional accuracy with public accessibility and what ethical challenges may arise during deployment. Objective: This study aimed to evaluate Chinese pediatric asthma educational materials generated using LLMs, comparing…",
+    "titleZhTW": "大型語言模型生成兒童氣喘教材：雙盲隨機研究發現品質不遜專家",
+    "summaryZhTW": "研究招募醫療專業人員與患者家屬共 175 位，隨機分組評估專家撰寫、AI 生成及 AI 簡化三版中文兒童氣喘教材。結果顯示 AI 生成版在 19 題量表總分上數值略高於專家版，但經統計校正後雙方無顯著差異；AI 簡化版同樣未顯著優於專家版。超過 8 成收到專家版的受試者正確判斷為人工撰寫，僅 7.3% 收到 AI 版者識別出機器來源，凸顯來源透明化的重要性。研究結論：在受試者多為高學歷樣本下，額外簡化未提升接受度，臨床應用前仍需專業審核與事實、安全性驗證。",
+    "summarySource": "machine",
+    "url": "https://www.jmir.org/2026/1/e98118",
+    "publishedAt": "2026-08-26T20:00:17.000Z",
+    "fetchedAt": "2026-08-28T09:05:46.961Z",
+    "issue": "2026-W35",
+    "topics": [
+      "trust",
+      "cognition"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
     "id": "de0286809d375365",
     "sourceId": "jmir",
     "title": "AI-Based Approaches to Refugee Mental Health Care: Systematic Integrative Review",
@@ -307,6 +368,46 @@
     "openUrl": null
   },
   {
+    "id": "5bdfcae3a01620ba",
+    "sourceId": "nature-reviews-psychology",
+    "title": "Programming education in the AI era",
+    "summaryOriginal": "Nature Reviews Psychology, Published online: 26 August 2026; doi:10.1038/s44159-026-00612-8 Artificial intelligence (AI) can now translate natural-language instructions into computer code, prompting claims that human programming is obsolete. However, programming relies more on reasoning than linguistic abilities. Programming education remains essential but should emphasize computational reasoning…",
+    "titleZhTW": "AI 時代的程式設計教育：重點應從語法轉向計算推理",
+    "summaryZhTW": "文章指出雖然 AI 能將自然語言轉為程式碼，但程式設計核心在於推理而非語言能力，因此程式設計教育仍不可或缺。建議教學重心應從語法教學轉向培養計算推理，並訓練未來軟體工程師與生成式 AI 協作。",
+    "summarySource": "machine",
+    "url": "https://www.nature.com/articles/s44159-026-00612-8",
+    "publishedAt": "2026-08-26T00:00:00.000Z",
+    "fetchedAt": "2026-08-28T09:05:46.961Z",
+    "issue": "2026-W35",
+    "topics": [
+      "cognition"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "restricted",
+    "openUrl": null
+  },
+  {
+    "id": "45f32da308c08808",
+    "sourceId": "arxiv-cs-hc",
+    "title": "Self-Explanation Tutor for Active Study of CS1 Worked Examples",
+    "summaryOriginal": "Worked examples are a important part of introductory programming, but reading their expert explanations is passive. Self explanation, students explaining the problem and its solution to themselves with subgoal level analysis, turns that study into an active task, yet it is hard to scale because assessing free-text explanations and returning timely feedback has had no easy automated solution. We…",
+    "titleZhTW": "LLM 驅動的自我解釋導師：讓 CS1 範例學習從被動變主動",
+    "summaryZhTW": "研究團隊開發 ESSE 系統，利用大型語言模型即時評判學生對 Java 範例程式碼逐行的自我解釋，並給予正確性與完整度回饋。將 LLM 判斷與領域專家及非專家群眾標準比對，發現 LLM 足以勝任導師引擎；實地部署於入門 Java 課程顯示，回饋促使學生持續修正而非放棄，解釋品質隨嘗試次數提升，並呈現學習成效。",
+    "summarySource": "machine",
+    "url": "https://arxiv.org/abs/2608.25180",
+    "publishedAt": "2026-08-25T21:54:47.000Z",
+    "fetchedAt": "2026-08-28T09:05:46.961Z",
+    "issue": "2026-W35",
+    "topics": [
+      "cognition"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
     "id": "aaccc5177b423d2c",
     "sourceId": "arxiv-cs-cy",
     "title": "The AI Adaptation Gap in Higher Education: Students, Faculty, and Administrative Staff",
@@ -321,6 +422,26 @@
     "topics": [
       "trust",
       "dependence"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "602d8501bb260da9",
+    "sourceId": "arxiv-cs-cy",
+    "title": "Security Education in Higher Education through AI-Powered Gamification",
+    "summaryOriginal": "Cybersecurity education is facing more challenges as AI-driven attacks are becoming increasingly realistic and difficult to detect. Traditional video-based cybersecurity training in higher education often suffers from both low engagement and limited effectiveness. This dilemma motivates educators to explore innovative approaches, such as AI-powered gamification, which can deliver engaging,…",
+    "titleZhTW": "AI 驅動遊戲化教學應用於大學網安教育",
+    "summaryZhTW": "研究團隊開發多款行動裝置友善的短小遊戲，涵蓋密碼安全、簡訊與電話詐騙辨識等主題，結合問答、敘事與模擬等多種遊戲化策略。以 59 位大學生（含 9 位技術專家與 50 位一般使用者）進行兩階段評估，結果顯示 AI 遊戲化教學有潛力提升學生參與度與對網安議題的關注。",
+    "summarySource": "machine",
+    "url": "https://arxiv.org/abs/2608.24778",
+    "publishedAt": "2026-08-25T16:18:38.000Z",
+    "fetchedAt": "2026-08-28T09:05:46.961Z",
+    "issue": "2026-W35",
+    "topics": [
+      "wellbeing"
     ],
     "region": "GLOBAL",
     "language": "en",
@@ -1067,6 +1188,26 @@
     "openUrl": null
   },
   {
+    "id": "70dd3e1e5fa8392e",
+    "sourceId": "arxiv-cs-hc",
+    "title": "Event-Time Confounding Under Bursty Human Dynamics",
+    "summaryOriginal": "Studies of digital behavior often align users at moments they choose, such as opening an AI assistant, clicking a recommendation, or visiting a product page, and interpret higher activity afterward as an event effect. We show how this creates an endogenous time zero: the event occurs during an ongoing task episode, so the aligned curve can trace episode continuation rather than a response to the…",
+    "titleZhTW": "活動高峰期的事件時間混淆問題",
+    "summaryZhTW": "研究以同一使用者跨平台的網頁紀錄，觀察 AI、購物、新聞等事件前皆有整體活動提升，且高峰常在事件發生前。即使使用已知不會產生影響的時間點，仍出現類似的事後搜尋增加，顯示對齊事件時間會混入正在進行的任務階段，造成「事件效應」的誤判。作者證明單一表面的時間窗口無法區分此偏誤，並提供診斷流程與輕量審核工具，以協助未來研究比較有無事件的相似活動情境。",
+    "summarySource": "machine",
+    "url": "https://arxiv.org/abs/2608.21294",
+    "publishedAt": "2026-08-21T16:57:12.000Z",
+    "fetchedAt": "2026-08-28T09:05:46.961Z",
+    "issue": "2026-W34",
+    "topics": [
+      "cognition"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
     "id": "e34d63e3456e3a94",
     "sourceId": "arxiv-cs-hc",
     "title": "Supporting The Many Lives of Personal Data with Rebite: LLM-Powered Goal-Directed Framing in Food Journaling",
@@ -1271,6 +1412,48 @@
       "trust",
       "cognition",
       "social"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "2c3616f18a71fb31",
+    "sourceId": "jmir-mental-health",
+    "title": "Parasocial Engagement With Social Media Influencers and Mental Health Outcomes: Systematic Review and Meta-Analysis",
+    "summaryOriginal": "Background: Social media influencers occupy a pervasive role in billions of users’ daily digital lives, particularly among adolescents and young adults. Audiences develop parasocial engagement with these figures, including parasocial relationships (PSRs) and parasocial interactions (PSIs). Despite growing concern about their mental health implications, no prior meta-analysis has quantitatively…",
+    "titleZhTW": "網紅準社交關係對心理健康雙面影響：系統性回顧與元分析",
+    "summaryZhTW": "此研究回顧 17 篇文獻、52 個效果量，發現觀眾對網紅的準社交投入同時與正向（如幸福感 r=0.38）與負向（如社群媒體成癮 r=0.24）結果相關，正向效果顯著較強。準社交互動（PSI）比準社交關係（PSR）關聯更強，青少年（r=0.44）與東方文化樣本（r=0.61）影響最大，提示準社交投入非單一利弊，而是視結果類型、建構面向、發展階段與文化脈絡而定。",
+    "summarySource": "machine",
+    "url": "https://mental.jmir.org/2026/1/e96331",
+    "publishedAt": "2026-08-20T18:45:11.000Z",
+    "fetchedAt": "2026-08-28T09:05:46.961Z",
+    "issue": "2026-W34",
+    "topics": [
+      "relationships",
+      "wellbeing"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "f800940026ceaa44",
+    "sourceId": "arxiv-cs-hc",
+    "title": "Designing Human-mediated AI Guidance: Ready Together for Personalized Family Emergency Preparedness",
+    "summaryOriginal": "Artificial intelligence (AI) systems are increasingly used across domains to provide personalized information, recommendations, and decision support. However, in some contexts, AI-generated information may not be suitable for direct delivery to the final recipient. Instead, it may need to be interpreted, adapted, and communicated by a human who understands the recipient's needs, emotional state,…",
+    "titleZhTW": "設計人類中介 AI 引導：Ready Together 協助家庭個人化緊急備災",
+    "summaryZhTW": "研究提出「人類中介 AI 引導」框架，開發 Ready Together 系統讓父母轉譯 AI 生成的備災內容給孩子。研究透過半結構化訪談與共同設計活動，發現家庭備災面臨難以與孩子討論緊急狀況、不確定如何適當解釋、偏好互動式學習等挑戰。原型經試驗研究與啟發式評估後，參與者對個人化建議與實作活動回應正面，初步顯示此模式能在保留父母詮釋責任下支援情境敏感的家庭備災。",
+    "summarySource": "machine",
+    "url": "https://arxiv.org/abs/2608.19950",
+    "publishedAt": "2026-08-20T12:17:24.000Z",
+    "fetchedAt": "2026-08-28T09:05:46.961Z",
+    "issue": "2026-W34",
+    "topics": [
+      "trust",
+      "cognition"
     ],
     "region": "GLOBAL",
     "language": "en",
