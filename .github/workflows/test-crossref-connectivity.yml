@@ -1,0 +1,151 @@
+name: Test Crossref connectivity
+
+on:
+  push:
+    branches:
+      - test/crossref-actions-connectivity
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  crossref:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Query all 12 journals three times
+        shell: bash
+        run: |
+          node <<'NODE'
+          const journals = [
+            ['behaviour-info-tech', '0144-929X'],
+            ['ijhci', '1044-7318'],
+            ['hci-journal', '0737-0024'],
+            ['media-psychology', '1521-3269'],
+            ['info-comm-society', '1369-118X'],
+            ['new-media-society', '1461-4448'],
+            ['big-data-society', '2053-9517'],
+            ['social-sci-comp-review', '0894-4393'],
+            ['communication-research', '0093-6502'],
+            ['psychological-science', '0956-7976'],
+            ['tochi', '1073-0516'],
+            ['pacm-hci', '2573-0142'],
+          ];
+
+          const from = '2026-08-21';
+          const until = '2026-08-28';
+          const userAgent =
+            'AI-People-Weekly/1.0 (https://github.com/geomingical/ai-people-weekly)';
+
+          function publishedDate(value) {
+            const parts = value?.['date-parts']?.[0];
+            if (!Array.isArray(parts) || parts.length < 3) return null;
+            return parts
+              .slice(0, 3)
+              .map((part, index) => String(part).padStart(index === 0 ? 4 : 2, '0'))
+              .join('-');
+          }
+
+          const rounds = [];
+          for (let round = 1; round <= 3; round += 1) {
+            const failures = [];
+            let records = 0;
+
+            for (const [id, issn] of journals) {
+              const params = new URLSearchParams({
+                filter: `from-pub-date:${from},until-pub-date:${until},type:journal-article`,
+                rows: '100',
+                select: 'DOI,title,published,type,URL,abstract,ISSN',
+              });
+              const url = `https://api.crossref.org/journals/${issn}/works?${params}`;
+
+              try {
+                const response = await fetch(url, {
+                  headers: {
+                    accept: 'application/json',
+                    'user-agent': userAgent,
+                  },
+                });
+                const body = await response.json().catch(() => null);
+                const items = body?.message?.items;
+                const errors = [];
+
+                if (response.status !== 200) errors.push(`HTTP ${response.status}`);
+                if (
+                  body?.status !== 'ok' ||
+                  body?.['message-type'] !== 'work-list' ||
+                  !Array.isArray(items)
+                ) {
+                  errors.push('invalid Crossref JSON envelope');
+                }
+
+                if (Array.isArray(items)) {
+                  records += items.length;
+                  const seenDois = new Set();
+                  for (const item of items) {
+                    const date = publishedDate(item.published);
+                    if (typeof item.DOI !== 'string' || item.DOI.trim() === '') {
+                      errors.push('missing DOI');
+                    }
+                    if (
+                      !Array.isArray(item.title) ||
+                      typeof item.title[0] !== 'string' ||
+                      item.title[0].trim() === ''
+                    ) {
+                      errors.push('missing title');
+                    }
+                    if (date === null || date < from || date > until) {
+                      errors.push(`date outside window: ${date}`);
+                    }
+                    if (typeof item.URL !== 'string' || !item.URL.startsWith('https://')) {
+                      errors.push('invalid URL');
+                    }
+                    const returnedIssns = (item.ISSN ?? []).map((value) =>
+                      String(value).toUpperCase(),
+                    );
+                    if (!returnedIssns.includes(issn)) {
+                      errors.push(`ISSN mismatch: ${returnedIssns.join(',')}`);
+                    }
+                    if (seenDois.has(item.DOI)) errors.push(`duplicate DOI: ${item.DOI}`);
+                    seenDois.add(item.DOI);
+                  }
+                }
+
+                if (errors.length > 0) {
+                  failures.push({ id, errors: [...new Set(errors)] });
+                }
+              } catch (error) {
+                failures.push({ id, errors: [String(error)] });
+              }
+
+              // Crossref's public pool currently advertises five requests per
+              // second. Stay comfortably below that ceiling.
+              await new Promise((resolve) => setTimeout(resolve, 350));
+            }
+
+            const result = {
+              round,
+              passedSources: journals.length - failures.length,
+              totalSources: journals.length,
+              records,
+              failures,
+            };
+            rounds.push(result);
+            console.log(JSON.stringify(result));
+          }
+
+          const passed = rounds.every((round) => round.failures.length === 0);
+          const summary = {
+            overall: passed ? 'PASS' : 'FAIL',
+            requests: journals.length * rounds.length,
+            successfulRequests: rounds.reduce(
+              (total, round) => total + round.passedSources,
+              0,
+            ),
+            recordsByRound: rounds.map((round) => round.records),
+          };
+          console.log(JSON.stringify(summary));
+          process.exitCode = passed ? 0 : 1;
+          NODE
