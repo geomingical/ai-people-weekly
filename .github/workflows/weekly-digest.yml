@@ -1,10 +1,10 @@
 # Weekly collection and publish.
 #
-# SCHEDULED since 2026-08-28. Runs every Monday at 10:30 Taipei time and publishes
+# Scheduled for every Monday at 10:30 Taipei time and publishes
 # to https://geomingical.github.io/ai-people-weekly/ without a human reading
 # each item first — which is the design Ming chose, with the source registry as
-# the editorial control. It was switched on only after one manual run proved the
-# whole loop on CI: tests, collection, summarization, build, commit, deploy.
+# the editorial control. The schedule becomes active only when this workflow is
+# merged to main after its manual proof run.
 #
 # To pause it, comment the two `schedule:` lines out again. Nothing else needs
 # to change, and workflow_dispatch keeps working for manual runs.
@@ -47,7 +47,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
         with:
-          ref: main
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.ref_name || 'main' }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v5
@@ -98,6 +98,10 @@ jobs:
       - name: Commit the week's stories
         if: steps.pipeline.outputs.added != '0'
         run: |
+          cp src/data/stories.json "$RUNNER_TEMP/stories.json"
+          git fetch origin main
+          git checkout --detach origin/main
+          cp "$RUNNER_TEMP/stories.json" src/data/stories.json
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add src/data/stories.json
@@ -110,7 +114,10 @@ jobs:
   # on its previous version.
   deploy:
     needs: collect
-    if: needs.collect.outputs.added != '0'
+    # GitHub Pages accepts deployments only from main. A feature-branch proof
+    # verifies collection and the scoped data handoff; deploy.yml then proves
+    # the already-updated main site separately without relaxing that protection.
+    if: needs.collect.outputs.added != '0' && github.ref_name == 'main'
     runs-on: ubuntu-latest
     permissions:
       pages: write

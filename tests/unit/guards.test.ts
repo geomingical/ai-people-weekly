@@ -60,6 +60,20 @@ describe('workflow triggers', () => {
 describe('weekly workflow handoff', () => {
   const body = readFileSync(resolve(ROOT, '.github/workflows/weekly-digest.yml'), 'utf8');
 
+  it('runs manual proof against the requested branch, while schedules use main', () => {
+    expect(body).toContain(
+      "ref: ${{ github.event_name == 'workflow_dispatch' && github.ref_name || 'main' }}",
+    );
+  });
+
+  it('copies only generated story data onto the latest main commit', () => {
+    expect(body).toContain('cp src/data/stories.json "$RUNNER_TEMP/stories.json"');
+    expect(body).toContain('git fetch origin main');
+    expect(body).toContain('git checkout --detach origin/main');
+    expect(body).toContain('cp "$RUNNER_TEMP/stories.json" src/data/stories.json');
+    expect(body).toContain('git add src/data/stories.json');
+  });
+
   it('exposes the collected story count to downstream jobs', () => {
     expect(body).toMatch(
       /collect:\n\s{4}outputs:\n\s{6}added: \$\{\{ steps\.pipeline\.outputs\.added \}\}/,
@@ -79,7 +93,7 @@ describe('weekly workflow handoff', () => {
     expect(deployLine).toBeGreaterThan(-1);
     expect(fields).toEqual([
       'needs: collect',
-      "if: needs.collect.outputs.added != '0'",
+      "if: needs.collect.outputs.added != '0' && github.ref_name == 'main'",
     ]);
   });
 });
