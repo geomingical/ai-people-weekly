@@ -13,58 +13,119 @@ interface Props {
 const { locale, state } = Astro.props;
 ---
 
-<form class="filters" data-filter-form>
-  <div class="filters__field filters__field--search">
-    <label for="story-query">{t(locale, 'filterSearchLabel')}</label>
-    <input
-      type="search"
-      data-filter-input
-      name="query"
-      id="story-query"
-      placeholder={t(locale, 'filterSearchPlaceholder')}
-      value={state.query}
-    />
-  </div>
+<form data-filter-form>
+  <details class="filters__panel" data-filter-panel open>
+    <summary class="filters__toggle">{t(locale, 'filterToggleLabel')}</summary>
+    <div class="filters">
+      <div class="filters__field filters__field--search">
+        <label for="story-query">{t(locale, 'filterSearchLabel')}</label>
+        <input
+          type="search"
+          data-filter-input
+          name="query"
+          id="story-query"
+          placeholder={t(locale, 'filterSearchPlaceholder')}
+          value={state.query}
+        />
+      </div>
 
-  <div class="filters__field">
-    <label for="story-topic">{t(locale, 'filterTopicLabel')}</label>
-    <select data-filter-input name="topic" id="story-topic">
-      <option value="all" selected={state.topic === 'all'}>{t(locale, 'filterAll')}</option>
-      {TOPICS.map((topic) => (
-        <option value={topic} selected={state.topic === topic}>{formatTopic(locale, topic)}</option>
-      ))}
-    </select>
-  </div>
+      <div class="filters__field">
+        <label for="story-topic">{t(locale, 'filterTopicLabel')}</label>
+        <select data-filter-input name="topic" id="story-topic">
+          <option value="all" selected={state.topic === 'all'}>{t(locale, 'filterAll')}</option>
+          {TOPICS.map((topic) => (
+            <option value={topic} selected={state.topic === topic}>{formatTopic(locale, topic)}</option>
+          ))}
+        </select>
+      </div>
 
-  <div class="filters__field">
-    <label for="story-category">{t(locale, 'filterCategoryLabel')}</label>
-    <select data-filter-input name="category" id="story-category">
-      <option value="all" selected={state.category === 'all'}>{t(locale, 'filterAll')}</option>
-      {SOURCE_CATEGORIES.map((category) => (
-        <option value={category} selected={state.category === category}>
-          {formatCategory(locale, category)}
-        </option>
-      ))}
-    </select>
-  </div>
+      <div class="filters__field">
+        <label for="story-category">{t(locale, 'filterCategoryLabel')}</label>
+        <select data-filter-input name="category" id="story-category">
+          <option value="all" selected={state.category === 'all'}>{t(locale, 'filterAll')}</option>
+          {SOURCE_CATEGORIES.map((category) => (
+            <option value={category} selected={state.category === category}>
+              {formatCategory(locale, category)}
+            </option>
+          ))}
+        </select>
+      </div>
 
-  <div class="filters__field">
-    <label for="story-region">{t(locale, 'filterRegionLabel')}</label>
-    <select data-filter-input name="region" id="story-region">
-      {REGION_FILTER_OPTIONS.map((region) => (
-        <option value={region} selected={state.region === region}>
-          {region === 'all' ? t(locale, 'filterAll') : formatRegion(locale, region)}
-        </option>
-      ))}
-    </select>
-  </div>
+      <div class="filters__field">
+        <label for="story-region">{t(locale, 'filterRegionLabel')}</label>
+        <select data-filter-input name="region" id="story-region">
+          {REGION_FILTER_OPTIONS.map((region) => (
+            <option value={region} selected={state.region === region}>
+              {region === 'all' ? t(locale, 'filterAll') : formatRegion(locale, region)}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+  </details>
 </form>
 
 <style>
+  /* The panel ships open in the HTML, so the controls are all there if the
+     controller never runs; the script folds it shut on a phone, and only when
+     nothing is filtered — a reader who arrived on a filtered link has to be
+     able to see why they are seeing eight studies and not forty.
+
+     The toggle is styled like the dropdowns it hides, because a control that
+     does not look like a control is worse than no control. display:flex drops
+     the marker the browser would draw, so the chevron here is ours — and it
+     has to turn, or open and shut look identical. */
+  .filters__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    min-block-size: 2.75rem;
+    padding-inline: var(--space-3);
+    border: 1px solid var(--color-rule);
+    border-radius: 2px;
+    background: var(--color-paper);
+    color: var(--color-ink-soft);
+    cursor: pointer;
+    font-size: 0.9375rem;
+    list-style: none;
+  }
+
+  .filters__toggle::-webkit-details-marker {
+    display: none;
+  }
+
+  .filters__toggle::after {
+    content: '';
+    inline-size: 0.45rem;
+    block-size: 0.45rem;
+    margin-block-start: -0.2rem;
+    border-inline-end: 1.5px solid currentColor;
+    border-block-end: 1.5px solid currentColor;
+    transform: rotate(45deg);
+  }
+
+  .filters__panel[open] .filters__toggle::after {
+    margin-block-start: 0.2rem;
+    transform: rotate(225deg);
+  }
+
+  .filters__panel[open] .filters__toggle {
+    margin-block-end: var(--space-3);
+  }
+
+  /* Two columns even on a phone. Stacked, the four controls ran to about a
+     screen and a half — a reader who came to read scrolled past the whole
+     toolbox first. The dropdowns are short enough that two fit side by side at
+     390px without clipping the selected label. */
   .filters {
     display: grid;
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--space-3);
+  }
+
+  .filters__field--search {
+    grid-column: 1 / -1;
   }
 
   .filters__field {
@@ -91,13 +152,11 @@ const { locale, state } = Astro.props;
     font-size: 1rem;
   }
 
+  /* Wide enough to show everything at once: no toggle, always open. The open
+     attribute is in the markup and the script only removes it below 40rem. */
   @media (min-width: 40rem) {
-    .filters {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .filters__field--search {
-      grid-column: 1 / -1;
+    .filters__toggle {
+      display: none;
     }
   }
 

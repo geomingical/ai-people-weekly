@@ -59,21 +59,23 @@ const openHost = freeLinkHost(story.openUrl);
     <p class="story__summary story__summary--empty">{t(locale, 'storyNoSummary')}</p>
   )}
 
-  <p class="story__access">
-    <span class:list={['story__access-badge', `story__access-badge--${story.access}`]}>{accessLabel}</span>
-    {story.openUrl && (
-      <a href={story.openUrl} rel="noopener noreferrer nofollow" target="_blank">
-        {t(locale, 'accessFreeVersion')}
-        <span class="story__access-host">({openHost})</span>
-      </a>
-    )}
-  </p>
+  <div class="story__labels">
+    <p class="story__access">
+      <span class:list={['story__access-badge', `story__access-badge--${story.access}`]}>{accessLabel}</span>
+      {story.openUrl && (
+        <a href={story.openUrl} rel="noopener noreferrer nofollow" target="_blank">
+          {t(locale, 'accessFreeVersion')}
+          <span class="story__access-host">({openHost})</span>
+        </a>
+      )}
+    </p>
 
-  <ul class="story__topics">
-    {story.topics.map((topic) => (
-      <li class="story__topic">{formatTopic(locale, topic)}</li>
-    ))}
-  </ul>
+    <ul class="story__topics">
+      {story.topics.map((topic) => (
+        <li class="story__topic">{formatTopic(locale, topic)}</li>
+      ))}
+    </ul>
+  </div>
 </article>
 
 <style>
@@ -89,6 +91,16 @@ const openHost = freeLinkHost(story.openUrl);
      restate it so the controller's row.hidden = true actually hides the row. */
   .story[hidden] {
     display: none;
+  }
+
+  /* Access and topics are both labels about the same study, so they share one
+     line instead of stacking into a staircase of little boxes. Wrapping keeps
+     it honest on a narrow screen. */
+  .story__labels {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-1) var(--space-3);
   }
 
   .story__access {
@@ -132,11 +144,14 @@ const openHost = freeLinkHost(story.openUrl);
     color: var(--color-muted);
   }
 
+  /* Regular, not bold. The serif already separates a study's title from the
+     sans around it, so weight has no work left to do here — and at 1.125rem
+     the bold face fills in the counters of dense characters. */
   .story__title {
     margin: 0;
     font-size: 1.125rem;
     line-height: 1.35;
-    font-weight: 700;
+    font-weight: 400;
     max-inline-size: var(--reading-width);
   }
 

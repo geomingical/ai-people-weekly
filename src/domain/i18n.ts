@@ -51,6 +51,7 @@ export const messages = {
   filterSearchLabel: { 'zh-tw': '搜尋標題或來源', en: 'Search headline or source' },
   filterSearchPlaceholder: { 'zh-tw': '關鍵字、機構或來源名稱', en: 'Keyword, organisation, or source' },
   filterAll: { 'zh-tw': '全部', en: 'All' },
+  filterToggleLabel: { 'zh-tw': '搜尋與篩選', en: 'Search and filter' },
 
   topicSycophancy: { 'zh-tw': '奉承與迎合', en: 'Sycophancy' },
   topicDependence: { 'zh-tw': '依賴', en: 'Dependence' },

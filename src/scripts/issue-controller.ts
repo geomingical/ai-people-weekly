@@ -125,6 +125,31 @@ if (root && dataNode) {
   }
   render(initial);
 
+  // Fold the controls away on a narrow screen. They ship open so a reader
+  // whose script never loads still gets them; this is the enhancement. The
+  // decision uses the parsed URL state rather than the form, because the form
+  // was only just populated from it a few lines above — and a reader who
+  // followed a filtered link has to be able to see which filter is on, or the
+  // short list of results looks like a bug.
+  const panel = root.querySelector<HTMLDetailsElement>('[data-filter-panel]');
+  const isFiltered = (state: FilterState) =>
+    state.topic !== defaultFilterState.topic ||
+    state.category !== defaultFilterState.category ||
+    state.region !== defaultFilterState.region ||
+    state.query !== defaultFilterState.query;
+
+  if (panel) {
+    const wideViewport = window.matchMedia('(min-width: 40rem)');
+
+    if (!isFiltered(initial) && !wideViewport.matches) {
+      panel.open = false;
+    }
+
+    wideViewport.addEventListener('change', (event) => {
+      panel.open = event.matches || isFiltered(readState());
+    });
+  }
+
   // The language link must carry the reader's filters across the switch,
   // otherwise changing language silently resets what they were looking at.
   const languageLink = document.querySelector<HTMLAnchorElement>('[data-language-link]');
