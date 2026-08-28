@@ -1,16 +1,22 @@
-/* AI 教育週報 — quiet weekly reader. Legibility before decoration. */
+/* AI 與人週報 — a research digest that reads like print. Legibility before
+   decoration, and deliberately not the cool grey of the education weekly:
+   these are sibling sites and a reader should never wonder which one they are
+   looking at. Warm paper, a serif for anything that carries a title, and one
+   accent that is not blue. */
 :root {
-  --color-paper: oklch(98% 0.006 250);
-  --color-surface: oklch(95% 0.008 250);
-  --color-surface-strong: oklch(92% 0.012 250);
-  --color-ink: oklch(22% 0.02 250);
-  --color-ink-soft: oklch(41% 0.02 250);
-  --color-muted: oklch(54% 0.02 250);
-  --color-rule: oklch(86% 0.01 250);
-  --color-accent: oklch(44% 0.12 250);
-  --color-accent-soft: oklch(93% 0.03 250);
-  --color-machine-soft: oklch(93% 0.045 300);
-  --color-notice-soft: oklch(93% 0.07 95);
+  --color-paper: oklch(98% 0.008 80);
+  --color-surface: oklch(95.5% 0.011 78);
+  --color-surface-strong: oklch(92% 0.015 72);
+  --color-ink: oklch(24% 0.018 50);
+  --color-ink-soft: oklch(41% 0.02 50);
+  --color-muted: oklch(52% 0.022 58);
+  --color-rule: oklch(87% 0.013 72);
+  --color-accent: oklch(44% 0.13 30);
+  --color-accent-soft: oklch(93% 0.035 42);
+  /* The machine badge sits on a hue nothing else uses, so "a model wrote this"
+     never blends into the page's own colour. */
+  --color-machine-soft: oklch(93% 0.045 155);
+  --color-notice-soft: oklch(94% 0.065 92);
 
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -24,8 +30,13 @@
   --content-width: 68rem;
   --reading-width: 62ch;
 
-  --font-sans: "Public Sans", "Noto Sans TC", "PingFang TC", sans-serif;
-  --font-mono: "Geist Mono", "SFMono-Regular", monospace;
+  /* No webfonts: a static site should not need a network round-trip to render
+     its own text, and the Chinese faces that matter here are already on the
+     device. The serif is what separates this site from its sibling. */
+  --font-serif: "Noto Serif TC", "Songti TC", "Source Han Serif TC", Georgia,
+    "Times New Roman", serif;
+  --font-sans: "Noto Sans TC", "PingFang TC", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Geist Mono", "SFMono-Regular", ui-monospace, monospace;
 }
 
 html,
@@ -42,6 +53,29 @@ body {
 *::before,
 *::after {
   box-sizing: border-box;
+}
+
+/* Anything that names a thing — a page, a section, a study — is set in the
+   serif. Body text stays sans, because a wall of serif at 16px on a screen is
+   harder to read than the titles are pretty. */
+h1,
+h2,
+h3,
+.site-header__name,
+.story__title {
+  font-family: var(--font-serif);
+  letter-spacing: 0.01em;
+}
+
+/* Weight is set per size, not once for the whole serif. The bold face is real,
+   but dense Chinese characters close up in it below roughly 20px — 護 and 顧
+   lose their counters. Page headings are large enough to carry it; the study
+   titles, which a reader scans forty at a time, are not. */
+h1,
+h2,
+h3,
+.site-header__name {
+  font-weight: 600;
 }
 
 button,
