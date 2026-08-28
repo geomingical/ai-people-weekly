@@ -1,5 +1,26 @@
 [
   {
+    "id": "819af7b841fdba84",
+    "sourceId": "arxiv-cs-hc",
+    "title": "Do User-Authored Permission Policies Improve Protection Against AI Agent Overreach?",
+    "summaryOriginal": "AI agents are poised to become a primary interface to digital products, acting across email, files, payments, and personal data. People without professional software backgrounds need understandable, reusable ways to control actions across services. We examine a mechanism in which a language model maps actions to plain-language consequence categories with user-authored \"allow\", \"ask\", or \"never\"…",
+    "titleZhTW": "使用者自訂權限規則能否有效防範 AI 代理人越權？",
+    "summaryZhTW": "研究招募 113 位非軟體專業背景參與者，比較三種監督模式：逐項人工審核（HITL）、自動模型審核（AUTO）與使用者預先撰寫後果類別規則（POLICY）。參與者監督 18 個模擬動作（含 7 個越權動作）。結果顯示 POLICY 攔截越權比例較 HITL 低 20.1 個百分點、較 AUTO 低 14.5 個百分點；雖然執行期提示從 18.0 降至 10.9 次，但加上規則設定時間後總介入時間未顯著減少。探索性分析發現 140 條規則中有 114 條設為「詢問」，導致大多數越權動作回歸執行時逐項審批，最終 POLICY 組對所有越權動作的核准率最高。研究指出使用者偏好保留逐案決定權，使預先規則難以落實保護。",
+    "summarySource": "machine",
+    "url": "https://arxiv.org/abs/2608.27443",
+    "publishedAt": "2026-08-27T17:56:38.000Z",
+    "fetchedAt": "2026-08-28T09:19:11.030Z",
+    "issue": "2026-W35",
+    "topics": [
+      "trust",
+      "cognition"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
     "id": "39457198096ac96a",
     "sourceId": "arxiv-cs-hc",
     "title": "Exploring Normativity in Stable Diffusion: Insights for XAI in the Arts",
@@ -93,6 +114,27 @@
     "fetchedAt": "2026-08-27T05:08:49.301Z",
     "issue": "2026-W35",
     "topics": [
+      "cognition"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "aea2dbb91bdc9955",
+    "sourceId": "jmir-mental-health",
+    "title": "Large Language Models as a New Tool for Therapists in Internet-Based Cognitive Behavioral Therapy: Blinded Clinician Rating Pilot Experiment",
+    "summaryOriginal": "Background: Internet-based cognitive behavioral therapy (iCBT) is an effective and scalable alternative to face-to-face psychotherapy, but its reach is constrained by the time therapists spend reviewing patient input and manually drafting written responses. Studies suggest that large language models (LLMs) may be capable of generating high-quality therapeutic text, with the potential to support…",
+    "titleZhTW": "大型語言模型輔助網路認知行為治療：盲測臨床醫師評分試驗",
+    "summaryZhTW": "研究招募 54 位資深臨床醫師，以盲測方式評分 5 組模擬功能性身體症狀患者訊息與回覆配對，比較人類治療師與大型語言模型（LLM）產出的回覆品質。結果顯示，LLM 回覆在整體品質、實用性、專業度、協定遵循度與同理心五個維度的 1-5 分評分上，與人類回覆無顯著差異（效應量 d=0.03-0.42），但醫師辨識 LLM 回覆的正確率（63%）低於人類回覆（79%）。質性回饋指出 LLM 回覆雖文筆潤飾完善，卻較泛泛且有時過度同理心、缺乏挑戰性。研究初步支持 LLM 作為 iCBT 治療師輔助工具的可行性，但仍需進一步驗證臨床與組織效益。",
+    "summarySource": "machine",
+    "url": "https://mental.jmir.org/2026/1/e96835",
+    "publishedAt": "2026-08-26T15:30:36.000Z",
+    "fetchedAt": "2026-08-28T09:19:11.030Z",
+    "issue": "2026-W35",
+    "topics": [
+      "trust",
       "cognition"
     ],
     "region": "GLOBAL",
@@ -385,6 +427,28 @@
     "region": "GLOBAL",
     "language": "en",
     "access": "restricted",
+    "openUrl": null
+  },
+  {
+    "id": "c61aab20c1180a73",
+    "sourceId": "arxiv-cs-hc",
+    "title": "Longitudinal Robot Learning from Demonstration with Care Providers in a Home Environment",
+    "summaryOriginal": "Learning from demonstration (LfD) methods enable non-expert end users to teach robots novel skills without explicit programming. However most evaluations of the usability of LfD with non-experts has been conducted in controlled laboratory environments with a robotics experimenter present. In this work we identify non-expert end users' key barriers when teaching robots via demonstration without…",
+    "titleZhTW": "照護者在家庭環境中長期示教機器人：障礙與輔助機制研究",
+    "summaryZhTW": "研究招募照護者在真實家庭環境進行多次訪問，探討非專家在無專家即時指導下透過示教（LfD）教導機器人協助任務時遭遇的主要障礙。實驗測試先前開發的「預先訓練」與「自適性回饋」兩種示教者引導機制，並釋出照護者多次示教的 LfD 資料集供開源使用。",
+    "summarySource": "machine",
+    "url": "https://arxiv.org/abs/2608.25196",
+    "publishedAt": "2026-08-25T22:21:09.000Z",
+    "fetchedAt": "2026-08-28T09:19:11.030Z",
+    "issue": "2026-W35",
+    "topics": [
+      "relationships",
+      "cognition",
+      "dependence"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
     "openUrl": null
   },
   {
