@@ -105,6 +105,18 @@ describe('the seam does not weaken the SSRF boundary', () => {
     expect(await run.readStories()).toHaveLength(0);
     expect(report.sources[0].rejectCounts['off-domain']).toBe(1);
   });
+
+  it('fails the run when every source returns a non-2xx response', async () => {
+    const run = await makeRun({
+      feeds: { s1: [] },
+      fetchStatuses: { s1: 403 },
+    });
+    const report = await run.execute();
+
+    expect(report.sources[0]).toMatchObject({ status: 403, fetchError: 'http' });
+    expect(report.outcome).toBe('failed');
+    expect(report.warnings.join(' ')).toContain('status 403');
+  });
 });
 
 describe('summarization stays orchestrated by runWeek', () => {
