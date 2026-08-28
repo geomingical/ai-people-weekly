@@ -11,7 +11,8 @@ const item = (title: string, link: string) => ({
 // classifyAll -> run -> report path where the warnings are written. This is the
 // only place the contradiction below is visible.
 describe('a model outage reports itself honestly', () => {
-  it('publishes the always-sources and says only the gated ones were lost', async () => {
+  it('fails closed without publishing a partial issue', async () => {
+    let summarized = false;
     const run = await makeRun({
       sources: { always: { relevanceMode: 'always' }, gated: { relevanceMode: 'keyword' } },
       feeds: {
@@ -19,16 +20,22 @@ describe('a model outage reports itself honestly', () => {
         gated: [item('Needs a verdict', 'https://example.org/b')],
       },
       undecided: ['*'], // the model answers for nothing
+      onSummarize: () => {
+        summarized = true;
+      },
     });
     const report = await run.execute();
     const stories = await run.readStories();
 
-    // The site did publish. The report must not claim otherwise.
-    expect(stories).toHaveLength(1);
-    expect(report.storiesAdded).toBe(stories.length);
+    expect(report.outcome).toBe('failed');
+    expect(stories).toHaveLength(0);
+    expect(report.storiesAdded).toBe(0);
+    expect(summarized).toBe(false);
+    expect(report.sources.find((source) => source.sourceId === 'always')?.rejectCounts)
+      .toMatchObject({ 'run-blocked': 1 });
     const warnings = report.warnings.join(' ');
     expect(warnings).toMatch(/model-gated/);
-    expect(warnings).not.toMatch(/nothing was published/i);
+    expect(warnings).toMatch(/entire run was withheld/i);
   });
 
   it('shows the gated loss as undecided, not as irrelevant', async () => {

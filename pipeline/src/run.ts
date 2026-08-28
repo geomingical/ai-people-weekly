@@ -588,7 +588,7 @@ export async function runWeek(options: RunOptions): Promise<RunReport> {
     warnings.push(...result.errors.map((error) => `classifier: ${error}`));
     if (result.undecided.length > 0) {
       warnings.push(
-        `${result.undecided.length} model-gated candidates were not published: no provider returned a verdict`,
+        `${result.undecided.length} model-gated candidates had no provider verdict; the entire run was withheld`,
       );
     }
   } else if (classifyInputs.length > 0) {
@@ -647,7 +647,24 @@ export async function runWeek(options: RunOptions): Promise<RunReport> {
       outcome.rejectDetails = [...outcome.rejectDetails, ...accepted.rejected];
     }
   }
-  log(`accepted ${items.length} of ${withAbstract.length} candidates with abstracts`);
+  log(`gate accepted ${items.length} of ${withAbstract.length} candidates with abstracts`);
+
+  const runBlockedByUndecided = undecided.size > 0;
+  if (runBlockedByUndecided) {
+    const withheldBySource = new Map<string, number>();
+    for (const item of items) {
+      withheldBySource.set(item.sourceId, (withheldBySource.get(item.sourceId) ?? 0) + 1);
+    }
+    for (const outcome of outcomes) {
+      const withheld = withheldBySource.get(outcome.sourceId) ?? 0;
+      if (withheld === 0) continue;
+      outcome.itemsAccepted -= withheld;
+      outcome.itemsRejected += withheld;
+      outcome.rejectCounts = mergeCounts(outcome.rejectCounts, { 'run-blocked': withheld });
+    }
+    log(`withheld the entire run because ${undecided.size} candidates had no model verdict`);
+  }
+  const publishableItems = runBlockedByUndecided ? [] : items;
 
   // The article-text stage that used to sit here is gone: the enrichment stage
   // above already obtained the text the summarizer needs, from whichever rung
@@ -658,7 +675,9 @@ export async function runWeek(options: RunOptions): Promise<RunReport> {
   const summaryById = new Map<string, { titleZhTW: string; summaryZhTW: string }>();
   let summaries = { requested: 0, succeeded: 0, failed: 0, skippedReason: null as string | null };
 
-  if (items.length === 0) {
+  if (runBlockedByUndecided) {
+    summaries.skippedReason = 'run blocked: model verdicts were incomplete';
+  } else if (publishableItems.length === 0) {
     summaries.skippedReason = 'no new stories to summarize';
   } else if (providers.length === 0) {
     // No key at all is a normal local-development state, not an error. Stories
@@ -669,7 +688,7 @@ export async function runWeek(options: RunOptions): Promise<RunReport> {
     const sourceNames = new Map(sources.map((source) => [source.id, source.name]));
     // The model reads the article when we have it and the excerpt otherwise.
     // Neither the article nor this input is stored anywhere.
-    const inputs: SummaryInput[] = items.map((item) => ({
+    const inputs: SummaryInput[] = publishableItems.map((item) => ({
       id: item.id,
       title: item.title,
       // The abstract the enrichment stage obtained. Transient: it is read by
@@ -722,7 +741,7 @@ export async function runWeek(options: RunOptions): Promise<RunReport> {
 
   // --- build story records ---
   const fetchedAt = now.toISOString();
-  const newStories: Story[] = items.map((item) => {
+  const newStories: Story[] = publishableItems.map((item) => {
     const machine = summaryById.get(item.id) ?? null;
     return {
       id: item.id,
@@ -761,7 +780,11 @@ export async function runWeek(options: RunOptions): Promise<RunReport> {
     issue: issueLabelFromIso(fetchedAt),
     windowStart: window.start.toISOString(),
     windowEnd: window.end.toISOString(),
-    outcome: !anyFeedSucceeded ? 'failed' : warnings.length > 0 ? 'completed-with-warnings' : 'completed',
+    outcome: !anyFeedSucceeded || runBlockedByUndecided
+      ? 'failed'
+      : warnings.length > 0
+        ? 'completed-with-warnings'
+        : 'completed',
     sources: outcomes,
     summaries,
     storiesAdded: newStories.length,
@@ -774,7 +797,7 @@ export async function runWeek(options: RunOptions): Promise<RunReport> {
 
   // Dry runs carry the gate's reasoning; a weekly run does not. See RunReport.
   if (dryRun) {
-    const acceptedIds = new Set(items.map((item) => item.id));
+    const acceptedIds = new Set(publishableItems.map((item) => item.id));
     report.decisions = candidates.map(({ source, candidate }): RunDecision => ({
       sourceId: source.id,
       title: candidate.item.title,
@@ -784,15 +807,17 @@ export async function runWeek(options: RunOptions): Promise<RunReport> {
     }));
   }
 
-  if (!dryRun) {
+  if (!dryRun && !runBlockedByUndecided) {
     await writeFile(paths.storiesPath, `${JSON.stringify(merged, null, 2)}\n`, 'utf8');
     log(`wrote ${merged.length} stories to ${paths.storiesPath}`);
     // Only after the stories landed. The other order would advance the
     // baseline past content a failed write never published, and the next run
     // would see continuity that does not exist.
     await writeAtomic(paths.watermarksPath, `${JSON.stringify(nextWatermarks, null, 2)}\n`);
-  } else {
+  } else if (dryRun) {
     log('dry run: stories file not written');
+  } else {
+    log('failed run: stories and watermarks were not written');
   }
 
   return report;

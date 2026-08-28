@@ -8,7 +8,7 @@ export interface FetchResult {
   status: number | null;
   body: string | null;
   fetchedAt: string;
-  error: 'blocked' | 'network' | 'timeout' | 'too-large' | null;
+  error: 'blocked' | 'network' | 'timeout' | 'too-large' | 'http' | null;
   redirectChain: string[];
 }
 

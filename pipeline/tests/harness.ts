@@ -53,6 +53,8 @@ export interface HarnessOptions {
   }>;
   /** Sources whose socket fails, to prove a failure preserves state. */
   fetchFails?: string[];
+  /** Per-source HTTP failure status returned by the fake server. */
+  fetchStatuses?: Record<string, number>;
   /** Redirect a source's feed here, to exercise the real redirect guard. */
   redirects?: Record<string, string>;
   summarizeFails?: boolean;
@@ -177,6 +179,11 @@ export async function makeRun(options: HarnessOptions = {}): Promise<Harness> {
 
       if (id !== undefined && options.fetchFails?.includes(id)) {
         throw new TypeError('fetch failed');
+      }
+      if (id !== undefined && options.fetchStatuses?.[id] !== undefined) {
+        return new Response('source rejected the request', {
+          status: options.fetchStatuses[id],
+        });
       }
       // Only the original feed URL redirects. Redirecting the destination too
       // would loop until safeFetch's hop limit and look like a blocked host.

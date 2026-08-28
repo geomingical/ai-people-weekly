@@ -477,11 +477,11 @@ export async function safeFetch(
       // Redirect status with no location header -> treat the response as final.
     }
 
-    // Non-2xx responses are not errors: report the status with no body so the
-    // caller can distinguish e.g. a 404 from a network failure.
+    // Preserve the exact status, but mark every non-2xx as a source failure so
+    // callers cannot count a blocked or missing feed as successfully fetched.
     if (response.status < 200 || response.status >= 300) {
       clearTimeout(timer);
-      return finalize(lastStatus, null, null);
+      return finalize(lastStatus, null, 'http');
     }
 
     const bodyBudget = remainingMs();

@@ -109,14 +109,13 @@ describe('safeFetch', () => {
     expect(result.redirectChain.length).toBe(FETCH_LIMITS.maxRedirects + 2);
   });
 
-  // A non-2xx is a fact to report, not a crash: the caller must be able to tell
-  // a 404 from a network failure.
-  it('reports a 404 with no body and no error', async () => {
+  // A non-2xx is a source failure, while status preserves the exact HTTP fact.
+  it('reports a 404 as an HTTP error with no body', async () => {
     const io = makeIo({ fetch: async () => new Response('nope', { status: 404 }) });
     const result = await safeFetch('https://example.org/feed', ['example.org'], io);
     expect(result.status).toBe(404);
     expect(result.body).toBeNull();
-    expect(result.error).toBeNull();
+    expect(result.error).toBe('http');
   });
 
   it('rejects a body that declares itself over the size cap', async () => {
