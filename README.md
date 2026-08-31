@@ -1,5 +1,7 @@
 # AI 與人週報 · AI and People Weekly
 
+[瀏覽靜態網站 · View the live site](https://geomingical.github.io/ai-people-weekly/)
+
 A bilingual static site that collects research on what AI does to the people
 who use it — sycophancy, dependence, companionship, trust, wellbeing,
 cognition, social behaviour — from a hand-picked list of journals, preprint
@@ -52,4 +54,5 @@ on robots.txt and asserts a text-and-data-mining reservation.
 
 ## Status
 
-Not deployed. The pipeline runs locally and the weekly schedule is off.
+Deployed to [GitHub Pages](https://geomingical.github.io/ai-people-weekly/).
+The weekly collection runs every Monday at 10:30 Asia/Taipei time.
