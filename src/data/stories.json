@@ -1,5 +1,25 @@
 [
   {
+    "id": "1744de71d540b4ba",
+    "sourceId": "chb-artificial-humans",
+    "title": "How Americans Evaluate Fully AI-Generated News Presented by AI News Anchors: The Interplay of AI Attitudes, Political Ideology, and Prior Issue Attitudes",
+    "summaryOriginal": "Publication date: Available online 28 August 2026 Source: Computers in Human Behavior: Artificial Humans Author(s): Estel Huh, Pascal Merz, Christian von Sikorski",
+    "titleZhTW": "美國人如何評價 AI 虛擬主播播報的全 AI 生成新聞：AI 態度、政治意識型態與議題態度的交互影響",
+    "summaryZhTW": "研究招募 1,344 名美國受試者進行線上實驗，隨機分組觀看關於氣候變遷的 AI 生成新聞影片，並操控是否揭露 AI 來源。結果顯示，揭露 AI 來源會降低受試者對新聞內容與虛擬主播的可信度評價，此效果在對 AI 持負面態度者、政治自由派與中間派最明顯；保守派則無顯著下降。對氣候變遷持正面或中立態度者同樣在揭露後降低可信度評分，但政策立場一致性未受影響。",
+    "summarySource": "machine",
+    "url": "https://www.sciencedirect.com/science/article/pii/S2949882126001416?dgcid=rss_sd_all",
+    "publishedAt": "2026-08-28T00:00:00.000Z",
+    "fetchedAt": "2026-08-31T02:40:15.594Z",
+    "issue": "2026-W35",
+    "topics": [
+      "trust"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
     "id": "819af7b841fdba84",
     "sourceId": "arxiv-cs-hc",
     "title": "Do User-Authored Permission Policies Improve Protection Against AI Agent Overreach?",
