@@ -1,5 +1,215 @@
 [
   {
+    "id": "25eaf71bff01aef9",
+    "sourceId": "chb-artificial-humans",
+    "title": "Bridging the Gender Gap in STEM Education with AI: Female-Coded Chatbot as Role Model and Learning Assistant",
+    "summaryOriginal": "Publication date: Available online 5 September 2026 Source: Computers in Human Behavior: Artificial Humans Author(s): Cilia Ricarda Rücker, Sebastian Becker-Genschow",
+    "titleZhTW": "AI 女性聊天機器人助減少 STEM 性別刻板印象，德國九年級實驗證實學習成效無性別差距",
+    "summaryZhTW": "研究招募 195 位德國九年級學生（平均 14.33 歲），在數學課以準實驗設計，比較女性編碼聊天機器人 ADA 與傳統紙本提示卡教授海倫公式。結果顯示：性別刻板信念顯著下降，效果量雖小但具意義；科技接受度高且無性別差異；兩性在學習表現、情緒反應、認知負荷皆無顯著差距，情境興趣顯著提升。研究指出系統化設計的 AI 聊天機器人可兼具挑戰刻板印象與促進公平學習，但長期效果仍需縱向研究驗證。",
+    "summarySource": "machine",
+    "url": "https://www.sciencedirect.com/science/article/pii/S2949882126001453?dgcid=rss_sd_all",
+    "publishedAt": "2026-09-05T00:00:00.000Z",
+    "fetchedAt": "2026-09-07T02:40:37.030Z",
+    "issue": "2026-W36",
+    "topics": [
+      "trust",
+      "cognition",
+      "social"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "738b1c1a7937d789",
+    "sourceId": "chb-reports",
+    "title": "Research on the Interaction between Creator and Intelligence-Generated Content (AIGC) Painting Tools from the Perspective of Technological Mediation Theory",
+    "summaryOriginal": "Publication date: Available online 4 September 2026 Source: Computers in Human Behavior Reports Author(s): Qi Zhang, Yi Ding, Xiaomeng Hu",
+    "titleZhTW": "AIGC 繪圖工具如何介入創作者工作流：24 位視覺從業者的質性研究",
+    "summaryZhTW": "研究以半結構式訪談 24 位視覺與相關領域從業者，運用扎根理論與技術中介理論分析 AIGC 繪圖工具在創作流程中的角色。發現工具主要用於創作前中期的構思、參考生成與迭代探索，並未減少勞動，反而產生提示詞撰寫、比對篩選、修改輸出等新工作。創作者透過設定方向、審美判斷與選擇輸出保留能動性，形成非對稱的人機協作。評價受專業背景、熟練度、版權、平台依賴與勞動預期變化影響，互動呈現接觸、嵌入、協商、判斷與適應的動態歷程。",
+    "summarySource": "machine",
+    "url": "https://www.sciencedirect.com/science/article/pii/S2451958826003647?dgcid=rss_sd_all",
+    "publishedAt": "2026-09-04T00:00:00.000Z",
+    "fetchedAt": "2026-09-07T02:40:37.030Z",
+    "issue": "2026-W36",
+    "topics": [
+      "cognition",
+      "dependence"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "dc95f88f95da43e9",
+    "sourceId": "cyberpsychology-journal",
+    "title": "AI-based writing assistants for emotional tone: Investigating users’ acceptance and recipients’ perceptions in online negotiations",
+    "summaryOriginal": "With the use of AI, modern writing-assistants can offer users recommendations on more subjective, socially relevant communication style aspects like emotional tone. While these recommendations commonly aim to affect interpersonal interaction outcomes, user acceptance determines the recommendations’ actual impact on the resulting messages and potential downstream effects on message recipients. The…",
+    "titleZhTW": "AI寫作助手的情感語氣建議：使用者接受度與接收者感知的線上談判實驗",
+    "summaryZhTW": "研究招募1,532名英國英語使用者進行兩項線上實驗，測試使用者對AI與非AI寫作助手推薦正向或負向情感語氣的接受度；結果顯示使用者較傾向接受AI推薦，不受語氣正負影響。第三項研究再邀請408名受試者評估修訂後訊息，發現語氣修改顯著改變接收者對發送者的印象與讓步意願，證實AI建議能改變訊息社會效果。",
+    "summarySource": "machine",
+    "url": "https://cyberpsychology.eu/article/view/41122",
+    "publishedAt": "2026-09-03T22:00:00.000Z",
+    "fetchedAt": "2026-09-07T02:40:37.030Z",
+    "issue": "2026-W36",
+    "topics": [
+      "social",
+      "trust"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "235d8bf2b9a3ae57",
+    "sourceId": "cyberpsychology-journal",
+    "title": "Immerse & befriend: The role of synthetic relationship perception and narrative transportation in a mental health app",
+    "summaryOriginal": "The global mental health crisis has driven the rise of apps using conversational agents (CAs) to complement or replace human professional support. Offline, the success of such interventions often depends on the relationship between the help-seeker and the support provider. Online, psychological processes elicited by specific app features relating to the CA and its unique story design might play a…",
+    "titleZhTW": "心理健康 App 中的合成關係與敘事沉浸：以 Betwixt 為例",
+    "summaryZhTW": "研究針對 348 位心理健康 App Betwixt 的活躍用戶進行橫斷面研究，探討用戶對對話代理人的合成關係感知（特別是朋友般關係）與敘事沉浸程度，如何預測 App 參與度與感知壓力。結果顯示，強烈的敘事沉浸與將代理人視為朋友，能正向預測享樂利益與未來使用意圖，但這兩項因素與感知壓力無顯著關聯。研究指出敘事設計對合成關係形成的潛力，並討論培養友誼型關係的倫理疑慮。",
+    "summarySource": "machine",
+    "url": "https://cyberpsychology.eu/article/view/40615",
+    "publishedAt": "2026-09-03T22:00:00.000Z",
+    "fetchedAt": "2026-09-07T02:40:37.030Z",
+    "issue": "2026-W36",
+    "topics": [
+      "relationships",
+      "wellbeing"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "e4aaed4634816917",
+    "sourceId": "cyberpsychology-journal",
+    "title": "Perceptions of AI-generated profile pictures: Effects on quality, attractiveness, and trustworthiness",
+    "summaryOriginal": "This study investigates perceptions of AI-generated profile pictures and how disclosure of AI use shapes impressions. In a preregistered experiment, U.S. adults (N = 817; ages 18–99, M = 47.83, SD = 18.79; 48% men and 50% women) evaluated what they were told were social media profile pictures. The 2 × 2 factorial design varied whether images, all with a professional headshot style, were…",
+    "titleZhTW": "AI生成頭像被評為品質較高，但標示AI生成會降低圖片評價",
+    "summaryZhTW": "研究招募817名美國成人進行預先註冊實驗，受試者評估被告知為社群媒體頭像的專業風格照片，設計為2×2因子實驗，變因為圖片是否由AI生成以及是否揭露AI生成。結果顯示，AI生成圖片在品質評分上高於同主體的專業照片，但標示為AI生成會降低圖片品質感知；對人物社交吸引力與可信度則無顯著影響。探索性分析發現，受試者自我評估的AI知識會調節揭露效果：低知識者對標示圖片與人物評價較低，高知識者則評價較高。結論指出，AI揭露主要影響圖片作為物件的評價，而非人物層面印象。",
+    "summarySource": "machine",
+    "url": "https://cyberpsychology.eu/article/view/39165",
+    "publishedAt": "2026-09-03T22:00:00.000Z",
+    "fetchedAt": "2026-09-07T02:40:37.030Z",
+    "issue": "2026-W36",
+    "topics": [
+      "trust"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "ebfd3ce0fb3e1150",
+    "sourceId": "nature-human-behaviour",
+    "title": "Author Correction: On the conversational persuasiveness of GPT-4",
+    "summaryOriginal": "Nature Human Behaviour, Published online: 03 September 2026; doi:10.1038/s41562-026-02588-0 Author Correction: On the conversational persuasiveness of GPT-4",
+    "titleZhTW": "《Nature Human Behaviour》發勘誤表：GPT-4 說服力研究統計顯著性修正",
+    "summaryZhTW": "期刊刊出勘誤，更正先前關於 GPT-4 個人化說服效果的統計檢定結果。修正後顯示「人機個人化」與「人機非個人化」條件的直接比較 P 值為 0.07，未達統計顯著，原文宣稱的顯著差異（P=0.04）屬計算錯誤。作者因而修正結論，指出無法單憑此比較斷定個人化帶來額外優勢，僅能確認 GPT-4 整體說服表現優於人類。",
+    "summarySource": "machine",
+    "url": "https://www.nature.com/articles/s41562-026-02588-0",
+    "publishedAt": "2026-09-03T00:00:00.000Z",
+    "fetchedAt": "2026-09-07T02:40:37.030Z",
+    "issue": "2026-W36",
+    "topics": [
+      "trust"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": "https://www.nature.com/articles/s41562-026-02588-0.pdf"
+  },
+  {
+    "id": "e6da9dd6c55d21a4",
+    "sourceId": "nature-human-behaviour",
+    "title": "Mourning the loss of AI companions",
+    "summaryOriginal": "Nature Human Behaviour, Published online: 03 September 2026; doi:10.1038/s41562-026-02569-3 People can form emotional bonds with AI companions. Using two AI product updates as natural experiments and combining with survey evidence, De Freitas et al. show that changes to AI companions can elicit attachment-related loss and restoration desires.",
+    "titleZhTW": "Nature Human Behaviour 刊文探討 AI 伴侶消失引發的哀悼現象",
+    "summaryZhTW": "此文為 Nature Human Behaviour 期刊文章的參考文獻清單，收錄 40 多筆學術論文、新聞報導與預印本，涵蓋 AI 伴侶依附、情感操縱、孤獨感減緩、聊天機器人停止服務後的用戶反應等主題。原文未提供實證研究的具體對象、方法或發現，僅列出相關文獻供進一步閱讀。",
+    "summarySource": "machine",
+    "url": "https://www.nature.com/articles/s41562-026-02569-3",
+    "publishedAt": "2026-09-03T00:00:00.000Z",
+    "fetchedAt": "2026-09-07T02:40:37.030Z",
+    "issue": "2026-W36",
+    "topics": [
+      "relationships",
+      "dependence",
+      "wellbeing"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "restricted",
+    "openUrl": null
+  },
+  {
+    "id": "cc1b1f40fd4b18ff",
+    "sourceId": "chb",
+    "title": "Are explainable AI (XAI) evaluation strategies aligned? Comparing subjective, objective, and mathematical evaluation measures using saliency maps",
+    "summaryOriginal": "Publication date: Available online 2 September 2026 Source: Computers in Human Behavior Author(s): Felix Kares, Timo Speith, Hanwei Zhang, Markus Langer",
+    "titleZhTW": "XAI 評估策略是否一致？以顯著性圖比較主觀、客觀與數學指標",
+    "summaryZhTW": "研究招募 166 位參與者進行預先註冊的組間實驗，以 LIME、Grad-CAM、Guided Backpropagation 三種顯著性圖方法為測試平台，比較主觀問卷（信任、滿意度）、客觀任務表現與數學忠實度指標三類評估方式。結果顯示三類指標得出不同結論：參與者主觀感受無差異，Grad-CAM 能提升使用者任務表現，數學指標卻偏好 Guided Backpropagation；數學指標與使用者表現僅部分相關，且關係有時違反直覺。研究強調評估 XAI 時需同時納入三類指標，以揭示它們之間的張力與一致面向。",
+    "summarySource": "machine",
+    "url": "https://www.sciencedirect.com/science/article/pii/S0747563226002608?dgcid=rss_sd_all",
+    "publishedAt": "2026-09-02T00:00:00.000Z",
+    "fetchedAt": "2026-09-07T02:40:37.030Z",
+    "issue": "2026-W36",
+    "topics": [
+      "trust"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": "https://www.sciencedirect.com/science/article/pii/S0747563226002608/pdf"
+  },
+  {
+    "id": "9008269651ee3225",
+    "sourceId": "chb-reports",
+    "title": "Can AI Debias the News? LLM Interventions Improve Cross-Partisan Receptivity but LLMs Overestimate Their Own Effectiveness",
+    "summaryOriginal": "Publication date: Available online 2 September 2026 Source: Computers in Human Behavior Reports Author(s): Faisal Feroz, Jonas R. Kunst",
+    "titleZhTW": "LLM 去偏見介入能提升跨派系新聞接受度，但模型高估自身效果",
+    "summaryZhTW": "研究進行兩項預先註冊實驗，測試 LLM 對自由派新聞標題去偏見後，是否能改善保守派讀者的信任相關判斷。研究一發現僅替換情緒詞彙的輕微去偏見無效；研究二證實實質性重構介入顯著提升保守派對標題的可信度、完整度感知與閱讀意願，且未對自由派產生反彈效果。同步以六款模型模擬的「矽基參與者」進行預測，發現模型在研究一錯誤預測有效、研究二高估效果大小並錯誤預測自由派反彈，且模型推測政治內群認同高者較受影響，但人類受試者未出現此調節效應。結論指出 LLM 去偏見若針對意識型態框架而非表層語言可改善跨派系接受度，但現有模型缺乏準確評估自身介入效果的量化精度與心理保真度，仍需人工監督。",
+    "summarySource": "machine",
+    "url": "https://www.sciencedirect.com/science/article/pii/S2451958826003593?dgcid=rss_sd_all",
+    "publishedAt": "2026-09-02T00:00:00.000Z",
+    "fetchedAt": "2026-09-07T02:40:37.030Z",
+    "issue": "2026-W36",
+    "topics": [
+      "trust",
+      "cognition"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "c5ff94cc7ecc50d8",
+    "sourceId": "jmir-mental-health",
+    "title": "Exploring Real-World Use of AI Chatbots for Mental Health Support: Cross-Sectional Survey Study",
+    "summaryOriginal": "Background: In recent years, innovations in generative AI, in particular large language models (LLMs) in the form of AI chatbots, have found their way to the general public. First studies indicate a growing prevalence of individuals talking to AI chatbots about mental health–related topics; yet, knowledge of how, why, and which individuals are using these AI chatbots for their mental health is…",
+    "titleZhTW": "比利時跨斷面調查：AI聊天機器人於心理健康支持的實際使用情形",
+    "summaryZhTW": "本研究以線上問卷調查比利時兩個樣本（共349名受測者，其中276名一般大眾與73名學生），探討使用AI聊天機器人（以ChatGPT為主）進行心理健康支持的情況。受訪者多為女性，且多數已有或正在接受專業心理健康服務，主要談話主題為個人與人際議題。受訪者選擇AI聊天機器人主要因其隨時可用、易取得；學生樣本重視匿名性，一般樣本則感受到支持。初步分析顯示數位工作聯盟與使用參與度之間可能存在關聯，提示關係因素或影響持續使用。",
+    "summarySource": "machine",
+    "url": "https://mental.jmir.org/2026/1/e104316",
+    "publishedAt": "2026-09-01T19:00:03.000Z",
+    "fetchedAt": "2026-09-07T02:40:37.030Z",
+    "issue": "2026-W36",
+    "topics": [
+      "wellbeing",
+      "relationships",
+      "dependence"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
     "id": "1744de71d540b4ba",
     "sourceId": "chb-artificial-humans",
     "title": "How Americans Evaluate Fully AI-Generated News Presented by AI News Anchors: The Interplay of AI Attitudes, Political Ideology, and Prior Issue Attitudes",
