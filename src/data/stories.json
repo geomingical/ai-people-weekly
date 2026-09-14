@@ -1,5 +1,89 @@
 [
   {
+    "id": "d10ebf135f674154",
+    "sourceId": "npj-digital-medicine",
+    "title": "Safety, efficacy and acceptability of human-GenAI single-session exposure-based intervention for academic anxiety: randomized controlled trials",
+    "summaryOriginal": "npj Digital Medicine, Published online: 12 September 2026; doi:10.1038/s41746-026-03199-9 Safety, efficacy and acceptability of human-GenAI single-session exposure-based intervention for academic anxiety: randomized controlled trials",
+    "titleZhTW": "人機合作單次暴露療法針對學業焦慮之隨機對照試驗",
+    "summaryZhTW": "研究團隊開發一套結合人類引導與生成式 AI 的單次暴露療法，針對學業焦慮進行兩項隨機對照試驗，共計 425 位受試者，分別與等待名單組與主動對照組比較。結果顯示，參與者認為該方案安全且可接受；相較於兩個對照組，實驗組在即時狀態焦慮、兩週追蹤的學業焦慮與拖延行為均有顯著改善（效應值 d = 0.25–0.58），但在正負向情感、廣泛性焦慮與憂鬱症狀等次要指標上效果有限。",
+    "summarySource": "machine",
+    "url": "https://www.nature.com/articles/s41746-026-03199-9",
+    "publishedAt": "2026-09-12T00:00:00.000Z",
+    "fetchedAt": "2026-09-14T02:42:50.181Z",
+    "issue": "2026-W37",
+    "topics": [
+      "wellbeing"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "cbe04fddd7ec9667",
+    "sourceId": "jmir",
+    "title": "Generative AI Use, Perceived Usefulness, Perceived Risk, and Physician Burnout and Fulfillment Among Chinese Physicians: Mixed Methods Multiregional Study",
+    "summaryOriginal": "Background: As generative AI (GenAI) becomes increasingly prevalent, its impact on physician mental health has garnered significant attention; yet, empirical evidence remains limited. Objective: This study aims to investigate the correlations between the usage frequency of GenAI, perceived usefulness (PU), and perceived risk (PR) of GenAI with physicians’ burnout and professional fulfillment.…",
+    "titleZhTW": "生成式 AI 對中國醫師倦怠與成就感影響：四地區混合研究",
+    "summaryZhTW": "研究對象為中國四地區 961 位醫師（問卷）與 10 位醫師（深度訪談）。量化分析顯示，生成式 AI 使用頻率與倦怠無直接關聯；但感知有用性與專業成就感正相關（OR 1.56），感知風險則與倦怠機率較高相關（OR 1.80）。每週值夜班 ≥3 次的醫師，使用生成式 AI 反而與較高倦怠風險相關（OR 13.96，信賴區間寬）。質性訪談進一步指出，感知有用性透過增強自我效能提升成就感，感知風險則源於責任歸屬不清與專業身分受挑戰。",
+    "summarySource": "machine",
+    "url": "https://www.jmir.org/2026/1/e94155",
+    "publishedAt": "2026-09-11T20:00:20.000Z",
+    "fetchedAt": "2026-09-14T02:42:50.181Z",
+    "issue": "2026-W37",
+    "topics": [
+      "wellbeing",
+      "trust"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "bec815b0595ef669",
+    "sourceId": "jmir-mental-health",
+    "title": "Tool or Companion? Reframing Conversational AI to Prevent Psychological Harm",
+    "summaryOriginal": "People increasingly turn to conversational AI for companionship, emotional support, and well-being, using both purpose-built companion apps, such as Replika and Character.AI, and general-purpose assistants, such as ChatGPT and Claude. While some evidence suggests potential benefits, including short-term reductions in loneliness and mood improvement, several adverse outcomes have been reported in…",
+    "titleZhTW": "對話式 AI 是工具還是伴侶？重構認知以防心理傷害",
+    "summaryZhTW": "本文綜述 AI、精神醫學、心理學與網絡科學研究，指出對話式 AI 的流暢回應易讓使用者將其視為社交實體而非工具，設計上模擬同理心、過度認同與迎合，會形成非對稱互動，強化使用者的不適應認知、妄想意念與情感依賴。作者主張應將對話式 AI 定位為輔助人類系統的工具，而非人際關係的替代品。",
+    "summarySource": "machine",
+    "url": "https://mental.jmir.org/2026/1/e99354",
+    "publishedAt": "2026-09-10T19:30:13.000Z",
+    "fetchedAt": "2026-09-14T02:42:50.181Z",
+    "issue": "2026-W37",
+    "topics": [
+      "dependence",
+      "relationships",
+      "wellbeing"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "e77cd2415b52a33e",
+    "sourceId": "npj-digital-medicine",
+    "title": "Impact of LLM-supported patient education on patient perspectives and patient-reported outcomes: a mixed-methods systematic review",
+    "summaryOriginal": "npj Digital Medicine, Published online: 10 September 2026; doi:10.1038/s41746-026-03228-7 Impact of LLM-supported patient education on patient perspectives and patient-reported outcomes: a mixed-methods systematic review",
+    "titleZhTW": "系統性回顧：LLM 輔助病患教育的效益與限制",
+    "summaryZhTW": "此混合式系統性回顧納入 17 國 48 篇臨床研究，探討大型語言模型（LLM）用於回答病患提問、產出教材與簡化醫療資訊的情況。病患普遍肯定其清晰度、易取得性與實用性，但擔憂準確度、隱私、個人化、信任度與情感支持不足。量化證據在認知與資訊相關結果上最一致，滿意度、信任、同理心、偏好、行為改變及長期效果則參差不齊。結論認為 LLM 適合作為病患教育的輔助工具，醫患溝通仍為個人化解釋、建立信任與共同決策的關鍵。",
+    "summarySource": "machine",
+    "url": "https://www.nature.com/articles/s41746-026-03228-7",
+    "publishedAt": "2026-09-10T00:00:00.000Z",
+    "fetchedAt": "2026-09-14T02:42:50.181Z",
+    "issue": "2026-W37",
+    "topics": [
+      "trust",
+      "cognition"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
     "id": "25eaf71bff01aef9",
     "sourceId": "chb-artificial-humans",
     "title": "Bridging the Gender Gap in STEM Education with AI: Female-Coded Chatbot as Role Model and Learning Assistant",
