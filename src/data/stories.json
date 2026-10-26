@@ -1,5 +1,292 @@
 [
   {
+    "id": "6c9aecd750a17b62",
+    "sourceId": "chb-reports",
+    "title": "People Expect Less but Show Equal Influence of LLM Versus Human Moral Advice",
+    "summaryOriginal": "Publication date: Available online 24 October 2026 Source: Computers in Human Behavior Reports Author(s): Neele Engelmann, Eva-Madeleine Schmidt, Ali Alhosseini, Ivar Rodríguez Hannikainen, Mengchen Dong",
+    "titleZhTW": "人類對 AI 與人類道德建議的影響力預期較低，實際影響力卻相當",
+    "summaryZhTW": "研究先收集 92 位人類寫手與 GPT-4o 撰寫的 500 多則真實道德建議，發現 AI 建議較長、語言較複雜、較一致且較偏向美德導向。接著讓 390 位受試者在閱讀建議後修正道德判斷，或預估建議影響力。結果顯示，受試者實際受 AI 與人類建議影響程度相同（判斷向建議移動近三分之一），但預估影響力時卻認為 AI 影響力較低。",
+    "summarySource": "machine",
+    "url": "https://www.sciencedirect.com/science/article/pii/S2451958826004872?dgcid=rss_sd_all",
+    "publishedAt": "2026-10-24T00:00:00.000Z",
+    "fetchedAt": "2026-10-26T02:47:29.405Z",
+    "issue": "2026-W43",
+    "topics": [
+      "trust",
+      "cognition"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "a463713ad40769e1",
+    "sourceId": "ijhci",
+    "title": "Human or Algorithmic Managers in Expert Knowledge Work? The Interplay of Management Style and Managerial Function",
+    "summaryOriginal": ".",
+    "titleZhTW": "專家知識工作中的人類與演算法管理者：管理風格與職能的交互影響",
+    "summaryZhTW": "研究對象為 1,156 位芬蘭專家知識工作者，採因子情境實驗，操弄管理者類型（人類／演算法）、管理風格（控制型／平衡型／彈性型）與六大管理職能，測量領導成員交換關係（LMX）、組織信任、AI 熟悉度與工作複雜度。結果顯示管理風格為最強預測因子：彈性風格評分最高、控制型最低，不分管理者類型。人類管理者在目標設定、績效評估與支持型領導較受偏好；演算法僅在控制型排程情境獲青睞；監控職能則無一致差異。高品質 LMX 可緩和對控制型風格的負面反應，且在績效評估與支持型領導中，LMX 與接受度的關聯對演算法管理者較強，縮小了人類優勢。組織信任與 LMX 的解釋力較 AI 熟悉度穩定，修正了單純「演算法厭惡」的說法。",
+    "summarySource": "machine",
+    "url": "https://www.tandfonline.com/doi/full/10.1080/10447318.2026.2750593?af=R",
+    "publishedAt": "2026-10-23T10:06:19.000Z",
+    "fetchedAt": "2026-10-26T02:47:29.405Z",
+    "issue": "2026-W43",
+    "topics": [
+      "trust"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": "https://www.tandfonline.com/doi/pdf/10.1080/10447318.2026.2750593?needAccess=true"
+  },
+  {
+    "id": "344791c6cf6db3d4",
+    "sourceId": "ijhci",
+    "title": "Bounded Delegation: How Student Design Teams Keep Strategic Control over Generative AI",
+    "summaryOriginal": ".",
+    "titleZhTW": "學生設計團隊如何在生成式 AI 專案中保有策略控制權",
+    "summaryZhTW": "研究觀察九組研究生設計團隊（共 54 人）在四週內開發完整真人角色扮演謀殺推理遊戲，分析 104 次人機協作事件與 27 份訪談。發現團隊採取三種協作模式：任務導向授權創作、AI 輔助共同創作、漸進信任協作；理論上可能的「完全委託執行信任」模式未出現。各團隊將內容生成、素材製作等戰術任務委託 AI，但保留敘事方向、品質標準與核心機制等策略決策，形成「有界委託」模式，挑戰線性自主權演進假設。",
+    "summarySource": "machine",
+    "url": "https://www.tandfonline.com/doi/full/10.1080/10447318.2026.2738102?af=R",
+    "publishedAt": "2026-10-23T09:29:38.000Z",
+    "fetchedAt": "2026-10-26T02:47:29.405Z",
+    "issue": "2026-W43",
+    "topics": [
+      "trust",
+      "cognition"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "restricted",
+    "openUrl": null
+  },
+  {
+    "id": "8753224996569f5e",
+    "sourceId": "chb-artificial-humans",
+    "title": "Using Artificial Intelligence (AI) to Communicate: The Psychology of AI-Mediated Communication and Development of the AI-Mediated Communication Scale",
+    "summaryOriginal": "Publication date: Available online 23 October 2026 Source: Computers in Human Behavior: Artificial Humans Author(s): Mary K.G.R. Reyes, Gabriel R. Lau, Ming-Hong Tsai, K.T.A. Sandeeshwara Kasturiratna, Andree Hartanto",
+    "titleZhTW": "開發 AI 協助人際溝通量表 探討生成式 AI 使用心理",
+    "summaryZhTW": "研究團隊透過六項研究、四個問卷樣本（共 1,034 人），開發出 15 題的「AI 協助人際溝通量表」，結構包含一個總因子與「表達清晰度」與「關係維繫」兩個次因子。量表具高內部一致性、兩週測驗-再測信度佳，且在新加坡與美國樣本達標量不變性。效度分析顯示，量表分數與生成式 AI 依賴度強正相關、與認知需求中度負相關，並與自動化信任及大五人格特質呈微弱至中度相關，支持區辨效度。進一步發現兩個次因子皆與 AI 接受度、對 AI 依戀、社交互動焦慮及錯失恐懼症相關；關係維繫另與孤獨感、社交恐懼、負向情緒及較低需求滿足相關。",
+    "summarySource": "machine",
+    "url": "https://www.sciencedirect.com/science/article/pii/S2949882126001684?dgcid=rss_sd_all",
+    "publishedAt": "2026-10-23T00:00:00.000Z",
+    "fetchedAt": "2026-10-26T02:47:29.405Z",
+    "issue": "2026-W43",
+    "topics": [
+      "cognition",
+      "social"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "51dd6e9b6f8943d1",
+    "sourceId": "npj-digital-medicine",
+    "title": "Human oversight of erroneous clinical AI and decision support a systematic review and meta analysis",
+    "summaryOriginal": "npj Digital Medicine, Published online: 23 October 2026; doi:10.1038/s41746-026-03408-5 Human oversight of erroneous clinical AI and decision support a systematic review and meta analysis",
+    "titleZhTW": "系統性回顧：醫師面對錯誤 AI 建議時，正確率大幅下降",
+    "summaryZhTW": "研究系統回顧 46 份報告（41 組獨立樣本），比較醫師在獲得正確與錯誤自動化建議時的決策表現。合併分析顯示，面對正確建議時醫師正確率顯著較高（合併 OR 10.19），而真實心電圖研究中有 26.6% 的錯誤解讀未被糾正。作者建議應將人工監督視為可測量的錯誤攔截能力，而非預設為安全保障。",
+    "summarySource": "machine",
+    "url": "https://www.nature.com/articles/s41746-026-03408-5",
+    "publishedAt": "2026-10-23T00:00:00.000Z",
+    "fetchedAt": "2026-10-26T02:47:29.405Z",
+    "issue": "2026-W43",
+    "topics": [
+      "trust"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "32d1c600660b2f37",
+    "sourceId": "ijhci",
+    "title": "When AI Enters the Pencil Box: A Longitudinal Study of Child–LLM Writing Collaboration in a Chinese Primary School",
+    "summaryOriginal": ".",
+    "titleZhTW": "AI 進入筆袋：中國小學高年級生與 LLM 寫作合作的六個月縱向研究",
+    "summaryZhTW": "研究在中國南方一所小學追蹤 10 位 9–12 歲學生與 6 位教師超過六個月，觀察他們使用國產 LLM（豆包）進行寫作。透過兩波訪談發現，學生對 AI 的認知從新奇轉為策略性使用、從擬人化夥伴轉為工具導向，並因依賴、公平與考試轉移疑慮而轉趨謹慎。學生肯定 AI 提供速度與廣度，但指出語氣機械、風格不符年齡、且難轉移至無 AI 考試。研究提出控制力×依賴度框架，建議採行句級溯源、微編輯強制、任務特定脚手架上限與以過程為錨的評量方案。",
+    "summarySource": "machine",
+    "url": "https://www.tandfonline.com/doi/full/10.1080/10447318.2026.2745545?af=R",
+    "publishedAt": "2026-10-22T06:51:02.000Z",
+    "fetchedAt": "2026-10-26T02:47:29.405Z",
+    "issue": "2026-W43",
+    "topics": [
+      "dependence",
+      "cognition"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": "https://doi.org/10.6084/m9.figshare.34744575"
+  },
+  {
+    "id": "7be417fff90317ad",
+    "sourceId": "chb-artificial-humans",
+    "title": "Users’ perception of chatbot language fluency and hallucination",
+    "summaryOriginal": "Publication date: Available online 22 October 2026 Source: Computers in Human Behavior: Artificial Humans Author(s): Marianna A. de Sá Siqueira, Tibor Bosse, Barbara C.N. Müller",
+    "titleZhTW": "使用者對聊天機器人語言流暢度與幻覺的感知研究",
+    "summaryZhTW": "研究招募 395 位參與者進行 2×2 組間實驗，觀看《魔戒》主題的預設對話，操控聊天機器人的語言流暢度（高／低）與是否出現幻覺。結果顯示：高流暢度顯著提升感知智能，幻覺顯著降低感知智能，但流暢度不調節幻覺對智能的影響；流暢卻有幻覺的機器人，其感知智能評分與低流暢但無幻覺者無顯著差異。感知智能正向預測信任、滿意度與使用意圖。",
+    "summarySource": "machine",
+    "url": "https://www.sciencedirect.com/science/article/pii/S2949882126001659?dgcid=rss_sd_all",
+    "publishedAt": "2026-10-22T00:00:00.000Z",
+    "fetchedAt": "2026-10-26T02:47:29.405Z",
+    "issue": "2026-W43",
+    "topics": [
+      "trust"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": null
+  },
+  {
+    "id": "f097ac27581a68da",
+    "sourceId": "nature-reviews-psychology",
+    "title": "From sample diversity to interpretive convergence",
+    "summaryOriginal": "Nature Reviews Psychology, Published online: 22 October 2026; doi:10.1038/s44159-026-00636-0 Generative artificial intelligence tools are being increasingly used by scientists, especially as writing aids for researchers outside English-dominant institutions. However, these tools might narrow interpretations even when applied to increasingly diverse samples. Sampling diversity will not be enough…",
+    "titleZhTW": "生成式 AI 寫作輔助恐縮減解釋多樣性，樣本多元化效果恐打折",
+    "summaryZhTW": "《Nature Reviews Psychology》發表觀點文章指出，生成式 AI 工具雖助非英語系研究者撰寫論文，但可能導致解釋框架趨同。研究警告：若解釋多樣性流失，單靠擴大樣本多樣性無法真正拓寬行為科學視野。",
+    "summarySource": "machine",
+    "url": "https://www.nature.com/articles/s44159-026-00636-0",
+    "publishedAt": "2026-10-22T00:00:00.000Z",
+    "fetchedAt": "2026-10-26T02:47:29.405Z",
+    "issue": "2026-W43",
+    "topics": [
+      "cognition"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "restricted",
+    "openUrl": null
+  },
+  {
+    "id": "9c0ebc1677aefd58",
+    "sourceId": "behaviour-info-tech",
+    "title": "Investigating the effects of gender stereotyping on user experience in the context of fintech services",
+    "summaryOriginal": ".",
+    "titleZhTW": "性別刻板印象如何影響金融科技服務的使用者體驗",
+    "summaryZhTW": "研究透過三項實驗探討使用者對金融科技 AI 代理人的性別刻板印象。第一項研究發現，使用者對女性外觀代理人的評價普遍優於男性外觀。第二項研究操控對話風格，結果顯示不論代理人外觀，使用者都偏好女性化的對話風格。第三項研究使用更逼真且具語音功能的代理人，發現使用者偏好性別外觀與對話風格一致的代理人。",
+    "summarySource": "machine",
+    "url": "https://www.tandfonline.com/doi/full/10.1080/0144929X.2026.2745606?af=R",
+    "publishedAt": "2026-10-21T07:16:38.000Z",
+    "fetchedAt": "2026-10-26T02:47:29.405Z",
+    "issue": "2026-W43",
+    "topics": [
+      "trust"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "restricted",
+    "openUrl": null
+  },
+  {
+    "id": "7c07d3c86e1705b5",
+    "sourceId": "behaviour-info-tech",
+    "title": "Feeling discomfort with primarily AI-generated news: exploring its influence on news trust and fake news concern",
+    "summaryOriginal": ".",
+    "titleZhTW": "美民眾對 AI 主導新聞感不適 降低信任並加劇假新聞憂慮",
+    "summaryZhTW": "研究對象為 2023 名美國成年人（Reuters 代表性樣本）。透過次級資料分析發現，受訪者對「主要由 AI 生成、有人監督」的新聞感到不適，會顯著降低對新聞整體信任，並增加對假新聞的擔憂；新聞信任並在此兩者間扮演中介角色。結果顯示單純揭露 AI 參與生產流程不僅無法建立信任，反可能損害信任，建議新聞從業者須同時著手降低受眾的不適感。",
+    "summarySource": "machine",
+    "url": "https://www.tandfonline.com/doi/full/10.1080/0144929X.2026.2750893?af=R",
+    "publishedAt": "2026-10-21T05:55:43.000Z",
+    "fetchedAt": "2026-10-26T02:47:29.405Z",
+    "issue": "2026-W43",
+    "topics": [
+      "trust"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "restricted",
+    "openUrl": null
+  },
+  {
+    "id": "d6bac418d732e2ff",
+    "sourceId": "ijhci",
+    "title": "Designers’ Views on Behaviorism, Dependency Concerns and Ethics in Gamification",
+    "summaryOriginal": ".",
+    "titleZhTW": "設計師如何看待遊戲化中的行為主義、依賴風險與倫理困境",
+    "summaryZhTW": "研究採詮釋現象學分析，訪談 12 位 UI/UX 設計師與設計學生。結果顯示三大主題：參與者從美學導向轉向行為導向的設計取向轉變、在缺乏明確規範的倫理真空中摸索、以及感覺業界缺乏正式指引。研究指出建立共享設計原則或有助負責任的遊戲化實踐，但仍需更多研究才能轉化為產業標準。",
+    "summarySource": "machine",
+    "url": "https://www.tandfonline.com/doi/full/10.1080/10447318.2026.2747477?af=R",
+    "publishedAt": "2026-10-19T08:47:29.000Z",
+    "fetchedAt": "2026-10-26T02:47:29.405Z",
+    "issue": "2026-W43",
+    "topics": [
+      "dependence"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "restricted",
+    "openUrl": null
+  },
+  {
+    "id": "88a80aee0a65e278",
+    "sourceId": "ijhci",
+    "title": "“I Just Needed Someone to Listen”: A Community Discussion Analysis of Redditors’ Discourse About Using General-Purpose LLMs for Therapy",
+    "summaryOriginal": ".",
+    "titleZhTW": "Reddit 社群討論分析：大眾如何使用通用 LLM 當心理諮商替代工具",
+    "summaryZhTW": "研究質性分析 67 串 Reddit 討論（共 2948 則留言），探討使用者在什麼情境下依賴或不依賴通用大型語言模型尋求心理支持，並整理支持與反對雙方的主要論點。發現使用者常把 LLM 當作「傾聽者」與情緒出口，但也擔心幻覺、隱私與缺乏專業責任等風險，建議未來研究、設計與法規應兼顧複雜需求與潛在危害。",
+    "summarySource": "machine",
+    "url": "https://www.tandfonline.com/doi/full/10.1080/10447318.2026.2747476?af=R",
+    "publishedAt": "2026-10-19T08:45:58.000Z",
+    "fetchedAt": "2026-10-26T02:47:29.405Z",
+    "issue": "2026-W43",
+    "topics": [
+      "wellbeing",
+      "relationships"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "restricted",
+    "openUrl": null
+  },
+  {
+    "id": "90f5e39c3bc6a586",
+    "sourceId": "ijhci",
+    "title": "Who Uses Conversational AI and Why? Distinct User Profiles and Their Links to Personality, Attachment, and Well-Being",
+    "summaryOriginal": ".",
+    "titleZhTW": "誰在用對話式 AI？四類使用者畫像與人格、依附、幸福感的關聯",
+    "summaryZhTW": "研究對象為 783 位對話式 AI 使用者（平均年齡 43.46 歲），依據使用與滿足理論測量五大動機，透過潛在輪廓分析歸納出四類使用者：偶爾尋求資訊者、工具導向者、社交互動者與全方位投入者。結果顯示，神經質、外向性、宜人性與焦慮型依附能顯著預測歸屬類別；全方位投入者在情感、社交與心理三項幸福感指標皆最高，社交互動者則在情感與心理幸福感最低。",
+    "summarySource": "machine",
+    "url": "https://www.tandfonline.com/doi/full/10.1080/10447318.2026.2744846?af=R",
+    "publishedAt": "2026-10-19T06:29:21.000Z",
+    "fetchedAt": "2026-10-26T02:47:29.405Z",
+    "issue": "2026-W43",
+    "topics": [
+      "wellbeing",
+      "relationships",
+      "dependence"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "open",
+    "openUrl": "https://www.tandfonline.com/doi/pdf/10.1080/10447318.2026.2744846?needAccess=true"
+  },
+  {
+    "id": "1cc6409816150886",
+    "sourceId": "nature-mental-health",
+    "title": "Improving safety frameworks for generative AI and youth well-being policy",
+    "summaryOriginal": "Nature Mental Health, Published online: 19 October 2026; doi:10.1038/s44220-026-00735-0 This Perspective evaluates youth well-being policies within AI governance, identifying gaps between ethical frameworks and practical applications. Recommendations emphasize culturally responsive design and trauma-informed approaches to enhance user safety and address developmental needs effectively.",
+    "titleZhTW": "生成式 AI 安全框架與青少年福祉政策的落差分析",
+    "summaryZhTW": "賓州大學 SAFELab 團隊以政策分析方式，檢視 OpenAI、Google、Microsoft、Meta 及 Character.AI 五大平台在提示回應、教育支援、社會脈絡、文化回應設計與年齡適切互動等面向的治理實踐。研究發現現行倫理框架雖訂有防害政策，但與青少年發展、社會及文化需求的實際運作仍有顯著落差，建議建立並嚴格執行具文化回應與創傷知情設計的標準，以減少對青少年用戶的潛在傷害。",
+    "summarySource": "machine",
+    "url": "https://www.nature.com/articles/s44220-026-00735-0",
+    "publishedAt": "2026-10-19T00:00:00.000Z",
+    "fetchedAt": "2026-10-26T02:47:29.405Z",
+    "issue": "2026-W43",
+    "topics": [
+      "wellbeing"
+    ],
+    "region": "GLOBAL",
+    "language": "en",
+    "access": "restricted",
+    "openUrl": null
+  },
+  {
     "id": "9bf29fdde55f6457",
     "sourceId": "chb-reports",
     "title": "Self-disclosure context and parasocial relationship in LLM-based chatbot interaction: The role of mind perception",
